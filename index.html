@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.6.5 — copie ponctuelle des objectifs de N-1 vers la date sélectionnée N -->
+<!-- Avoda Hachem — Version V5.6.5 — copie ponctuelle N-1 → N, bouton visuel -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -23,7 +23,7 @@ button{font:inherit}.date-nav button,.tab,.period{border:1px solid #d8d1c8;backg
 .add,.edit-form{display:grid;grid-template-columns:1.5fr .8fr .7fr 1fr auto;gap:8px;padding:12px 14px;border-top:1px solid #eee9e2;background:#faf8f4}
 input,textarea,select{font:inherit;font-size:16px;color:inherit;background:#fbfaf7;border:1px solid #d7d0c7;border-radius:11px;padding:10px 11px;min-width:0}
 textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0;border-radius:11px;min-height:44px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700}
-.btn.secondary{background:#e9e4db;color:inherit}.btn.ghost{background:transparent;color:var(--muted);border:1px solid #d8d1c8}.btn.full{width:100%;font-size:16px}
+.btn.secondary{background:#e9e4db;color:inherit}.btn.ghost{background:transparent;color:var(--muted);border:1px solid #d8d1c8}.btn.full{width:100%;font-size:16px}.copy-prev-btn{margin:14px 0 4px;background:var(--accent);color:#fff;border-radius:16px;padding:14px 16px;min-height:64px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 12px rgba(34,81,63,.18)}.copy-prev-btn .copy-main{font-size:17px;font-weight:800;line-height:1.2}.copy-prev-btn .copy-sub{display:block;font-size:12px;font-weight:600;opacity:.82;margin-top:3px}.copy-prev-btn:active{transform:translateY(1px);box-shadow:0 2px 7px rgba(34,81,63,.16)}
 .manage{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.manage button{border:1px solid #d8d1c8;background:#fff;border-radius:9px;padding:6px 9px;font-size:12px;color:var(--muted)}
 .status{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.status button{border:1px solid #d5cfc6;background:transparent;color:inherit;border-radius:10px;padding:8px 10px;min-height:40px}
 .status button.active[data-v=very_good]{background:var(--good)}.status button.active[data-v=correct]{background:#e8e4d9}.status button.active[data-v=work]{background:var(--warn)}.status button.active[data-v=fail]{background:var(--bad)}
@@ -121,7 +121,7 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 
   <section id="objectives" class="panel active">
     <div class="hero">Les objectifs de la veille ne sont jamais repris automatiquement. Si tu le souhaites, utilise le bouton ci-dessous : il effectue un simple copier-coller ponctuel des objectifs de <strong>N-1</strong> vers la date sélectionnée <strong>N</strong>, pour ce compte uniquement.</div>
-    <button id="copyPrevGoalsBtn" class="btn secondary full" type="button">Reprendre les objectifs de N-1</button>
+    <button id="copyPrevGoalsBtn" class="btn full copy-prev-btn" type="button"><span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs de N-1</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span></button>
     <div id="copyPrevGoalsMsg" class="msg"></div>
     <div id="objectiveCategories"></div>
     <button id="goEvening" class="btn full">Passer au bilan du soir</button>
@@ -380,6 +380,7 @@ const BERAKHOT_VARIABLE = [
 function todayISO(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function shiftDate(iso,n){const [y,m,d]=iso.split("-").map(Number),x=new Date(y,m-1,d);x.setDate(x.getDate()+n);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`}
 function pretty(iso){const [y,m,d]=iso.split("-").map(Number);return new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date(y,m-1,d)).replace(/^./,c=>c.toUpperCase())}
+function prettyShort(iso){const [y,m,d]=iso.split("-").map(Number);return new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long"}).format(new Date(y,m-1,d))}
 function catMeta(k){return CATS.find(c=>c.key===k)}function msg(id,t){document.getElementById(id).textContent=t}
 function pct(a,b){return b>0?Math.round(a/b*100):0}
 function isPastDay(){return currentDay<todayISO()}
@@ -711,7 +712,7 @@ async function loadDay(){
  if(dayDraftDirty) await saveDayDraft();
  document.getElementById("currentDate").textContent=pretty(currentDay);
  const copyPrevBtn=document.getElementById("copyPrevGoalsBtn");
- if(copyPrevBtn)copyPrevBtn.textContent=`Reprendre les objectifs du ${pretty(shiftDate(currentDay,-1))}`;
+ if(copyPrevBtn){const prevLabel=prettyShort(shiftDate(currentDay,-1));copyPrevBtn.innerHTML=`<span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs du ${prevLabel}</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span>`;}
  const copyPrevMsg=document.getElementById("copyPrevGoalsMsg");if(copyPrevMsg)copyPrevMsg.textContent="";
  await ensureDay();
  let r=await supabase.from("daily_goals").select("*").eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
