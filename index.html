@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.6.5 — reprise manuelle des objectifs de N-1 selon la date sélectionnée -->
+<!-- Avoda Hachem — Version V5.6.5 — copie ponctuelle des objectifs de N-1 vers la date sélectionnée N -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -84,13 +84,11 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 .top-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .profile-read{padding:14px}.profile-row{display:grid;grid-template-columns:150px 1fr;gap:10px;padding:10px 0;border-top:1px solid #eee9e2}.profile-row:first-child{border-top:0}.profile-label{font-size:13px;color:var(--muted);font-weight:700}.profile-value{font-size:15px;font-weight:650;overflow-wrap:anywhere}
 .family-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.family-member{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}.family-member.me{border-width:2px}.family-member-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.family-avatar{width:46px;height:46px;border-radius:15px;background:var(--soft);display:grid;place-items:center;font-size:22px}.family-name{font-weight:800;font-size:17px}.family-email{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.family-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.family-pill{font-size:11px;background:#f1ede6;border-radius:999px;padding:5px 8px}.family-empty{padding:18px;text-align:center;color:var(--muted)}
-.confirm-banner{display:none;margin:14px auto;max-width:760px;background:#eef7f0;border:1px solid #bdd8c4;border-radius:16px;padding:14px 16px;color:#234d31;font-weight:700}.confirm-banner.show{display:block}.confirm-banner button{margin-left:10px}
 @media(max-width:700px){.identity-badge{max-width:190px}.identity-badge .identity-email{display:none}.family-grid{grid-template-columns:1fr}.profile-row{grid-template-columns:1fr;gap:3px}.top{align-items:flex-start}}
 </style>
 </head>
 <body>
 <div class="app">
-<div id="confirmBanner" class="confirm-banner">✅ Email confirmé. Ton accès Avoda Hachem est maintenant activé. <button id="confirmBannerBtn" class="btn" type="button">Continuer</button></div>
 <section id="authView" class="auth">
   <div class="card">
     <h1>Avoda Hachem</h1>
@@ -122,11 +120,9 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
   </div>
 
   <section id="objectives" class="panel active">
-    <div class="hero">
-      <div><strong>La sélection de cette journée reste indépendante.</strong> Rien n’est repris automatiquement.</div>
-      <div style="margin-top:10px"><button id="copyPrevGoalsBtn" class="btn secondary" type="button">↩️ Reprendre les objectifs de N-1</button></div>
-      <div id="copyPrevGoalsMsg" class="small" style="margin-top:8px"></div>
-    </div>
+    <div class="hero">Les objectifs de la veille ne sont jamais repris automatiquement. Si tu le souhaites, utilise le bouton ci-dessous : il effectue un simple copier-coller ponctuel des objectifs de <strong>N-1</strong> vers la date sélectionnée <strong>N</strong>, pour ce compte uniquement.</div>
+    <button id="copyPrevGoalsBtn" class="btn secondary full" type="button">Reprendre les objectifs de N-1</button>
+    <div id="copyPrevGoalsMsg" class="msg"></div>
     <div id="objectiveCategories"></div>
     <button id="goEvening" class="btn full">Passer au bilan du soir</button>
   </section>
@@ -468,9 +464,9 @@ let ensureDayPromise=null;
 async function ensureDay(){
  if(ensureDayPromise)return ensureDayPromise;
  ensureDayPromise=(async()=>{
-  // V5.6.5 : la date sélectionnée (currentDay) est la seule date N de référence.
-  // Aucun objectif de N-1 n'est repris automatiquement : la reprise est volontaire via le bouton dédié.
-  let r=await supabase.from("days").select("*").eq("day",currentDay).maybeSingle();
+  // N est toujours la date sélectionnée dans l’application.
+  // Charger/créer N ne doit jamais modifier N-1 ni recopier quoi que ce soit automatiquement.
+  let r=await supabase.from("days").select("*").eq("user_id",user.id).eq("day",currentDay).maybeSingle();
   if(!r.data){
    const ins=await supabase.from("days").insert({user_id:user.id,day:currentDay}).select().single();
    dayRow=ins.data;
@@ -479,94 +475,51 @@ async function ensureDay(){
  try{return await ensureDayPromise}finally{ensureDayPromise=null}
 }
 
-function updatePreviousGoalsButton(){
- const btn=document.getElementById("copyPrevGoalsBtn");
- const note=document.getElementById("copyPrevGoalsMsg");
- if(!btn)return;
- const prevDay=shiftDate(currentDay,-1);
- btn.textContent=`↩️ Reprendre les objectifs du ${pretty(prevDay)}`;
- btn.disabled=!user||!dayRow;
- if(note)note.textContent=`Date sélectionnée N : ${pretty(currentDay)} • Référence N-1 : ${pretty(prevDay)}`;
-}
-
 async function copyPreviousDayGoals(){
- const btn=document.getElementById("copyPrevGoalsBtn");
- const note=document.getElementById("copyPrevGoalsMsg");
  if(!user||!dayRow)return;
- const selectedDay=currentDay;
- const selectedDayId=dayRow.id;
- const prevDay=shiftDate(selectedDay,-1);
+ const btn=document.getElementById("copyPrevGoalsBtn"),msgEl=document.getElementById("copyPrevGoalsMsg");
+ const n=currentDay,prev=shiftDate(n,-1);
  if(btn)btn.disabled=true;
- if(note)note.textContent=`Lecture des objectifs du ${pretty(prevDay)}…`;
+ if(msgEl)msgEl.textContent=`Copie des objectifs du ${pretty(prev)}…`;
  try{
-  // Sécurité multi-utilisateur : N-1 doit appartenir au même user_id que le compte connecté.
-  const pr=await supabase.from("days").select("id,user_id,day").eq("user_id",user.id).eq("day",prevDay).maybeSingle();
+  // READ uniquement sur N-1, avec le même utilisateur connecté.
+  const pr=await supabase.from("days").select("id").eq("user_id",user.id).eq("day",prev).maybeSingle();
+  let prevRows=[];
   if(pr.error)throw pr.error;
-  if(!pr.data){
-   if(note)note.textContent=`Aucune journée enregistrée le ${pretty(prevDay)} pour ce compte.`;
-   return;
+  if(pr.data){
+   const pd=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",pr.data.id).eq("planned",true);
+   if(pd.error)throw pd.error;
+   prevRows=pd.data||[];
   }
 
-  const pd=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",pr.data.id).eq("planned",true).order("id");
-  if(pd.error)throw pd.error;
+  // WRITE uniquement sur N. On conserve les lignes historiques de N mais on remet
+  // d’abord leur planification à false, puis on active la sélection copiée de N-1.
+  const clear=await supabase.from("daily_goals").update({planned:false}).eq("user_id",user.id).eq("day_id",dayRow.id).eq("planned",true);
+  if(clear.error)throw clear.error;
 
-  // Seuls les objectifs encore actifs du même utilisateur peuvent être repris.
   const activeById=new Map(goals.map(g=>[String(g.id),g]));
-  const previous=(pd.data||[]).filter(x=>x.goal_id!=null&&activeById.has(String(x.goal_id)));
-  const previousIds=new Set(previous.map(x=>String(x.goal_id)));
-
-  const cr=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",selectedDayId).order("id");
-  if(cr.error)throw cr.error;
-  const currentRows=cr.data||[];
-
-  // Le clic est volontaire : la sélection de N devient exactement celle de N-1.
-  // On conserve les lignes historiques et leurs résultats ; on ne fait que changer planned.
-  for(const row of currentRows){
-   if(row.goal_id==null)continue;
-   const shouldBePlanned=previousIds.has(String(row.goal_id));
-   if(Boolean(row.planned)!==shouldBePlanned){
-    const ur=await supabase.from("daily_goals").update({planned:shouldBePlanned}).eq("id",row.id).eq("user_id",user.id);
-    if(ur.error)throw ur.error;
-   }
+  const copies=prevRows.map(x=>{
+   const g=activeById.get(String(x.goal_id));
+   if(!g)return null; // un objectif désactivé/supprimé ne revient pas par la copie
+   return {
+    user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,
+    target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id??null,
+    time_operator:g.time_operator??null,time_target_minutes:g.time_target_minutes??null
+   };
+  }).filter(Boolean);
+  if(copies.length){
+   const up=await supabase.from("daily_goals").upsert(copies,{onConflict:"user_id,day_id,goal_id"});
+   if(up.error)throw up.error;
   }
-
-  const currentByGoal=new Map(currentRows.filter(x=>x.goal_id!=null).map(x=>[String(x.goal_id),x]));
-  for(const src of previous){
-   const key=String(src.goal_id);
-   if(currentByGoal.has(key))continue;
-   const g=activeById.get(key);
-   const ir=await supabase.from("daily_goals").insert({
-    user_id:user.id,
-    day_id:selectedDayId,
-    goal_id:src.goal_id,
-    goal_name:g?.name||src.goal_name,
-    category:g?.category||src.category,
-    goal_type:g?.goal_type||src.goal_type,
-    planned:true,
-    target_value:g?.target_value??src.target_value,
-    unit:g?.unit??src.unit,
-    priority:g?.priority!==false,
-    time_category_id:g?.time_category_id??src.time_category_id??null,
-    time_operator:g?.time_operator??src.time_operator??null,
-    time_target_minutes:g?.time_target_minutes??src.time_target_minutes??null
-   });
-   if(ir.error)throw ir.error;
-  }
-
-  // Protection contre un changement de date pendant l'opération.
-  if(currentDay===selectedDay){
-   await loadDay();
-   const count=previousIds.size;
-   const msg=document.getElementById("copyPrevGoalsMsg");
-   if(msg)msg.textContent=`✅ ${count} objectif${count>1?"s":""} repris du ${pretty(prevDay)}. Tu peux maintenant modifier ${pretty(selectedDay)} librement.`;
-  }
+  if(msgEl)msgEl.textContent=copies.length
+   ?`✅ ${copies.length} objectif${copies.length>1?"s":""} copié${copies.length>1?"s":""} du ${pretty(prev)} vers le ${pretty(n)}. Les deux journées restent indépendantes.`
+   :`Aucun objectif coché à copier depuis le ${pretty(prev)}.`;
+  await loadDay();
  }catch(err){
-  console.error("copyPreviousDayGoals",err);
-  if(note)note.textContent=`⚠️ Reprise impossible : ${err?.message||err}`;
- }finally{
-  if(btn&&currentDay===selectedDay)btn.disabled=false;
- }
+  if(msgEl)msgEl.textContent="Erreur pendant la copie : "+(err?.message||err);
+ }finally{if(btn)btn.disabled=false}
 }
+
 
 async function ensureBerakhotDay(){
   if(!dayRow)return;
@@ -756,8 +709,11 @@ function bindDayDraftAutosave(){
 
 async function loadDay(){
  if(dayDraftDirty) await saveDayDraft();
- document.getElementById("currentDate").textContent=pretty(currentDay);await ensureDay();
- updatePreviousGoalsButton();
+ document.getElementById("currentDate").textContent=pretty(currentDay);
+ const copyPrevBtn=document.getElementById("copyPrevGoalsBtn");
+ if(copyPrevBtn)copyPrevBtn.textContent=`Reprendre les objectifs du ${pretty(shiftDate(currentDay,-1))}`;
+ const copyPrevMsg=document.getElementById("copyPrevGoalsMsg");if(copyPrevMsg)copyPrevMsg.textContent="";
+ await ensureDay();
  let r=await supabase.from("daily_goals").select("*").eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
  if(currentDay===todayISO()){
    const review=goals.find(g=>g.category==="service_hachem"&&isDailyReviewGoal(g));
@@ -990,41 +946,41 @@ function renderObjectives(){
  const past=isPastDay();
  CATS.forEach(cat=>{
   const catGoals=goals.filter(g=>g.category===cat.key), selectedCount=catGoals.filter(g=>dailyGoals.some(x=>x.planned&&x.goal_id===g.id)).length;
-  const card=document.createElement("div");card.className="category"+(past?" locked":"");card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>${past?'<div class="note locked-note">🔒 Les objectifs déjà enregistrés pour cette journée restent figés. Tu peux toutefois ajouter aujourd’hui un objectif de la bibliothèque à cette date passée afin de saisir le réel.</div>':""}`;
+  const card=document.createElement("div");card.className="category";card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
   catGoals.forEach(g=>{
    const selected=dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
    const cb=row.querySelector(".goal-line > input");
-   if(past&&selected){
-    cb.disabled=true;
-    row.querySelector(".manage").innerHTML=isBerakhotGoal(g)?'<button type="button" data-act="counter">💯 Compteur</button>':"";
-    const pc=row.querySelector(".priorityCheck");if(pc)pc.disabled=true;
-   } else if(past&&!selected){
-    // Un objectif de la bibliothèque actuelle peut être rattaché après coup au jour passé.
-    cb.disabled=false;
-    cb.addEventListener("change",async e=>{
-     if(e.target.checked){
-      await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
-      await loadDay();
+   // La sélection d’objectifs appartient uniquement à la date sélectionnée N.
+   // Même sur une date passée, elle reste modifiable : aucune copie N-1 -> N ne crée de gel.
+   cb.disabled=false;
+   cb.addEventListener("change",async e=>{
+    if(e.target.checked){
+     const existing=dailyGoals.find(x=>String(x.goal_id)===String(g.id));
+     if(existing){
+      await supabase.from("daily_goals").update({planned:true,goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null}).eq("user_id",user.id).eq("id",existing.id);
+     }else{
+      await supabase.from("daily_goals").insert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null});
      }
-    });
+    }else{
+     // On conserve la ligne historique et ses résultats éventuels ; seule la planification de N change.
+     await supabase.from("daily_goals").update({planned:false}).eq("user_id",user.id).eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
+    }
+    await loadDay();
+   });
+
+   // Sur une date passée, on autorise la sélection/désélection mais on évite de modifier
+   // la définition globale de l’objectif depuis cette vue historique.
+   if(past){
     const manage=row.querySelector(".manage");
-    manage.innerHTML=`${isBerakhotGoal(g)?'<button type="button" data-act="counter">💯 Compteur</button>':""}<button type="button" data-act="adapt">Adapter + ajouter</button>`;
-    row.querySelector(".priorityCheck").disabled=true;
-    row.querySelector('[data-act="adapt"]').addEventListener("click",()=>addPastGoalForm(g,card,row));
-   } else {
-    cb.addEventListener("change",async e=>{
-     if(e.target.checked) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
-     else await supabase.from("daily_goals").delete().eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
-     await loadDay();
-    });
+    manage.innerHTML=isBerakhotGoal(g)?'<button type="button" data-act="counter">💯 Compteur</button>':"";
+    const pc=row.querySelector(".priorityCheck");if(pc)pc.disabled=true;
+   }else{
     row.querySelector(".priorityCheck").addEventListener("change",async e=>{await supabase.from("goals").update({priority:e.target.checked}).eq("id",g.id);await supabase.from("daily_goals").update({priority:e.target.checked}).eq("day_id",dayRow.id).eq("goal_id",g.id);await refreshGoals();await loadDay()});
     row.querySelector('[data-act="edit"]').addEventListener("click",()=>editForm(g,card,row));
     row.querySelector('[data-act="disable"]').addEventListener("click",async()=>{
      await supabase.from("goals").update({active:false}).eq("id",g.id);
-     // On garde la ligne du jour en historique, mais elle n'est plus planifiée :
-     // elle disparaît du bilan et ne sera pas recopiée demain.
      if(dayRow)await supabase.from("daily_goals").update({planned:false}).eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
-     await refreshGoals();await loadDay()
+     await refreshGoals();await loadDay();
     });
    }
    const counterBtn=row.querySelector('[data-act="counter"]'); if(counterBtn) counterBtn.addEventListener("click",()=>setPanel("berakhot"));
@@ -1035,13 +991,14 @@ function renderObjectives(){
    form.innerHTML=`<input placeholder="Nouvel objectif"><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button>`;
    form.addEventListener("submit",async e=>{e.preventDefault();const name=form.children[0].value.trim(),type=form.children[1].value,target=form.children[2].value,unit=form.children[3].value.trim();if(!name)return;
     const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:type==="global"?null:(target===""?null:Number(target)),unit:type==="global"?null:(unit||null),objective_key:name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_"),priority:true}).select().single();
-    if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
+    if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id"});
     await refreshGoals();await loadDay();
    }); card.appendChild(form);
   }
   host.appendChild(card);
  });
 }
+
 function renderEvening(){
  const host=document.getElementById("eveningCategories");host.innerHTML="";
  if(isPastDay()){
@@ -1433,32 +1390,7 @@ async function renderFamily(){
 }
 function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily()}
 document.getElementById("loginBtn").addEventListener("click",async()=>{const {error}=await supabase.auth.signInWithPassword({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value});msg("authMsg",error?error.message:"Connexion réussie")});
-function emailConfirmationRedirect(){
- const base=`${window.location.origin}${window.location.pathname}`;
- return `${base}?email_confirmed=1`;
-}
-function showEmailConfirmationIfNeeded(){
- const params=new URLSearchParams(window.location.search);
- if(params.get("email_confirmed")!=="1")return;
- document.getElementById("confirmBanner").classList.add("show");
-}
-document.getElementById("confirmBannerBtn").addEventListener("click",()=>{
- document.getElementById("confirmBanner").classList.remove("show");
- const clean=`${window.location.origin}${window.location.pathname}`;
- window.history.replaceState({},"",clean);
-});
-document.getElementById("signupBtn").addEventListener("click",async()=>{
- const email=document.getElementById("email").value.trim();
- const p=document.getElementById("password").value;
- if(p.length<6){msg("authMsg","Mot de passe : 6 caractères minimum.");return}
- const {data,error}=await supabase.auth.signUp({
-   email,
-   password:p,
-   options:{emailRedirectTo:emailConfirmationRedirect()}
- });
- if(error){msg("authMsg",error.message);return}
- msg("authMsg",data.session?"Compte créé et connecté.":`Compte créé pour ${email}. Vérifie l’e-mail de confirmation puis clique sur le lien reçu.`);
-});
+document.getElementById("signupBtn").addEventListener("click",async()=>{const p=document.getElementById("password").value;if(p.length<6){msg("authMsg","Mot de passe : 6 caractères minimum.");return}const {data,error}=await supabase.auth.signUp({email:document.getElementById("email").value.trim(),password:p});if(error){msg("authMsg",error.message);return}msg("authMsg",data.session?"Compte créé et connecté.":"Compte créé. Vérifie ton e-mail puis reviens te connecter.");/* onAuthStateChange initialise la session */});
 document.getElementById("logoutBtn").addEventListener("click",async()=>{
  const {error}=await supabase.auth.signOut();
  if(error){msg("authMsg",error.message);return}
@@ -1481,7 +1413,6 @@ supabase.auth.onAuthStateChange((_event,session)=>{
  // La session est fournie par Supabase : ne pas rappeler getSession() depuis le callback.
  setTimeout(()=>{if(session)authRefresh(session);else showSignedOut()},0);
 });
-showEmailConfirmationIfNeeded();
 authRefresh();
 </script>
 </body>
