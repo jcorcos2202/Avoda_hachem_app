@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem V5.0.4 - correction index upsert + autosauvegarde complete -->
+  <!-- Avoda Hachem — Version V5.6.5 — propagation fiable des objectifs J→J+1 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V5.0.4</title>
+<title>Avoda Hachem V5.6.5</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -84,13 +84,11 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 .top-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .profile-read{padding:14px}.profile-row{display:grid;grid-template-columns:150px 1fr;gap:10px;padding:10px 0;border-top:1px solid #eee9e2}.profile-row:first-child{border-top:0}.profile-label{font-size:13px;color:var(--muted);font-weight:700}.profile-value{font-size:15px;font-weight:650;overflow-wrap:anywhere}
 .family-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.family-member{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}.family-member.me{border-width:2px}.family-member-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.family-avatar{width:46px;height:46px;border-radius:15px;background:var(--soft);display:grid;place-items:center;font-size:22px}.family-name{font-weight:800;font-size:17px}.family-email{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.family-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.family-pill{font-size:11px;background:#f1ede6;border-radius:999px;padding:5px 8px}.family-empty{padding:18px;text-align:center;color:var(--muted)}
-.confirm-banner{display:none;margin:14px auto;max-width:760px;background:#eef7f0;border:1px solid #bdd8c4;border-radius:16px;padding:14px 16px;color:#234d31;font-weight:700}.confirm-banner.show{display:block}.confirm-banner button{margin-left:10px}
 @media(max-width:700px){.identity-badge{max-width:190px}.identity-badge .identity-email{display:none}.family-grid{grid-template-columns:1fr}.profile-row{grid-template-columns:1fr;gap:3px}.top{align-items:flex-start}}
 </style>
 </head>
 <body>
 <div class="app">
-<div id="confirmBanner" class="confirm-banner">✅ Email confirmé. Ton accès Avoda Hachem est maintenant activé. <button id="confirmBannerBtn" class="btn" type="button">Continuer</button></div>
 <section id="authView" class="auth">
   <div class="card">
     <h1>Avoda Hachem</h1>
@@ -464,22 +462,27 @@ let ensureDayPromise=null;
 async function ensureDay(){
  if(ensureDayPromise)return ensureDayPromise;
  ensureDayPromise=(async()=>{
- let r=await supabase.from("days").select("*").eq("user_id",user.id).eq("day",currentDay).maybeSingle();
- if(!r.data){
-  const ins=await supabase.from("days").insert({user_id:user.id,day:currentDay}).select().single();dayRow=ins.data;
-  const prev=shiftDate(currentDay,-1),pr=await supabase.from("days").select("id").eq("user_id",user.id).eq("day",prev).maybeSingle();
-  if(pr.data){
-   const pd=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",pr.data.id).eq("planned",true);
-   if(pd.data?.length){
-    const copies=pd.data.map(x=>{
-      const g=goals.find(z=>z.id===x.goal_id);
-      if(!g)return null; // objectif désactivé/supprimé : ne jamais le propager au jour suivant
-      return {user_id:user.id,day_id:dayRow.id,goal_id:x.goal_id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id??null,time_operator:g.time_operator??null,time_target_minutes:g.time_target_minutes??null}
-    }).filter(Boolean);
-    if(copies.length)await supabase.from("daily_goals").upsert(copies,{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
-   }
+  let r=await supabase.from("days").select("*").eq("day",currentDay).maybeSingle();
+  if(!r.data){
+   const ins=await supabase.from("days").insert({user_id:user.id,day:currentDay}).select().single();dayRow=ins.data;
+  }else dayRow=r.data;
+
+  // V5.6.5 : synchroniser les objectifs cochés la veille même si la journée J+1
+  // existait déjà. Une ligne planned=false signifie un décochage volontaire à J+1
+  // et empêche donc sa réapparition automatique.
+  const prev=shiftDate(currentDay,-1),pr=await supabase.from("days").select("id").eq("day",prev).maybeSingle();
+  if(pr.data&&dayRow){
+   const pd=await supabase.from("daily_goals").select("*").eq("day_id",pr.data.id).eq("planned",true);
+   const cd=await supabase.from("daily_goals").select("goal_id,planned").eq("day_id",dayRow.id);
+   const existing=new Set((cd.data||[]).filter(x=>x.goal_id!=null).map(x=>String(x.goal_id)));
+   const copies=(pd.data||[]).map(x=>{
+    if(x.goal_id==null||existing.has(String(x.goal_id)))return null;
+    const g=goals.find(z=>String(z.id)===String(x.goal_id));
+    if(!g)return null; // objectif désactivé/supprimé : ne jamais le propager
+    return {user_id:user.id,day_id:dayRow.id,goal_id:x.goal_id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id??null,time_operator:g.time_operator??null,time_target_minutes:g.time_target_minutes??null};
+   }).filter(Boolean);
+   if(copies.length)await supabase.from("daily_goals").upsert(copies,{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
   }
- }else dayRow=r.data;
  })();
  try{return await ensureDayPromise}finally{ensureDayPromise=null}
 }
@@ -929,7 +932,7 @@ function renderObjectives(){
    } else {
     cb.addEventListener("change",async e=>{
      if(e.target.checked) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
-     else await supabase.from("daily_goals").delete().eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
+     else await supabase.from("daily_goals").update({planned:false}).eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
      await loadDay();
     });
     row.querySelector(".priorityCheck").addEventListener("change",async e=>{await supabase.from("goals").update({priority:e.target.checked}).eq("id",g.id);await supabase.from("daily_goals").update({priority:e.target.checked}).eq("day_id",dayRow.id).eq("goal_id",g.id);await refreshGoals();await loadDay()});
@@ -1348,32 +1351,7 @@ async function renderFamily(){
 }
 function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily()}
 document.getElementById("loginBtn").addEventListener("click",async()=>{const {error}=await supabase.auth.signInWithPassword({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value});msg("authMsg",error?error.message:"Connexion réussie")});
-function emailConfirmationRedirect(){
- const base=`${window.location.origin}${window.location.pathname}`;
- return `${base}?email_confirmed=1`;
-}
-function showEmailConfirmationIfNeeded(){
- const params=new URLSearchParams(window.location.search);
- if(params.get("email_confirmed")!=="1")return;
- document.getElementById("confirmBanner").classList.add("show");
-}
-document.getElementById("confirmBannerBtn").addEventListener("click",()=>{
- document.getElementById("confirmBanner").classList.remove("show");
- const clean=`${window.location.origin}${window.location.pathname}`;
- window.history.replaceState({},"",clean);
-});
-document.getElementById("signupBtn").addEventListener("click",async()=>{
- const email=document.getElementById("email").value.trim();
- const p=document.getElementById("password").value;
- if(p.length<6){msg("authMsg","Mot de passe : 6 caractères minimum.");return}
- const {data,error}=await supabase.auth.signUp({
-   email,
-   password:p,
-   options:{emailRedirectTo:emailConfirmationRedirect()}
- });
- if(error){msg("authMsg",error.message);return}
- msg("authMsg",data.session?"Compte créé et connecté.":`Compte créé pour ${email}. Vérifie l’e-mail de confirmation puis clique sur le lien reçu.`);
-});
+document.getElementById("signupBtn").addEventListener("click",async()=>{const p=document.getElementById("password").value;if(p.length<6){msg("authMsg","Mot de passe : 6 caractères minimum.");return}const {data,error}=await supabase.auth.signUp({email:document.getElementById("email").value.trim(),password:p});if(error){msg("authMsg",error.message);return}msg("authMsg",data.session?"Compte créé et connecté.":"Compte créé. Vérifie ton e-mail puis reviens te connecter.");/* onAuthStateChange initialise la session */});
 document.getElementById("logoutBtn").addEventListener("click",async()=>{
  const {error}=await supabase.auth.signOut();
  if(error){msg("authMsg",error.message);return}
@@ -1395,7 +1373,6 @@ supabase.auth.onAuthStateChange((_event,session)=>{
  // La session est fournie par Supabase : ne pas rappeler getSession() depuis le callback.
  setTimeout(()=>{if(session)authRefresh(session);else showSignedOut()},0);
 });
-showEmailConfirmationIfNeeded();
 authRefresh();
 </script>
 </body>
