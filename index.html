@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.6.5 — copie ponctuelle N-1 → N, bouton visuel -->
+<!-- Avoda Hachem — Version V5.6.6 — optimisation des chargements + indicateur visuel -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V5.6.5</title>
+<title>Avoda Hachem V5.6.6</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -85,9 +85,13 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 .profile-read{padding:14px}.profile-row{display:grid;grid-template-columns:150px 1fr;gap:10px;padding:10px 0;border-top:1px solid #eee9e2}.profile-row:first-child{border-top:0}.profile-label{font-size:13px;color:var(--muted);font-weight:700}.profile-value{font-size:15px;font-weight:650;overflow-wrap:anywhere}
 .family-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.family-member{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}.family-member.me{border-width:2px}.family-member-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.family-avatar{width:46px;height:46px;border-radius:15px;background:var(--soft);display:grid;place-items:center;font-size:22px}.family-name{font-weight:800;font-size:17px}.family-email{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.family-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.family-pill{font-size:11px;background:#f1ede6;border-radius:999px;padding:5px 8px}.family-empty{padding:18px;text-align:center;color:var(--muted)}
 @media(max-width:700px){.identity-badge{max-width:190px}.identity-badge .identity-email{display:none}.family-grid{grid-template-columns:1fr}.profile-row{grid-template-columns:1fr;gap:3px}.top{align-items:flex-start}}
+
+/* V5.6.6 — indicateur global de chargement */
+.loading-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(245,242,236,.68);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:20px}.loading-overlay.active{display:flex!important}.loading-box{background:#24483a;color:#fff;border:2px solid #fff;border-radius:18px;box-shadow:0 12px 38px rgba(32,36,40,.28);padding:17px 22px;display:flex;align-items:center;gap:12px;font-weight:800}.loading-hourglass{font-size:28px;display:inline-block;animation:loadingFlip 1.15s ease-in-out infinite}.loading-text{font-size:14px}.loading-overlay[aria-hidden="true"]{pointer-events:none}@keyframes loadingFlip{0%,45%{transform:rotate(0deg)}55%,100%{transform:rotate(180deg)}}
 </style>
 </head>
 <body>
+<div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
 <div class="app">
 <section id="authView" class="auth">
   <div class="card">
@@ -388,6 +392,23 @@ function isBerakhotGoal(x){return (x.goal_name||x.name||"").toLowerCase().includ
 function isDailyReviewGoal(x){return (x.goal_name||x.name||"").toLowerCase().includes("bilan du jour")}
 function scoreRow(r){if(r.time_category_id&&r.time_operator)return r.result==="done"?100:r.result==="missed"?0:null;if(r.goal_type==="precise"){const t=Number(r.target_value||0),a=Number(r.actual_value||0);return t>0?Math.min(100,Math.round(a/t*100)):null}const m={very_good:100,correct:80,work:45,fail:0};return r.result in m?m[r.result]:null}
 function escapeHtml(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+let loadingDepth=0,loadingShownAt=0,loadingHideTimer=null;
+function showLoading(text="Chargement…"){
+ loadingDepth++;
+ if(loadingHideTimer){clearTimeout(loadingHideTimer);loadingHideTimer=null;}
+ const overlay=document.getElementById("loadingOverlay"),label=document.getElementById("loadingText");
+ if(label)label.textContent=text;
+ if(overlay){loadingShownAt=Date.now();overlay.classList.add("active");overlay.style.display="flex";overlay.setAttribute("aria-hidden","false");void overlay.offsetHeight;}
+}
+function hideLoading(){
+ loadingDepth=Math.max(0,loadingDepth-1);
+ if(loadingDepth>0)return;
+ const overlay=document.getElementById("loadingOverlay");
+ if(!overlay)return;
+ const remaining=Math.max(0,550-(Date.now()-loadingShownAt));
+ loadingHideTimer=setTimeout(()=>{if(loadingDepth===0){overlay.classList.remove("active");overlay.style.display="none";overlay.setAttribute("aria-hidden","true");}loadingHideTimer=null;},remaining);
+}
+async function withLoading(text,fn){showLoading(text);try{return await fn()}finally{hideLoading()}}
 function cleanLegacy(name){
  const map={
   "Chema bizmana matin et soir":"Chema bizmana",
@@ -408,13 +429,15 @@ function cleanLegacy(name){
  };return map[name]||name;
 }
 async function normalizeLegacyGoals(){
- const r=await supabase.from("goals").select("*");
- for(const g of (r.data||[])){const n=cleanLegacy(g.name);if(n!==g.name){await supabase.from("goals").update({name:n}).eq("id",g.id)}}
+ const r=await supabase.from("goals").select("*").eq("user_id",user.id);
+ const updates=[];
+ for(const g of (r.data||[])){const n=cleanLegacy(g.name);if(n!==g.name)updates.push(supabase.from("goals").update({name:n}).eq("id",g.id).eq("user_id",user.id));}
+ if(updates.length)await Promise.all(updates);
 }
-async function refreshGoals(){const r=await supabase.from("goals").select("*").eq("active",true).order("id");goals=r.data||[]}
+async function refreshGoals(){const r=await supabase.from("goals").select("*").eq("user_id",user.id).eq("active",true).order("id");goals=r.data||[]}
 async function refreshEvents(){
  if(!dayRow){dayEvents=[];eventLibrary=[];return}
- const r=await supabase.from("daily_events").select("*").eq("day_id",dayRow.id).order("id");
+ const r=await supabase.from("daily_events").select("*").eq("user_id",user.id).eq("day_id",dayRow.id).order("id");
  dayEvents=r.data||[];
  // La bibliothèque est indépendante des objectifs : tout point positif/négatif déjà créé
  // reste disponible les jours suivants afin de suivre ses répétitions.
@@ -435,7 +458,7 @@ async function authRefresh(sessionOverride){
  if(arguments.length===0){const r=await supabase.auth.getSession();session=r.data.session}
  user=session?.user||null;
  document.getElementById("authView").style.display=user?"none":"block";document.getElementById("mainView").style.display=user?"block":"none";
- if(user){await normalizeLegacyGoals();await refreshGoals();await ensureBuiltInGoals();await refreshGoals();await loadDay();loadIdentityBadge()}
+ if(user){showLoading("Ouverture de ton espace…");try{await normalizeLegacyGoals();await refreshGoals();const inserted=await ensureBuiltInGoals();if(inserted)await refreshGoals();await loadDay(false);loadIdentityBadge();if(document.getElementById("summary")?.classList.contains("active")){const activePeriod=document.querySelector(".period.active")?.dataset.period||"week";await renderSummary(activePeriod)}}finally{hideLoading()}}
  })();
  try{return await authRefreshPromise}finally{authRefreshPromise=null}
 }
@@ -448,9 +471,9 @@ function showSignedOut(){
 }
 async function ensureBuiltInGoals(){
  const exists=goals.find(g=>g.category==="service_hachem"&&isDailyReviewGoal(g));
- if(!exists){
-  await supabase.from("goals").insert({user_id:user.id,category:"service_hachem",name:"Faire le bilan du jour",goal_type:"global",target_value:null,unit:null,active:true,objective_key:"faire_le_bilan_du_jour"});
- }
+ if(exists)return false;
+ const r=await supabase.from("goals").insert({user_id:user.id,category:"service_hachem",name:"Faire le bilan du jour",goal_type:"global",target_value:null,unit:null,active:true,objective_key:"faire_le_bilan_du_jour"});
+ return !r.error;
 }
 async function syncCurrentDayGoalDefinitions(){
  if(currentDay!==todayISO()||!dayRow)return;
@@ -524,7 +547,7 @@ async function copyPreviousDayGoals(){
 
 async function ensureBerakhotDay(){
   if(!dayRow)return;
-  let r=await supabase.from("berakhot_days").select("*").eq("day_id",dayRow.id).maybeSingle();
+  let r=await supabase.from("berakhot_days").select("*").eq("user_id",user.id).eq("day_id",dayRow.id).maybeSingle();
   if(!r.data){
     const ins=await supabase.from("berakhot_days").insert({
       user_id:user.id, day_id:dayRow.id, profile:"weekday", target:100
@@ -659,9 +682,9 @@ function renderBerakhot(){
 async function loadTodayDefaultGoals(){
  todayDefaultGoals=[];
  if(!user||currentDay>=todayISO())return;
- const tr=await supabase.from("days").select("id").eq("day",todayISO()).maybeSingle();
+ const tr=await supabase.from("days").select("id").eq("user_id",user.id).eq("day",todayISO()).maybeSingle();
  if(tr.data){
-   const dg=await supabase.from("daily_goals").select("*").eq("day_id",tr.data.id).eq("planned",true).order("id");
+   const dg=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",tr.data.id).eq("planned",true).order("id");
    todayDefaultGoals=(dg.data||[]).filter(x=>!isDailyReviewGoal(x));
  }
  // Si la journée d'aujourd'hui n'a pas encore de sélection, on propose la bibliothèque active.
@@ -708,31 +731,34 @@ function bindDayDraftAutosave(){
  ["dayMood","dayDifficulty"].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.autosaveBound){el.addEventListener("change",async()=>{markDayDraftDirty();await saveDayDraft();});el.dataset.autosaveBound="1";}});
 }
 
-async function loadDay(){
+async function loadDay(showSpinner=true){
+ if(showSpinner)showLoading("Chargement de la journée…");
+ try{
  if(dayDraftDirty) await saveDayDraft();
  document.getElementById("currentDate").textContent=pretty(currentDay);
  const copyPrevBtn=document.getElementById("copyPrevGoalsBtn");
  if(copyPrevBtn){const prevLabel=prettyShort(shiftDate(currentDay,-1));copyPrevBtn.innerHTML=`<span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs du ${prevLabel}</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span>`;}
  const copyPrevMsg=document.getElementById("copyPrevGoalsMsg");if(copyPrevMsg)copyPrevMsg.textContent="";
  await ensureDay();
- let r=await supabase.from("daily_goals").select("*").eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
+ let r=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
  if(currentDay===todayISO()){
    const review=goals.find(g=>g.category==="service_hachem"&&isDailyReviewGoal(g));
    if(review&&!dailyGoals.some(x=>x.planned&&x.goal_id===review.id)){
      await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:review.id,goal_name:review.name,category:review.category,goal_type:review.goal_type,planned:true,target_value:null,unit:null},{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
-     r=await supabase.from("daily_goals").select("*").eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
+     r=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
    }
    await syncCurrentDayGoalDefinitions();
-   r=await supabase.from("daily_goals").select("*").eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
+   r=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
  }
- await refreshEvents();
- await ensureBerakhotDay();await ensureTimeData();
- await loadTodayDefaultGoals();
+ const timeActive=document.getElementById("time")?.classList.contains("active");
+ // Ces chargements sont indépendants : les lancer en parallèle évite d'additionner les temps réseau.
+ await Promise.all([refreshEvents(),ensureBerakhotDay(),ensureTimeData(!!timeActive),loadTodayDefaultGoals()]);
  document.getElementById("dayDescription").value=dayRow.day_description||"";document.getElementById("dayMood").value=dayRow.mood??"";document.getElementById("dayDifficulty").value=dayRow.difficulty??"";document.getElementById("worked").value=dayRow.worked_text||"";document.getElementById("failed").value=dayRow.failed_text||"";document.getElementById("change").value=dayRow.change_text||"";
  dayDraftDirty=false; bindDayDraftAutosave();
  const st=document.getElementById("draftSaveState");if(st)st.textContent="";
  renderObjectives();renderEvening();renderBerakhot();
  if(document.getElementById("time")?.classList.contains("active")) renderTime();
+ }finally{if(showSpinner)hideLoading()}
 }
 function makeGoalRow(g,selected){
  const row=document.createElement("div");row.className="goal";
@@ -772,15 +798,15 @@ function editForm(g,card,row){
  });row.after(f);
 }
 
-async function ensureTimeData(){
+async function ensureTimeData(full=true){
  if(!user||!dayRow)return;
- let cr=await supabase.from("time_categories").select("*").eq("active",true).order("sort_order").order("id");
+ let cr=await supabase.from("time_categories").select("*").eq("user_id",user.id).eq("active",true).order("sort_order").order("id");
  if(cr.error){document.getElementById("timeMsg").textContent="Erreur catégories de temps : "+cr.error.message;timeCategories=[];return}
  timeCategories=cr.data||[];
  if(!timeCategories.length){
    const seeded=await supabase.rpc("ensure_default_time_categories_v210");
    if(seeded.error){document.getElementById("timeMsg").textContent="Impossible de créer les catégories de temps : "+seeded.error.message;timeCategories=[];return}
-   cr=await supabase.from("time_categories").select("*").eq("active",true).order("sort_order").order("id");
+   cr=await supabase.from("time_categories").select("*").eq("user_id",user.id).eq("active",true).order("sort_order").order("id");
    if(cr.error){document.getElementById("timeMsg").textContent="Erreur catégories de temps : "+cr.error.message;timeCategories=[];return}
    timeCategories=cr.data||[];
  }
@@ -793,20 +819,21 @@ async function ensureTimeData(){
      timeCategories[i].color=color;
    }
  }
- const er=await supabase.from("time_entries").select("*").eq("day_id",dayRow.id);
+ const er=await supabase.from("time_entries").select("*").eq("user_id",user.id).eq("day_id",dayRow.id);
  if(er.error){document.getElementById("timeMsg").textContent="Erreur lecture du temps : "+er.error.message;timeEntries=[];return}
  timeEntries=er.data||[];
- let rr=await supabase.from("time_rules").select("*").eq("active",true).order("sort_order").order("id");
+ if(!full){timeRules=[];timeRuleResults=[];return;}
+ let rr=await supabase.from("time_rules").select("*").eq("user_id",user.id).eq("active",true).order("sort_order").order("id");
  if(rr.error){document.getElementById("timeMsg").textContent="Erreur objectifs temps : "+rr.error.message;timeRules=[]}
  else timeRules=rr.data||[];
  if(!timeRules.length){
    const seedRules=await supabase.rpc("ensure_default_time_rules_v210");
    if(!seedRules.error){
-     rr=await supabase.from("time_rules").select("*").eq("active",true).order("sort_order").order("id");
+     rr=await supabase.from("time_rules").select("*").eq("user_id",user.id).eq("active",true).order("sort_order").order("id");
      timeRules=rr.data||[];
    }
  }
- const rres=await supabase.from("time_rule_results").select("*").eq("day_id",dayRow.id);
+ const rres=await supabase.from("time_rule_results").select("*").eq("user_id",user.id).eq("day_id",dayRow.id);
  timeRuleResults=rres.data||[];
  await syncTimeRules();
 }
@@ -1187,6 +1214,8 @@ function rangeFor(kind){
  const dow=(x.getDay()+6)%7,a=new Date(x);a.setDate(x.getDate()-dow);const b=new Date(a);b.setDate(a.getDate()+6);const f=z=>`${z.getFullYear()}-${String(z.getMonth()+1).padStart(2,"0")}-${String(z.getDate()).padStart(2,"0")}`;return [f(a),f(b)]
 }
 async function renderSummary(kind){
+ showLoading("Calcul de la synthèse…");
+ try{
  document.querySelectorAll(".period").forEach(b=>b.classList.toggle("active",b.dataset.period===kind));
  if(!user){document.getElementById("summaryContent").innerHTML='<div class="card"><div class="note">Connecte-toi pour afficher ta synthèse.</div></div>';return}
  const [start,end]=rangeFor(kind);
@@ -1310,6 +1339,7 @@ async function renderSummary(kind){
    host.querySelector(".day-link")?.addEventListener("click",async e=>{currentDay=e.currentTarget.dataset.day;await loadDay();setPanel("evening")});
  }));
 
+ }finally{hideLoading()}
 }
 let appProfile=null,appProfileFamily=null;
 function valOrUnknown(v){return (v===null||v===undefined||String(v).trim()==="")?"Inconnu":String(v)}
@@ -1378,6 +1408,8 @@ async function saveAppProfile(){
  await loadAppProfile();await loadIdentityBadge();setProfileEdit(false);msg("profileStatus","Profil enregistré.");
 }
 async function renderFamily(){
+ showLoading("Chargement de la famille…");
+ try{
  const host=document.getElementById("familyMembers"),m=document.getElementById("familyMsg");
  host.innerHTML='<div class="family-empty">Chargement de la famille…</div>';m.textContent="";
  const r=await supabase.rpc("get_my_family_members");
@@ -1388,6 +1420,7 @@ async function renderFamily(){
    const me=x.user_id===user?.id,age=calcAge(x.birth_date),sex=sexLabel(x.sex),typ=profileTypeLabel(x.profile_type);
    return `<div class="family-member ${me?"me":""}"><div class="family-member-head"><div class="family-avatar">${x.profile_type==="child"?"🧒":"👤"}</div><div><div class="family-name">${escapeHtml(x.first_name||"Inconnu")}${me?' <span class="tag">Moi</span>':""}</div><div class="family-email">${escapeHtml(x.email||"E-mail inconnu")}</div></div></div><div class="family-meta"><span class="family-pill">${escapeHtml(typ)}</span><span class="family-pill">${age!==null?`${age} ans`:"Âge inconnu"}</span><span class="family-pill">${escapeHtml(sex)}</span></div></div>`
  }).join("");
+ }finally{hideLoading()}
 }
 function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily()}
 document.getElementById("loginBtn").addEventListener("click",async()=>{const {error}=await supabase.auth.signInWithPassword({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value});msg("authMsg",error?error.message:"Connexion réussie")});
@@ -1397,7 +1430,7 @@ document.getElementById("logoutBtn").addEventListener("click",async()=>{
  if(error){msg("authMsg",error.message);return}
  showSignedOut();
 });
-document.getElementById("profileBtn").addEventListener("click",async()=>{document.getElementById("mainView").style.display="none";document.getElementById("profileView").style.display="block";await loadAppProfile()});
+document.getElementById("profileBtn").addEventListener("click",async()=>{document.getElementById("mainView").style.display="none";document.getElementById("profileView").style.display="block";await withLoading("Chargement du profil…",loadAppProfile)});
 document.getElementById("backFromProfileBtn").addEventListener("click",()=>{document.getElementById("profileView").style.display="none";document.getElementById("mainView").style.display="block"});
 document.getElementById("saveProfileBtn").addEventListener("click",saveAppProfile);
 document.getElementById("editProfileBtn").addEventListener("click",()=>setProfileEdit(true));
