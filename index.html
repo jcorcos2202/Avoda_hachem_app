@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <!-- Avoda Hachem — Version V5.6.5 — propagation fiable des objectifs J→J+1 -->
+  <!-- Avoda Hachem — Version V5.6.5b — correction réactivation des objectifs -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V5.6.5</title>
+<title>Avoda Hachem V5.6.5b</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -921,7 +921,9 @@ function renderObjectives(){
     cb.disabled=false;
     cb.addEventListener("change",async e=>{
      if(e.target.checked){
-      await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
+      const ex=await supabase.from("daily_goals").select("id").eq("day_id",dayRow.id).eq("goal_id",g.id).maybeSingle();
+      if(ex.data) await supabase.from("daily_goals").update({planned:true}).eq("id",ex.data.id);
+      else await supabase.from("daily_goals").insert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null});
       await loadDay();
      }
     });
@@ -931,8 +933,12 @@ function renderObjectives(){
     row.querySelector('[data-act="adapt"]').addEventListener("click",()=>addPastGoalForm(g,card,row));
    } else {
     cb.addEventListener("change",async e=>{
-     if(e.target.checked) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id",ignoreDuplicates:true});
-     else await supabase.from("daily_goals").update({planned:false}).eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
+     if(e.target.checked){
+      // V5.6.5b : si la ligne existe déjà avec planned=false, la réactiver réellement.
+      const ex=await supabase.from("daily_goals").select("id").eq("day_id",dayRow.id).eq("goal_id",g.id).maybeSingle();
+      if(ex.data) await supabase.from("daily_goals").update({planned:true}).eq("id",ex.data.id);
+      else await supabase.from("daily_goals").insert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null});
+     } else await supabase.from("daily_goals").update({planned:false}).eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
      await loadDay();
     });
     row.querySelector(".priorityCheck").addEventListener("change",async e=>{await supabase.from("goals").update({priority:e.target.checked}).eq("id",g.id);await supabase.from("daily_goals").update({priority:e.target.checked}).eq("day_id",dayRow.id).eq("goal_id",g.id);await refreshGoals();await loadDay()});
