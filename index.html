@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.7.0 — objectifs enfants personnels + objectifs parentaux imposés -->
+<!-- Avoda Hachem — Version V5.7.1 — édition objectifs fiabilisée, recréation même nom, bilan enfant obligatoire -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V5.7.0</title>
+<title>Avoda Hachem V5.7.1</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -86,7 +86,7 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 .family-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.family-member{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}.family-member.me{border-width:2px}.family-member-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}.family-avatar{width:46px;height:46px;border-radius:15px;background:var(--soft);display:grid;place-items:center;font-size:22px}.family-name{font-weight:800;font-size:17px}.family-email{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.family-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.family-pill{font-size:11px;background:#f1ede6;border-radius:999px;padding:5px 8px}.family-empty{padding:18px;text-align:center;color:var(--muted)}
 @media(max-width:700px){.identity-badge{max-width:190px}.identity-badge .identity-email{display:none}.family-grid{grid-template-columns:1fr}.profile-row{grid-template-columns:1fr;gap:3px}.top{align-items:flex-start}}
 /* V5.7.0 — administration parentale des objectifs enfants */
-.family-member-actions{margin-top:12px}.child-goals-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:14px}.child-goals-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}.child-goal-row{padding:11px 0;border-top:1px solid #eee9e2}.child-goal-row:first-child{border-top:0}.child-goal-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.child-goal-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.child-goal-actions button{border:1px solid #d8d1c8;background:#fff;border-radius:9px;padding:7px 9px;font-size:12px}.child-goal-form{display:grid;grid-template-columns:1.4fr .9fr .8fr .7fr .9fr auto;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #eee9e2}.child-goal-lock{padding:10px 12px;background:#f4f1eb;border-radius:12px;font-size:13px;color:var(--muted);margin-bottom:12px}.child-readonly-note{margin:0 0 12px;padding:11px 13px;border:1px solid #ded7ce;background:#f7f4ef;border-radius:14px;font-size:13px;color:var(--muted)}@media(max-width:700px){.child-goal-form{grid-template-columns:1fr 1fr}.child-goal-form input:first-child{grid-column:1/-1}.child-goal-form .btn{grid-column:1/-1}}
+.family-member-actions{margin-top:12px}.child-goals-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-top:14px}.child-goals-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}.child-goal-row{padding:11px 0;border-top:1px solid #eee9e2}.child-goal-row:first-child{border-top:0}.child-goal-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.child-goal-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.child-goal-actions button{border:1px solid #d8d1c8;background:#fff;border-radius:9px;padding:7px 9px;font-size:12px}.child-goal-form{display:grid;grid-template-columns:1.4fr .9fr .8fr .7fr .9fr auto;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #eee9e2}.child-goal-lock{padding:10px 12px;background:#f4f1eb;border-radius:12px;font-size:13px;color:var(--muted);margin-bottom:12px}.child-goal-edit{display:grid;grid-template-columns:1.5fr 1fr .9fr .8fr 1fr;gap:8px;margin-top:10px;padding:10px;background:#faf8f4;border:1px solid #e6e0d8;border-radius:12px}.child-goal-edit .edit-buttons{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}.child-goal-edit .edit-buttons button{min-height:40px}@media(max-width:700px){.child-goal-edit{grid-template-columns:1fr 1fr}.child-goal-edit input:first-child{grid-column:1/-1}.child-goal-edit .edit-buttons{grid-column:1/-1}}.child-readonly-note{margin:0 0 12px;padding:11px 13px;border:1px solid #ded7ce;background:#f7f4ef;border-radius:14px;font-size:13px;color:var(--muted)}@media(max-width:700px){.child-goal-form{grid-template-columns:1fr 1fr}.child-goal-form input:first-child{grid-column:1/-1}.child-goal-form .btn{grid-column:1/-1}}
 
 /* V5.6.6 — indicateur global de chargement */
 .loading-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(245,242,236,.68);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:20px}.loading-overlay.active{display:flex!important}.loading-box{background:#24483a;color:#fff;border:2px solid #fff;border-radius:18px;box-shadow:0 12px 38px rgba(32,36,40,.28);padding:17px 22px;display:flex;align-items:center;gap:12px;font-weight:800}.loading-hourglass{font-size:28px;display:inline-block;animation:loadingFlip 1.15s ease-in-out infinite}.loading-text{font-size:14px}.loading-overlay[aria-hidden="true"]{pointer-events:none}@keyframes loadingFlip{0%,45%{transform:rotate(0deg)}55%,100%{transform:rotate(180deg)}}
@@ -461,7 +461,7 @@ async function authRefresh(sessionOverride){
  if(arguments.length===0){const r=await supabase.auth.getSession();session=r.data.session}
  user=session?.user||null;
  document.getElementById("authView").style.display=user?"none":"block";document.getElementById("mainView").style.display=user?"block":"none";
- if(user){showLoading("Ouverture de ton espace…");try{await normalizeLegacyGoals();await refreshGoals();const inserted=await ensureBuiltInGoals();if(inserted)await refreshGoals();await ensureCurrentProfileRole();await loadDay(false);loadIdentityBadge();if(document.getElementById("summary")?.classList.contains("active")){const activePeriod=document.querySelector(".period.active")?.dataset.period||"week";await renderSummary(activePeriod)}}finally{hideLoading()}}
+ if(user){showLoading("Ouverture de ton espace…");try{await normalizeLegacyGoals();await refreshGoals();await ensureCurrentProfileRole();const inserted=await ensureBuiltInGoals();if(inserted)await refreshGoals();await loadDay(false);loadIdentityBadge();if(document.getElementById("summary")?.classList.contains("active")){const activePeriod=document.querySelector(".period.active")?.dataset.period||"week";await renderSummary(activePeriod)}}finally{hideLoading()}}
  })();
  try{return await authRefreshPromise}finally{authRefreshPromise=null}
 }
@@ -473,9 +473,22 @@ function showSignedOut(){
  msg("authMsg","Déconnecté.");
 }
 async function ensureBuiltInGoals(){
- const exists=goals.find(g=>g.category==="service_hachem"&&isDailyReviewGoal(g));
- if(exists)return false;
- const r=await supabase.from("goals").insert({user_id:user.id,category:"service_hachem",name:"Faire le bilan du jour",goal_type:"global",target_value:null,unit:null,active:true,objective_key:"faire_le_bilan_du_jour"});
+ const active=goals.find(g=>g.category==="service_hachem"&&isDailyReviewGoal(g));
+ if(active){
+  const patch={goal_origin:"system",allowance_eligible:isChildProfile()};
+  const r=await supabase.from("goals").update(patch).eq("id",active.id);
+  if(!r.error){Object.assign(active,patch)}
+  return false;
+ }
+ // Si un ancien "bilan du jour" a été désactivé, on le réactive au lieu de recréer
+ // une ligne avec la même clé technique.
+ const old=await supabase.from("goals").select("*").eq("user_id",user.id).ilike("name","Faire le bilan du jour").order("id").limit(1).maybeSingle();
+ if(old.data){
+  const patch={active:true,category:"service_hachem",name:"Faire le bilan du jour",goal_type:"global",target_value:null,unit:null,priority:true,goal_origin:"system",allowance_eligible:isChildProfile()};
+  const u=await supabase.from("goals").update(patch).eq("id",old.data.id);
+  return !u.error;
+ }
+ const r=await supabase.from("goals").insert({user_id:user.id,category:"service_hachem",name:"Faire le bilan du jour",goal_type:"global",target_value:null,unit:null,active:true,objective_key:makeObjectiveKey("faire_le_bilan_du_jour"),priority:true,goal_origin:"system",allowance_eligible:isChildProfile()});
  return !r.error;
 }
 async function syncCurrentDayGoalDefinitions(){
@@ -736,7 +749,7 @@ function bindDayDraftAutosave(){
 
 async function ensureParentAssignedGoalsForDay(){
  if(!isChildProfile()||!dayRow||currentDay<todayISO())return false;
- const assigned=goals.filter(g=>isParentAssignedGoal(g));if(!assigned.length)return false;
+ const assigned=goals.filter(g=>isParentAssignedGoal(g)||isSystemGoal(g));if(!assigned.length)return false;
  let changed=false;
  for(const g of assigned){
   const existing=dailyGoals.find(x=>String(x.goal_id)===String(g.id));
@@ -995,7 +1008,7 @@ function renderObjectives(){
   const card=document.createElement("div");card.className="category";card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
   catGoals.forEach(g=>{
    const selected=dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
-   const assigned=isChildProfile()&&isParentAssignedGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta)meta.insertAdjacentHTML("beforeend",assigned?' • <strong>Assigné par un parent</strong>':' • Personnel')}
+   const assigned=isMandatoryChildGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta)meta.insertAdjacentHTML("beforeend",isSystemGoal(g)?' • <strong>Système obligatoire</strong>':(assigned?' • <strong>Assigné par un parent</strong>':' • Personnel'))}
    const cb=row.querySelector(".goal-line > input");
    // La sélection d’objectifs appartient uniquement à la date sélectionnée N.
    // Même sur une date passée, elle reste modifiable : aucune copie N-1 -> N ne crée de gel.
@@ -1040,7 +1053,7 @@ function renderObjectives(){
    const form=document.createElement("form");form.className="add";
    form.innerHTML=`<input placeholder="${isChildProfile()?"Nouvel objectif personnel":"Nouvel objectif"}"><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button>`;
    form.addEventListener("submit",async e=>{e.preventDefault();const name=form.children[0].value.trim(),type=form.children[1].value,target=form.children[2].value,unit=form.children[3].value.trim();if(!name)return;
-    const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:type==="global"?null:(target===""?null:Number(target)),unit:type==="global"?null:(unit||null),objective_key:name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_"),priority:true,goal_origin:"personal"}).select().single();
+    const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:type==="global"?null:(target===""?null:Number(target)),unit:type==="global"?null:(unit||null),objective_key:makeObjectiveKey(name),priority:true,goal_origin:"personal"}).select().single();
     if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id"});
     await refreshGoals();await loadDay();
    }); card.appendChild(form);
@@ -1160,7 +1173,7 @@ async function createGoalFromEvent(category,name,goalType="global"){
    goal_type:goalType,
    target_value:null,
    unit:null,
-   objective_key:name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_"),
+   objective_key:makeObjectiveKey(name),
    goal_origin:"personal"
  }).select().single();
  await refreshGoals();
@@ -1377,6 +1390,9 @@ async function ensureCurrentProfileRole(){
 function isChildProfile(){return appProfile?.profile_type==="child"}
 function isParentProfile(){return appProfile?.profile_type==="parent"}
 function isParentAssignedGoal(g){return g?.goal_origin==="parent"}
+function isSystemGoal(g){return g?.goal_origin==="system"||isDailyReviewGoal(g)}
+function isMandatoryChildGoal(g){return isChildProfile()&&(isParentAssignedGoal(g)||isSystemGoal(g))}
+function makeObjectiveKey(name){const base=(name||"objectif").toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_").replace(/^_+|_+$/g,"")||"objectif";return `${base}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,7)}`}
 function valOrUnknown(v){return (v===null||v===undefined||String(v).trim()==="")?"Inconnu":String(v)}
 function prettyProfileDate(v){if(!v)return "Inconnu";const [y,m,d]=v.split("-");return (y&&m&&d)?`${d}/${m}/${y}`:v}
 function sexLabel(v){return v==="male"?"Homme":v==="female"?"Femme":"Inconnu"}
@@ -1453,19 +1469,33 @@ async function renderFamilyChildGoals(child){
  host.innerHTML=`<div class="child-goals-panel"><div class="child-goals-head"><div><h2>🎯 Objectifs de ${escapeHtml(child.first_name||"l’enfant")}</h2><div class="small">Les objectifs assignés ici sont obligatoires pour l’enfant. Ses objectifs personnels restent sous son contrôle et ne pourront pas générer d’argent de poche.</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div><div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu pour l’enfant et ne peut pas être refusé.</div><div data-child-goal-list></div><form class="child-goal-form" data-child-goal-form><input placeholder="Nouvel objectif" required><select>${categoryOptions}</select><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button></form></div>`;
  const list=host.querySelector('[data-child-goal-list]');
  const draw=()=>{
-  list.innerHTML=childGoals.length?childGoals.map(g=>{const cat=catMeta(g.category)?.title||g.category;const meta=g.goal_type==="global"?"Qualitatif":`${g.target_value??"—"} ${g.unit||""}`.trim();return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${g.priority!==false?" · Prioritaire":" · Non prioritaire"} · ${isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — sans argent de poche"}</div></div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`}).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
+  list.innerHTML=childGoals.length?childGoals.map(g=>{const cat=catMeta(g.category)?.title||g.category;const meta=g.goal_type==="global"?"Qualitatif":`${g.target_value??"—"} ${g.unit||""}`.trim();return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${g.priority!==false?" · Prioritaire":" · Non prioritaire"} · ${isSystemGoal(g)?"Système obligatoire · Argent de poche":(isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — sans argent de poche")}</div></div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`}).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
   list.querySelectorAll('[data-goal-id]').forEach(row=>{
    const id=Number(row.dataset.goalId),g=childGoals.find(x=>Number(x.id)===id);if(!g||!isParentAssignedGoal(g))return;
-   row.querySelector('[data-edit]').addEventListener('click',async()=>{
-    const name=prompt('Nom de l’objectif :',g.name);if(name===null||!name.trim())return;
-    const catChoices=CATS.map((c,i)=>`${i+1}. ${c.title}`).join('\n');
-    const catAnswer=prompt(`Catégorie :\n${catChoices}`,String(Math.max(1,CATS.findIndex(c=>c.key===g.category)+1)));if(catAnswer===null)return;
-    const ci=Number(catAnswer)-1;if(ci<0||ci>=CATS.length){alert('Catégorie non valide.');return}
-    const type=confirm('OK = objectif quantitatif\nAnnuler = objectif qualitatif')?'precise':'global';
-    let target=null,unit=null;
-    if(type==='precise'){const t=prompt('Cible :',g.target_value??'');if(t===null)return;target=t===''?null:Number(t);if(t!==''&&!Number.isFinite(target)){alert('Cible non valide.');return}unit=prompt('Unité :',g.unit||'');if(unit===null)return;unit=unit.trim()||null}
-    const u=await supabase.rpc('parent_update_child_goal',{p_goal_id:id,p_category:CATS[ci].key,p_name:name.trim(),p_goal_type:type,p_target_value:target,p_unit:unit,p_priority:g.priority!==false});
-    if(u.error){alert('Impossible de modifier : '+u.error.message);return}await renderFamilyChildGoals(child);
+   row.querySelector('[data-edit]').addEventListener('click',()=>{
+    row.querySelector('.child-goal-edit')?.remove();
+    const f=document.createElement('form');f.className='child-goal-edit';
+    f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required>
+      <select name="category">${CATS.map(c=>`<option value="${c.key}" ${c.key===g.category?"selected":""}>${escapeHtml(c.title)}</option>`).join("")}</select>
+      <select name="type"><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select>
+      <input name="target" type="number" min="0" step="any" value="${g.target_value??""}" placeholder="Cible">
+      <input name="unit" value="${escapeHtml(g.unit||"")}" placeholder="Unité">
+      <div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div>`;
+    const toggleType=()=>{const global=f.elements.type.value==="global";f.elements.target.disabled=global;f.elements.unit.disabled=global};
+    f.elements.type.addEventListener('change',toggleType);toggleType();
+    f.querySelector('[data-cancel]').addEventListener('click',()=>f.remove());
+    f.addEventListener('submit',async ev=>{
+     ev.preventDefault();
+     const name=f.elements.name.value.trim();if(!name)return;
+     const type=f.elements.type.value,category=f.elements.category.value,targetRaw=f.elements.target.value,unitRaw=f.elements.unit.value.trim();
+     const target=type==='global'?null:(targetRaw===''?null:Number(targetRaw));
+     if(type!=='global'&&targetRaw!==''&&!Number.isFinite(target)){alert('Cible non valide.');return}
+     const saveBtn=f.querySelector('button[type="submit"]');saveBtn.disabled=true;saveBtn.textContent='Enregistrement…';
+     const u=await supabase.rpc('parent_update_child_goal',{p_goal_id:id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==='global'?null:(unitRaw||null),p_priority:g.priority!==false});
+     if(u.error){saveBtn.disabled=false;saveBtn.textContent='Enregistrer';alert('Impossible de modifier : '+u.error.message);return}
+     await renderFamilyChildGoals(child);
+    });
+    row.appendChild(f);
    });
    row.querySelector('[data-priority]').addEventListener('click',async()=>{
     const u=await supabase.rpc('parent_update_child_goal',{p_goal_id:id,p_category:g.category,p_name:g.name,p_goal_type:g.goal_type,p_target_value:g.target_value,p_unit:g.unit,p_priority:g.priority===false});
