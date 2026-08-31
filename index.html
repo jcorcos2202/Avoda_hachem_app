@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.13 — zone de connexion réellement placée sous l’image -->
+<!-- Avoda Hachem — Version V5.8.15 — correction écran blanc au démarrage -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -2914,6 +2914,107 @@ html, body { overflow-x:hidden!important; }
 }
 </style>
 
+
+<style id="v5814-auth-family-polish">
+/* V5.8.14 — login is strictly a landing view, never part of authenticated pages */
+body:not(.v5814-signed-out) #authView{
+  display:none!important;
+  visibility:hidden!important;
+  height:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+body.v5814-signed-out #authView{
+  display:flex!important;
+  visibility:visible!important;
+  height:auto!important;
+}
+
+/* Family page: remove the oversized dark empty framing and make the header more compact */
+#family.panel{
+  background:linear-gradient(180deg,#f7fbff 0%,#eef6fb 100%)!important;
+  border-radius:24px!important;
+  padding:14px!important;
+}
+#family .v584-panel-logo,
+#family .v585-panel-logo{
+  margin:0 0 8px 2px!important;
+}
+#family .v580-family-hero,
+#family .v580-family-intro,
+#family .v580-family-shell{
+  margin-top:8px!important;
+}
+#family .v580-family-hero{
+  padding:16px 18px!important;
+  border-radius:20px!important;
+}
+#family .v580-family-intro{
+  padding:13px 16px!important;
+  border-radius:18px!important;
+}
+#family .v580-family-members,
+#family .v580-family-member-tabs{
+  gap:8px!important;
+  padding:10px!important;
+  border-radius:18px!important;
+}
+#family .v580-family-member-card,
+#family .v580-family-selected{
+  border-radius:18px!important;
+}
+
+@media(max-width:700px){
+  #family.panel{
+    padding:10px!important;
+    border-radius:18px!important;
+  }
+  #family .v585-panel-logo{
+    max-width:112px!important;
+    margin-bottom:5px!important;
+  }
+  #family .v585-panel-logo img{
+    width:105px!important;
+    max-width:30vw!important;
+  }
+  #family .v580-family-hero{
+    padding:12px 13px!important;
+    border-radius:17px!important;
+  }
+  #family .v580-family-intro{
+    padding:10px 12px!important;
+    border-radius:15px!important;
+  }
+}
+</style>
+
+
+<style id="v5815-auth-boot-fix">
+/* Safe boot state: show login by default. Hide it ONLY after a valid session is confirmed. */
+#authView{
+  display:flex!important;
+  visibility:visible!important;
+  height:auto!important;
+}
+body.v5815-authenticated #authView{
+  display:none!important;
+  visibility:hidden!important;
+  height:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+/* Neutralize the V5.8.14 default-hide rule */
+body:not(.v5814-signed-out):not(.v5815-authenticated) #authView{
+  display:flex!important;
+  visibility:visible!important;
+  height:auto!important;
+}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -3411,7 +3512,7 @@ async function authRefresh(sessionOverride){
  })();
  try{return await authRefreshPromise}finally{authRefreshPromise=null}
 }
-function showSignedOut(){
+function showSignedOut(){ document.body.classList.remove("v5815-authenticated"); document.body.classList.add("v5814-signed-out");
  user=null;dayRow=null;dailyGoals=[];dayEvents=[];timeCategories=[];timeEntries=[];timeRules=[];timeRuleResults=[];
  document.getElementById("profileView").style.display="none";
  document.getElementById("mainView").style.display="none";
@@ -4703,7 +4804,7 @@ document.getElementById("timeCategoryForm").addEventListener("submit",addTimeCat
 document.getElementById("goEvening").addEventListener("click",()=>setPanel("evening"));document.getElementById("saveDay").addEventListener("click",saveDay);document.getElementById("positiveForm").addEventListener("submit",addPositive);document.getElementById("negativeForm").addEventListener("submit",addNegative);
 document.getElementById("copyPrevGoalsBtn").addEventListener("click",copyPreviousDayGoals);
 document.getElementById("prevDay").addEventListener("click",async()=>{currentDay=shiftDate(currentDay,-1);await loadDay()});document.getElementById("nextDay").addEventListener("click",async()=>{currentDay=shiftDate(currentDay,1);await loadDay()});document.getElementById("todayBtn").addEventListener("click",async()=>{currentDay=todayISO();await loadDay()});
-function showLoginLanding(){
+function showLoginLanding(){ document.body.classList.remove("v5815-authenticated"); document.body.classList.add("v5814-signed-out");
  user=null;
  document.getElementById("profileView").style.display="none";
  document.getElementById("mainView").style.display="none";
