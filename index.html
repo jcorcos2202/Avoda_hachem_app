@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.7.8 — design cohérent par domaine, saisie/bilan/synthèse revus -->
+<!-- Avoda Hachem — Version V5.7.9 — connexion forcée + sous-menus par domaine -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -1248,6 +1248,80 @@ textarea,input,select{
 }
 </style>
 
+
+<style id="v579-submenu-style">
+.v579-subnav{
+  display:flex;
+  gap:7px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  padding:7px;
+  margin:0 0 12px;
+  background:rgba(255,255,255,.96);
+  border:1px solid rgba(31,54,74,.08);
+  border-radius:17px;
+  box-shadow:0 8px 22px rgba(27,43,58,.07);
+}
+.v579-subnav::-webkit-scrollbar{display:none}
+.v579-subnav-btn{
+  flex:0 0 auto;
+  min-height:39px;
+  padding:8px 12px;
+  border:0;
+  border-radius:11px;
+  background:#f5f6f7;
+  color:#586875;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:.15s ease;
+}
+.v579-subnav-btn.active{
+  color:white;
+  background:linear-gradient(135deg,#174d79,#2674aa);
+  box-shadow:0 6px 15px rgba(30,86,131,.19)
+}
+#objectivesSubnav .v579-subnav-btn[data-obj-filter="service_hachem"].active,
+#eveningSubnav .v579-subnav-btn[data-evening-filter="service_hachem"].active{
+  background:linear-gradient(135deg,#3975b9,#5a91c8)
+}
+#objectivesSubnav .v579-subnav-btn[data-obj-filter="torah"].active,
+#eveningSubnav .v579-subnav-btn[data-evening-filter="torah"].active{
+  background:linear-gradient(135deg,#6e4dac,#8b6ac7)
+}
+#objectivesSubnav .v579-subnav-btn[data-obj-filter="autres"].active,
+#eveningSubnav .v579-subnav-btn[data-evening-filter="autres"].active{
+  background:linear-gradient(135deg,#c85b35,#df7a50)
+}
+#objectivesSubnav .v579-subnav-btn[data-obj-filter="maison_hachem"].active,
+#eveningSubnav .v579-subnav-btn[data-evening-filter="maison_hachem"].active{
+  background:linear-gradient(135deg,#338158,#53a276)
+}
+#eveningSubnav .v579-subnav-btn[data-evening-filter="reflection"].active{
+  background:linear-gradient(135deg,#a26278,#c27d95)
+}
+#eveningSubnav .v579-subnav-btn[data-evening-filter="description"].active{
+  background:linear-gradient(135deg,#536d85,#70889d)
+}
+
+/* Overview should feel like a dashboard, categories like focused workspaces */
+#objectives #objectiveCategories{margin-top:3px}
+#objectives .category:not(.helper-category),
+#evening .category{animation:v579fade .14s ease}
+@keyframes v579fade{from{opacity:.4;transform:translateY(3px)}to{opacity:1;transform:none}}
+
+@media(max-width:700px){
+  .v579-subnav{
+    margin-left:-2px;margin-right:-2px;
+    padding:6px;
+    border-radius:14px;
+  }
+  .v579-subnav-btn{font-size:11px;padding:8px 10px}
+}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -1333,22 +1407,37 @@ textarea,input,select{
   </div>
 
   <section id="objectives" class="panel active">
-    <div id="v576DayCard" class="v576-day-card" style="display:none"></div>
-    <div id="v576AllowanceCard" class="v576-wallet-card" style="display:none"></div>
-    <div class="hero">Les objectifs de la veille ne sont jamais repris automatiquement. Si tu le souhaites, utilise le bouton ci-dessous : il effectue un simple copier-coller ponctuel des objectifs de <strong>N-1</strong> vers la date sélectionnée <strong>N</strong>, pour ce compte uniquement.</div>
-    <button id="copyPrevGoalsBtn" class="btn full copy-prev-btn" type="button"><span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs de N-1</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span></button>
-    <div id="copyPrevGoalsMsg" class="msg"></div>
+    <div class="v579-subnav" id="objectivesSubnav">
+      <button type="button" class="v579-subnav-btn active" data-obj-filter="overview">🏠 Vue du jour</button>
+      <button type="button" class="v579-subnav-btn" data-obj-filter="service_hachem">🙏 Avoda Hachem</button>
+      <button type="button" class="v579-subnav-btn" data-obj-filter="torah">📖 Torah</button>
+      <button type="button" class="v579-subnav-btn" data-obj-filter="autres">🤝 Relation aux autres</button>
+      <button type="button" class="v579-subnav-btn" data-obj-filter="maison_hachem">🏛️ Maison Hachem</button>
+    </div>
+    <div class="v579-objective-overview" id="v576DayCard" class="v576-day-card" style="display:none"></div>
+    <div class="v579-objective-overview" id="v576AllowanceCard" class="v576-wallet-card" style="display:none"></div>
+    <div class="hero v579-objective-overview">Les objectifs de la veille ne sont jamais repris automatiquement. Si tu le souhaites, utilise le bouton ci-dessous : il effectue un simple copier-coller ponctuel des objectifs de <strong>N-1</strong> vers la date sélectionnée <strong>N</strong>, pour ce compte uniquement.</div>
+    <button id="copyPrevGoalsBtn" class="btn full copy-prev-btn v579-objective-overview" type="button"><span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs de N-1</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span></button>
+    <div id="copyPrevGoalsMsg" class="msg v579-objective-overview"></div>
     <div id="objectiveCategories"></div>
     <button id="goEvening" class="btn full">Passer au bilan du soir</button>
   </section>
 
   <section id="evening" class="panel evening-redesign">
-    <div class="v578-section-banner">
+    <div class="v579-subnav" id="eveningSubnav">
+      <button type="button" class="v579-subnav-btn active" data-evening-filter="description">📝 Description</button>
+      <button type="button" class="v579-subnav-btn" data-evening-filter="service_hachem">🙏 Avoda Hachem</button>
+      <button type="button" class="v579-subnav-btn" data-evening-filter="torah">📖 Torah</button>
+      <button type="button" class="v579-subnav-btn" data-evening-filter="autres">🤝 Relation aux autres</button>
+      <button type="button" class="v579-subnav-btn" data-evening-filter="maison_hachem">🏛️ Maison Hachem</button>
+      <button type="button" class="v579-subnav-btn" data-evening-filter="reflection">💭 Réflexion</button>
+    </div>
+    <div class="v578-section-banner v579-evening-description">
       <div class="v578-section-icon">🌙</div>
       <div><strong>Bilan du soir</strong><span>Je regarde ma journée avec honnêteté et j’avance.</span></div>
     </div>
-    <div class="hero">Pour les objectifs quantitatifs, indique ce que tu as <strong>réellement réalisé</strong>. Pour les qualitatifs, donne une appréciation.</div>
-    <div class="card day-context evening-context-card">
+    <div class="hero v579-evening-description">Pour les objectifs quantitatifs, indique ce que tu as <strong>réellement réalisé</strong>. Pour les qualitatifs, donne une appréciation.</div>
+    <div class="card day-context evening-context-card v579-evening-description">
       <label><strong>📝 Contexte de la journée</strong></label>
       <textarea id="dayDescription" placeholder="Événement, fatigue, déplacement, ambiance, élément particulier…"></textarea>
       <div class="day-indicators">
@@ -1377,7 +1466,7 @@ textarea,input,select{
       </div>
     </div>
     <div id="eveningCategories"></div>
-    <div class="card evening-extra-card evening-positive-card">
+    <div class="card evening-extra-card evening-positive-card v579-evening-reflection">
       <div class="head"><div class="head-left"><div class="icon">➕</div><h2>Action positive non prévue</h2></div></div>
       <div id="positiveLibrary" class="event-library"></div>
       <form id="positiveForm" class="add">
@@ -1391,7 +1480,7 @@ textarea,input,select{
       <div id="positiveList"></div>
     </div>
 
-    <div class="card evening-extra-card evening-negative-card">
+    <div class="card evening-extra-card evening-negative-card v579-evening-reflection">
       <div class="head"><div class="head-left"><div class="icon">⚠️</div><h2>Difficulté / écart non prévu</h2></div></div>
       <div id="negativeLibrary" class="event-library"></div>
       <form id="negativeForm" class="add">
@@ -1404,7 +1493,7 @@ textarea,input,select{
       </form>
       <div id="negativeList"></div>
     </div>
-    <div class="card general evening-reflection-card">
+    <div class="card general evening-reflection-card v579-evening-reflection">
       <label>✅ Ce qui a marché</label><textarea id="worked"></textarea>
       <label>❌ Ce qui n’a pas marché</label><textarea id="failed"></textarea>
       <label>🔄 Ce que je veux changer</label><textarea id="change"></textarea>
@@ -2235,7 +2324,11 @@ function allowanceMetaForItem(item){
 }
 function renderObjectives(){
  const host=document.getElementById("objectiveCategories");host.innerHTML="";
- setTimeout(()=>{if(window.refreshV576VisualDashboard)window.refreshV576VisualDashboard()},0);
+ setTimeout(()=>{
+   if(window.refreshV576VisualDashboard)window.refreshV576VisualDashboard();
+   const active=document.querySelector("#objectivesSubnav .v579-subnav-btn.active")?.dataset.objFilter||"overview";
+   if(window.applyObjectiveFilter)window.applyObjectiveFilter(active);
+ },0);
  if(isChildProfile()){const note=document.createElement("div");note.className="child-readonly-note";note.textContent="🎯 Tu peux créer et gérer tes objectifs personnels. Les objectifs assignés par tes parents sont obligatoires : ils sont automatiquement prévus et tu ne peux ni les retirer ni les modifier.";host.appendChild(note)}
  const past=isPastDay();
  CATS.forEach(cat=>{
@@ -2299,6 +2392,10 @@ function renderObjectives(){
 
 function renderEvening(){
  const host=document.getElementById("eveningCategories");host.innerHTML="";
+ setTimeout(()=>{
+   const active=document.querySelector("#eveningSubnav .v579-subnav-btn.active")?.dataset.eveningFilter||"description";
+   if(window.applyEveningFilter)window.applyEveningFilter(active);
+ },0);
  if(isPastDay()){
    const existingIds=new Set(dailyGoals.filter(x=>x.planned&&x.goal_id).map(x=>String(x.goal_id)));
    const available=todayDefaultGoals.filter(x=>x.goal_id&&!existingIds.has(String(x.goal_id)));
@@ -2797,10 +2894,27 @@ async function renderFamily(){
  }finally{hideLoading()}
 }
 function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily()}
-document.getElementById("loginBtn").addEventListener("click",async()=>{const {error}=await supabase.auth.signInWithPassword({email:document.getElementById("email").value.trim(),password:document.getElementById("password").value});msg("authMsg",error?error.message:"Connexion réussie")});
+let explicitLoginRequested=false;
+document.getElementById("loginBtn").addEventListener("click",async()=>{
+ explicitLoginRequested=true;
+ const {data,error}=await supabase.auth.signInWithPassword({
+   email:document.getElementById("email").value.trim(),
+   password:document.getElementById("password").value
+ });
+ if(error){
+   explicitLoginRequested=false;
+   msg("authMsg",error.message);
+   return;
+ }
+ msg("authMsg","Connexion réussie");
+ // On ouvre directement la session issue de ce clic pour ne dépendre d'aucun
+ // événement de restauration automatique de Supabase.
+ if(data?.session)await authRefresh(data.session);
+});
 document.getElementById("signupBtn").addEventListener("click",async()=>{const p=document.getElementById("password").value;if(p.length<6){msg("authMsg","Mot de passe : 6 caractères minimum.");return}const {data,error}=await supabase.auth.signUp({email:document.getElementById("email").value.trim(),password:p});if(error){msg("authMsg",error.message);return}msg("authMsg",data.session?"Compte créé et connecté.":"Compte créé. Vérifie ton e-mail puis reviens te connecter.");/* onAuthStateChange initialise la session */});
 document.getElementById("logoutBtn").addEventListener("click",async()=>{
  const {error}=await supabase.auth.signOut();
+ explicitLoginRequested=false;
  if(error){msg("authMsg",error.message);return}
  showSignedOut();
 });
@@ -2825,22 +2939,21 @@ function showLoginLanding(){
 }
 
 supabase.auth.onAuthStateChange((event,session)=>{
- // Au chargement d'une nouvelle page, Supabase peut restaurer automatiquement
- // l'ancienne session. On garde néanmoins l'écran de connexion comme page d'accueil.
- if(event==="INITIAL_SESSION"){
-   showLoginLanding();
+ // Les événements automatiques de restauration/refresh ne doivent JAMAIS
+ // ouvrir un ancien profil au démarrage. Seul le clic explicite sur Connexion
+ // autorise l'entrée dans l'application.
+ if(!explicitLoginRequested){
+   if(!session && event==="SIGNED_OUT")showSignedOut();
+   else showLoginLanding();
    return;
  }
- setTimeout(()=>{
-   if(session && (event==="SIGNED_IN" || event==="TOKEN_REFRESHED" || event==="USER_UPDATED")){
-     authRefresh(session);
-   }else if(!session){
-     showSignedOut();
-   }
- },0);
+ if(!session){
+   explicitLoginRequested=false;
+   showSignedOut();
+ }
 });
 
-// Toujours commencer visuellement sur l'écran de connexion.
+// Toujours commencer sur l'écran de connexion, même si Supabase a conservé Noa.
 showLoginLanding();
 </script>
 
@@ -2897,6 +3010,70 @@ showLoginLanding();
     if(e.target && e.target.closest && e.target.closest('[data-panel="objectives"]')){
       setTimeout(refreshVisualDashboard,250);
     }
+  });
+})();
+</script>
+
+
+<script id="v579-submenus">
+(function(){
+  function setActiveButton(container, attr, value){
+    if(!container)return;
+    container.querySelectorAll(".v579-subnav-btn").forEach(function(b){
+      b.classList.toggle("active",b.getAttribute(attr)===value);
+    });
+  }
+
+  window.applyObjectiveFilter=function(filter){
+    filter=filter||"overview";
+    var host=document.getElementById("objectiveCategories");
+    var overview=document.querySelectorAll("#objectives .v579-objective-overview");
+    overview.forEach(function(el){el.style.display=filter==="overview"?"":"none"});
+    if(host){
+      host.querySelectorAll(".category").forEach(function(card){
+        if(card.classList.contains("helper-category")){
+          card.style.display=filter==="overview"?"":"none";
+          return;
+        }
+        card.style.display=card.classList.contains("cat-"+filter)?"":"none";
+      });
+      host.style.display=filter==="overview"?"none":"block";
+    }
+    var go=document.getElementById("goEvening");
+    if(go)go.style.display="";
+    setActiveButton(document.getElementById("objectivesSubnav"),"data-obj-filter",filter);
+  };
+
+  window.applyEveningFilter=function(filter){
+    filter=filter||"description";
+    document.querySelectorAll(".v579-evening-description").forEach(function(el){
+      el.style.display=filter==="description"?"":"none";
+    });
+    document.querySelectorAll(".v579-evening-reflection").forEach(function(el){
+      el.style.display=filter==="reflection"?"":"none";
+    });
+    var host=document.getElementById("eveningCategories");
+    if(host){
+      host.querySelectorAll(".category").forEach(function(card){
+        card.style.display=card.classList.contains("cat-"+filter)?"":"none";
+      });
+      host.style.display=(filter==="description"||filter==="reflection")?"none":"block";
+    }
+    setActiveButton(document.getElementById("eveningSubnav"),"data-evening-filter",filter);
+  };
+
+  document.addEventListener("click",function(e){
+    var ob=e.target.closest && e.target.closest("[data-obj-filter]");
+    if(ob){window.applyObjectiveFilter(ob.dataset.objFilter);return}
+    var eb=e.target.closest && e.target.closest("[data-evening-filter]");
+    if(eb){window.applyEveningFilter(eb.dataset.eveningFilter);return}
+  });
+
+  window.addEventListener("load",function(){
+    setTimeout(function(){
+      window.applyObjectiveFilter("overview");
+      window.applyEveningFilter("description");
+    },500);
   });
 })();
 </script>
