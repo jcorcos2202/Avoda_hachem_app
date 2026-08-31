@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.24 — V5.8.22 + correction définitive des titres Synthèse -->
+<!-- Avoda Hachem — Version V5.8.25 — V5.8.24 + liste déroulante des comptes familiaux à la connexion -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3086,6 +3086,15 @@ body.v5816-app-open .topbar{
 #copyPrevGoalsMsg.v5822-copy-success{min-height:0!important;margin:10px 0 13px!important;padding:12px 13px!important;border-radius:14px!important;background:linear-gradient(135deg,#eaf8ef,#f7fcf9)!important;border:1px solid rgba(48,145,89,.20)!important;color:#24653f!important;font-weight:700!important;line-height:1.45!important}#copyPrevGoalsMsg.v5822-copy-empty{min-height:0!important;margin:10px 0 13px!important;padding:11px 13px!important;border-radius:14px!important;background:#fff7e9!important;border:1px solid rgba(196,145,49,.18)!important;color:#86631e!important}#copyPrevGoalsMsg.v5822-copy-error{min-height:0!important;margin:10px 0 13px!important;padding:11px 13px!important;border-radius:14px!important;background:#fff0f0!important;border:1px solid rgba(169,68,68,.18)!important;color:#9b4242!important}
 @media(max-width:420px){.v5822-daily-summary{padding:11px}.v5822-category-grid{gap:7px}.v5822-cat-card{min-height:77px;padding:10px}.v5822-cat-top{font-size:11px}.v5822-cat-count{font-size:20px}}
 </style>
+
+<style id="v5825-login-account-select">
+/* V5.8.25 — liste déroulante des comptes familiaux sur la page de connexion */
+#authView > .v589-login-overlay select.v589-email{
+  appearance:auto!important;
+  -webkit-appearance:menulist!important;
+  cursor:pointer!important;
+}
+</style>
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -3100,7 +3109,15 @@ body.v5816-app-open .topbar{
 
   </div>
 <div class="v586-login-card v588-login-card v589-login-overlay">
-  <input id="email" class="v589-email" type="email" placeholder="Adresse email" autocomplete="email" aria-label="Adresse email">
+  <select id="email" class="v589-email" autocomplete="username" aria-label="Compte familial">
+<option value="" selected disabled>Choisir un compte</option>
+<option value="Jimmy.corcos@yahoo.fr">Jimmy.corcos@yahoo.fr</option>
+<option value="Déborah.berdah@gmail.com">Déborah.berdah@gmail.com</option>
+<option value="Gabriel.corcos22@gmail.com">Gabriel.corcos22@gmail.com</option>
+<option value="Raphael.corcos20@gmail.com">Raphael.corcos20@gmail.com</option>
+<option value="Noa.corcos13@gmail.com">Noa.corcos13@gmail.com</option>
+<option value="Ethan.corcos11@gmail.com">Ethan.corcos11@gmail.com</option>
+</select>
   <input id="password" class="v589-password" type="password" placeholder="Mot de passe" autocomplete="current-password" aria-label="Mot de passe">
   <button id="loginBtn" class="v589-login-btn" type="button" aria-label="Se connecter">Se connecter</button>
   <button id="signupBtn" class="v589-signup-btn" type="button">Créer un accès</button>
