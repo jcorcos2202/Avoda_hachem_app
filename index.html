@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.7.6 — refonte visuelle proche du mockup, gestion inchangée -->
+<!-- Avoda Hachem — Version V5.7.8 — design cohérent par domaine, saisie/bilan/synthèse revus -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -915,6 +915,339 @@ textarea,input,select{
 }
 </style>
 
+
+<style id="v578-coherent-design">
+:root{
+  --svc:#3975b9; --svc-rgb:57,117,185;
+  --tor:#7a56bd; --tor-rgb:122,86,189;
+  --aut:#d66a3d; --aut-rgb:214,106,61;
+  --mai:#3e9367; --mai-rgb:62,147,103;
+  --surface:#ffffff;
+  --soft:#f7f8fa;
+  --ink:#1d344b;
+  --muted:#6e7b87;
+  --line:rgba(29,52,75,.10);
+  --shadow-soft:0 8px 24px rgba(27,43,58,.08);
+}
+
+/* ---- domain variables ---- */
+.cat-service_hachem{--cat:var(--svc);--cat-rgb:var(--svc-rgb)}
+.cat-torah{--cat:var(--tor);--cat-rgb:var(--tor-rgb)}
+.cat-autres{--cat:var(--aut);--cat-rgb:var(--aut-rgb)}
+.cat-maison_hachem{--cat:var(--mai);--cat-rgb:var(--mai-rgb)}
+
+/* ---- section banner ---- */
+.v578-section-banner{
+  display:flex;align-items:center;gap:13px;
+  margin:0 0 12px;padding:16px 17px;border-radius:20px;
+  background:linear-gradient(135deg,#fff8ed,#f7fbf7);
+  border:1px solid rgba(204,164,88,.18);
+  box-shadow:var(--shadow-soft)
+}
+.v578-section-banner strong{display:block;font-size:20px;color:#183a58}
+.v578-section-banner span{display:block;margin-top:2px;color:#6f786f;font-size:12px}
+.v578-section-icon{
+  width:48px;height:48px;border-radius:15px;
+  display:grid;place-items:center;font-size:24px;
+  background:#fff;box-shadow:0 6px 16px rgba(50,57,62,.09)
+}
+.v578-summary-banner{
+  background:linear-gradient(135deg,#eef6ff,#f8f4ff 52%,#f1faf5);
+  border-color:rgba(69,104,151,.15)
+}
+
+/* ---- category colors everywhere ---- */
+.category[class*="cat-"],
+.summary-theme-card[class*="cat-"],
+.summary-action-card[class*="cat-"]{
+  position:relative;
+  border-left:5px solid var(--cat)!important;
+}
+.category[class*="cat-"] .head,
+.summary-action-card[class*="cat-"] .head{
+  background:linear-gradient(90deg,rgba(var(--cat-rgb),.10),rgba(255,255,255,.98) 72%)!important;
+}
+.category[class*="cat-"] .head .icon,
+.summary-action-card[class*="cat-"] .head .icon{
+  background:rgba(var(--cat-rgb),.13)!important;
+  color:var(--cat)!important;
+  box-shadow:inset 0 0 0 1px rgba(var(--cat-rgb),.10)
+}
+.category[class*="cat-"] .cat-count{color:var(--cat)!important;font-weight:700}
+.category[class*="cat-"] .tag{
+  color:var(--cat)!important;
+  background:rgba(var(--cat-rgb),.09)!important;
+  border:1px solid rgba(var(--cat-rgb),.12)!important
+}
+.category[class*="cat-"] .goal-line>input[type="checkbox"]{accent-color:var(--cat)!important}
+.category[class*="cat-"] .progressline{
+  background:rgba(var(--cat-rgb),.10)!important
+}
+.category[class*="cat-"] .progressline>div{
+  background:linear-gradient(90deg,var(--cat),rgba(var(--cat-rgb),.72))!important
+}
+.category[class*="cat-"] .allowance-status{
+  background:rgba(var(--cat-rgb),.07)!important;
+  border-left:3px solid var(--cat)!important;
+  color:#415263!important
+}
+.category[class*="cat-"] textarea:focus,
+.category[class*="cat-"] input:focus,
+.category[class*="cat-"] select:focus{
+  border-color:rgba(var(--cat-rgb),.55)!important;
+  box-shadow:0 0 0 3px rgba(var(--cat-rgb),.09)!important
+}
+
+/* ---- objective entry redesign ---- */
+.goal-add-form{
+  margin:10px 12px 13px!important;
+  padding:13px!important;
+  gap:8px!important;
+  border-radius:16px!important;
+  background:linear-gradient(135deg,rgba(var(--cat-rgb),.055),#fff)!important;
+  border:1px dashed rgba(var(--cat-rgb),.25)!important
+}
+.goal-add-form:before{
+  content:"＋ Nouvel objectif";
+  grid-column:1/-1;
+  font-size:12px;font-weight:850;color:var(--cat);
+  letter-spacing:.01em
+}
+.goal-add-form input,.goal-add-form select{
+  min-height:43px!important;background:#fff!important
+}
+.goal-add-form .btn{
+  background:var(--cat)!important;
+  box-shadow:0 6px 15px rgba(var(--cat-rgb),.20)!important
+}
+.goal{
+  position:relative
+}
+.category[class*="cat-"] .goal:before{
+  content:"";
+  position:absolute;left:0;top:12px;bottom:12px;width:3px;
+  border-radius:3px;background:rgba(var(--cat-rgb),.28)
+}
+.category[class*="cat-"] .goal{
+  padding-left:18px!important
+}
+.goal-main{min-width:0}
+.goal-name strong{font-size:14px}
+.meta{line-height:1.45}
+.manage{gap:5px!important}
+.manage button{
+  min-width:34px;min-height:31px;
+  display:inline-grid;place-items:center;
+  border-radius:9px!important;
+  color:#62717e!important
+}
+
+/* ---- evening: result entry as clear answer cards ---- */
+.evening-redesign>.hero{
+  border-left:4px solid #7458a8!important;
+  background:linear-gradient(135deg,#faf6ff,#fff)!important
+}
+.evening-context-card{
+  background:linear-gradient(135deg,#fff,#fbfaf7)!important;
+  border:1px solid rgba(77,83,88,.09)!important
+}
+.day-indicators{gap:10px!important}
+.indicator-box{
+  padding:11px!important;border-radius:14px!important;
+  background:#f7f8fa!important;border:1px solid #eceef1!important
+}
+.evening-redesign .category[class*="cat-"]{
+  box-shadow:0 10px 28px rgba(var(--cat-rgb),.09)!important
+}
+.evening-redesign .category[class*="cat-"] .goal{
+  margin:0!important;padding-top:14px!important;padding-bottom:14px!important
+}
+.evening-redesign .category[class*="cat-"] .goal-name{
+  margin-bottom:5px!important;color:#233a51!important
+}
+.evening-redesign .status{
+  display:grid!important;grid-template-columns:repeat(4,1fr);
+  gap:6px!important;margin:9px 0!important
+}
+.evening-redesign .status button{
+  min-height:42px!important;border-radius:12px!important;
+  border:1px solid #e1e5e9!important;background:#f8f9fa!important;
+  color:#52616e!important;font-weight:750!important
+}
+.evening-redesign .status button[data-v="very_good"]{background:#eef9f0!important;color:#28743c!important}
+.evening-redesign .status button[data-v="correct"]{background:#eef5ff!important;color:#356795!important}
+.evening-redesign .status button[data-v="work"]{background:#fff7e8!important;color:#a46b18!important}
+.evening-redesign .status button[data-v="fail"]{background:#fff0f0!important;color:#a84444!important}
+.evening-redesign .status button.active{
+  color:white!important;border-color:transparent!important;
+  background:var(--cat)!important;
+  box-shadow:0 7px 17px rgba(var(--cat-rgb),.22)!important;
+  transform:translateY(-1px)
+}
+.evening-redesign .quant-box{
+  padding:10px 12px!important;border-radius:14px!important;
+  background:rgba(var(--cat-rgb),.055)!important;
+  border:1px solid rgba(var(--cat-rgb),.13)!important
+}
+.evening-redesign .quant-box input{
+  font-size:20px!important;font-weight:850!important;color:var(--cat)!important
+}
+.evening-redesign .goal textarea{
+  min-height:58px!important;margin-top:9px!important;
+  background:#fbfbfc!important
+}
+.evening-redesign .auto-result{
+  border-radius:13px!important;
+  background:rgba(var(--cat-rgb),.07)!important;
+  border:1px solid rgba(var(--cat-rgb),.12)!important
+}
+
+/* extras and reflection */
+.evening-extra-card{
+  overflow:hidden;border-radius:20px!important
+}
+.evening-positive-card{border-left:5px solid #3b9562!important}
+.evening-positive-card .head{background:linear-gradient(90deg,#eef9f2,#fff)!important}
+.evening-positive-card .icon{background:#e6f6ec!important;color:#287a4b!important}
+.evening-negative-card{border-left:5px solid #d16a4a!important}
+.evening-negative-card .head{background:linear-gradient(90deg,#fff2ed,#fff)!important}
+.evening-negative-card .icon{background:#ffebe4!important;color:#a94b31!important}
+.evening-extra-card .add{
+  margin:10px 12px 13px!important;padding:12px!important;
+  background:#fafbfc!important;border-radius:15px!important;
+  border:1px solid #edf0f2!important
+}
+.evening-reflection-card{
+  display:grid!important;grid-template-columns:repeat(3,1fr)!important;
+  gap:10px!important;padding:12px!important;background:transparent!important;
+  box-shadow:none!important;border:0!important
+}
+.evening-reflection-card label{
+  display:block!important;padding:12px 12px 0!important;
+  margin:0!important;border-radius:17px 17px 0 0;
+  font-weight:850!important
+}
+.evening-reflection-card textarea{
+  margin:0!important;min-height:120px!important;
+  border-radius:0 0 17px 17px!important;padding:12px!important
+}
+.evening-reflection-card label:nth-of-type(1),
+.evening-reflection-card textarea:nth-of-type(1){background:#f1faf4!important}
+.evening-reflection-card label:nth-of-type(2),
+.evening-reflection-card textarea:nth-of-type(2){background:#fff3f0!important}
+.evening-reflection-card label:nth-of-type(3),
+.evening-reflection-card textarea:nth-of-type(3){background:#fff8e9!important}
+
+/* ---- summary redesign ---- */
+.summary-redesign .periods{
+  display:grid!important;grid-template-columns:repeat(4,1fr);
+  padding:6px!important;margin-bottom:13px!important;
+  background:#fff!important;border-radius:15px!important;
+  border:1px solid var(--line)!important;
+  box-shadow:var(--shadow-soft)!important
+}
+.summary-redesign .period{
+  min-height:40px;border:0!important;border-radius:11px!important;
+  background:transparent!important;color:#62717f!important;font-weight:800!important
+}
+.summary-redesign .period.active{
+  background:linear-gradient(135deg,#164c79,#2672aa)!important;
+  color:#fff!important;box-shadow:0 6px 15px rgba(26,83,128,.20)!important
+}
+.summary-redesign .summary-hero{
+  border-radius:18px!important;padding:15px 16px!important;
+  background:linear-gradient(135deg,#eef6ff,#f8f4ff)!important;
+  border:1px solid rgba(62,100,145,.12)!important
+}
+.summary-grid{
+  gap:10px!important;
+  grid-template-columns:repeat(4,1fr)!important;
+  margin:12px 0 17px!important
+}
+.summary-grid .metric{
+  min-height:108px;padding:14px!important;border-radius:18px!important;
+  background:#fff!important;border:1px solid var(--line)!important;
+  box-shadow:var(--shadow-soft)!important;
+  display:flex!important;flex-direction:column;justify-content:center
+}
+.summary-grid .metric:nth-child(1){background:linear-gradient(135deg,#eef6ff,#fff)!important}
+.summary-grid .metric:nth-child(2){background:linear-gradient(135deg,#f5f0ff,#fff)!important}
+.summary-grid .metric:nth-child(3){background:linear-gradient(135deg,#eef9f2,#fff)!important}
+.summary-grid .metric:nth-child(4){background:linear-gradient(135deg,#fff6e9,#fff)!important}
+.summary-grid .metric strong{font-size:25px!important;color:#173f64!important;margin-top:5px}
+.section-title{
+  display:flex!important;align-items:center;gap:8px;
+  margin:20px 0 10px!important;
+  color:#1b3b57!important;font-size:17px!important
+}
+.section-title:before{
+  content:"";width:7px;height:22px;border-radius:999px;
+  background:linear-gradient(#3975b9,#7a56bd)
+}
+.summary-theme-card{
+  overflow:hidden!important;
+  box-shadow:0 10px 27px rgba(var(--cat-rgb),.09)!important;
+  background:linear-gradient(145deg,rgba(var(--cat-rgb),.055),#fff 38%)!important
+}
+.summary-theme-card .context-block{
+  padding:15px 16px 8px!important
+}
+.summary-theme-card .context-block>strong{color:var(--cat)!important;font-size:15px}
+.summary-theme-card .theme-score{
+  display:inline-block;margin:8px 6px 0 0!important;
+  font-size:30px!important;font-weight:900!important;color:var(--cat)!important
+}
+.summary-theme-card .chart{
+  color:var(--cat)!important;
+  background:rgba(var(--cat-rgb),.025)!important;
+  border-top:1px solid rgba(var(--cat-rgb),.08)!important
+}
+.summary-action-card{
+  overflow:hidden!important;
+  box-shadow:0 9px 25px rgba(var(--cat-rgb),.08)!important
+}
+.summary-action-card .note{
+  margin:9px 12px!important;border-radius:13px!important;
+  background:#fafbfc!important
+}
+.plan-theme{
+  margin:0!important;padding:14px 15px 14px 18px!important;
+  border-bottom:1px solid #edf0f2!important;
+  position:relative
+}
+.plan-theme[class*="cat-"]:before{
+  content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;
+  border-radius:999px;background:var(--cat)
+}
+.plan-theme[class*="cat-"]>strong{color:var(--cat)!important}
+.context-block{border-radius:14px!important}
+.time-summary-row{
+  border-radius:11px!important;padding:9px 10px!important
+}
+.context-point{
+  border-radius:999px!important
+}
+.context-point.active{
+  background:#1b5d8c!important;color:white!important
+}
+
+/* Responsive */
+@media(max-width:760px){
+  .summary-grid{grid-template-columns:repeat(2,1fr)!important}
+  .evening-reflection-card{grid-template-columns:1fr!important}
+  .evening-redesign .status{grid-template-columns:repeat(2,1fr)!important}
+  .goal-add-form{grid-template-columns:1fr 1fr!important}
+  .goal-add-form:before{grid-column:1/-1}
+  .v578-section-banner{padding:13px}
+}
+@media(max-width:480px){
+  .summary-grid .metric{min-height:94px}
+  .summary-grid .metric strong{font-size:22px!important}
+  .goal-add-form{grid-template-columns:1fr!important}
+  .goal-add-form:before{grid-column:1}
+}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -1009,9 +1342,13 @@ textarea,input,select{
     <button id="goEvening" class="btn full">Passer au bilan du soir</button>
   </section>
 
-  <section id="evening" class="panel">
+  <section id="evening" class="panel evening-redesign">
+    <div class="v578-section-banner">
+      <div class="v578-section-icon">🌙</div>
+      <div><strong>Bilan du soir</strong><span>Je regarde ma journée avec honnêteté et j’avance.</span></div>
+    </div>
     <div class="hero">Pour les objectifs quantitatifs, indique ce que tu as <strong>réellement réalisé</strong>. Pour les qualitatifs, donne une appréciation.</div>
-    <div class="card day-context">
+    <div class="card day-context evening-context-card">
       <label><strong>📝 Contexte de la journée</strong></label>
       <textarea id="dayDescription" placeholder="Événement, fatigue, déplacement, ambiance, élément particulier…"></textarea>
       <div class="day-indicators">
@@ -1040,7 +1377,7 @@ textarea,input,select{
       </div>
     </div>
     <div id="eveningCategories"></div>
-    <div class="card">
+    <div class="card evening-extra-card evening-positive-card">
       <div class="head"><div class="head-left"><div class="icon">➕</div><h2>Action positive non prévue</h2></div></div>
       <div id="positiveLibrary" class="event-library"></div>
       <form id="positiveForm" class="add">
@@ -1054,7 +1391,7 @@ textarea,input,select{
       <div id="positiveList"></div>
     </div>
 
-    <div class="card">
+    <div class="card evening-extra-card evening-negative-card">
       <div class="head"><div class="head-left"><div class="icon">⚠️</div><h2>Difficulté / écart non prévu</h2></div></div>
       <div id="negativeLibrary" class="event-library"></div>
       <form id="negativeForm" class="add">
@@ -1067,7 +1404,7 @@ textarea,input,select{
       </form>
       <div id="negativeList"></div>
     </div>
-    <div class="card general">
+    <div class="card general evening-reflection-card">
       <label>✅ Ce qui a marché</label><textarea id="worked"></textarea>
       <label>❌ Ce qui n’a pas marché</label><textarea id="failed"></textarea>
       <label>🔄 Ce que je veux changer</label><textarea id="change"></textarea>
@@ -1151,7 +1488,11 @@ textarea,input,select{
     <div class="msg" id="timeMsg"></div>
   </section>
 
-  <section id="summary" class="panel">
+  <section id="summary" class="panel summary-redesign">
+    <div class="v578-section-banner v578-summary-banner">
+      <div class="v578-section-icon">📊</div>
+      <div><strong>Ma progression</strong><span>Voir les tendances, comprendre ce qui marche et choisir la suite.</span></div>
+    </div>
     <div class="periods">
       <button class="period" data-period="day">Jour</button>
       <button class="period active" data-period="week">Semaine</button>
@@ -1899,7 +2240,7 @@ function renderObjectives(){
  const past=isPastDay();
  CATS.forEach(cat=>{
   const catGoals=goals.filter(g=>g.category===cat.key), selectedCount=catGoals.filter(g=>dailyGoals.some(x=>x.planned&&x.goal_id===g.id)).length;
-  const card=document.createElement("div");card.className="category";card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
+  const card=document.createElement("div");card.className=`category cat-${cat.key}`;card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
   catGoals.forEach(g=>{
    const selected=dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
    const assigned=isMandatoryChildGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta){const money=g.allowance_eligible&&Number(g.allowance_amount||0)>0?` • <strong>💰 ${euro(g.allowance_amount)}</strong>`:"";meta.insertAdjacentHTML("beforeend",(isSystemGoal(g)?' • <strong>Système obligatoire</strong>':(assigned?' • <strong>Assigné par un parent</strong>':' • Personnel'))+money)}}
@@ -1944,7 +2285,7 @@ function renderObjectives(){
    card.appendChild(row);
   });
   if(!past){
-   const form=document.createElement("form");form.className="add";
+   const form=document.createElement("form");form.className="add goal-add-form";
    form.innerHTML=`<input placeholder="${isChildProfile()?"Nouvel objectif personnel":"Nouvel objectif"}"><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button>`;
    form.addEventListener("submit",async e=>{e.preventDefault();const name=form.children[0].value.trim(),type=form.children[1].value,target=form.children[2].value,unit=form.children[3].value.trim();if(!name)return;
     const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:type==="global"?null:(target===""?null:Number(target)),unit:type==="global"?null:(unit||null),objective_key:makeObjectiveKey(name),priority:true,goal_origin:"personal"}).select().single();
@@ -1962,7 +2303,7 @@ function renderEvening(){
    const existingIds=new Set(dailyGoals.filter(x=>x.planned&&x.goal_id).map(x=>String(x.goal_id)));
    const available=todayDefaultGoals.filter(x=>x.goal_id&&!existingIds.has(String(x.goal_id)));
    if(available.length){
-     const box=document.createElement("div");box.className="category";
+     const box=document.createElement("div");box.className="category helper-category";
      box.innerHTML=`<div class="head"><div class="head-left"><div class="icon">↩️</div><div><h2>Objectifs d’aujourd’hui à ajouter</h2><div class="small">Ajoute à ${pretty(currentDay)} les objectifs cochés aujourd’hui afin de saisir le réel de cette journée.</div></div></div></div><div class="past-default-actions"><button class="btn secondary" type="button" data-add-all>Tout ajouter à cette journée</button></div>`;
      available.forEach(x=>{
        const g=goals.find(z=>String(z.id)===String(x.goal_id))||{id:x.goal_id,name:x.goal_name,category:x.category,goal_type:x.goal_type,target_value:x.target_value,unit:x.unit,priority:x.priority};
@@ -1989,7 +2330,7 @@ function renderEvening(){
  }
  CATS.forEach(cat=>{
   const list=dailyGoals.filter(x=>x.category===cat.key&&x.planned);if(!list.length)return;
-  const card=document.createElement("div");card.className="category";card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><h2>${cat.title}</h2></div></div>`;
+  const card=document.createElement("div");card.className=`category cat-${cat.key}`;card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><h2>${cat.title}</h2></div></div>`;
   list.forEach(item=>{
    const row=document.createElement("div");row.className="goal";
    if(isBerakhotGoal(item)){
@@ -2207,7 +2548,7 @@ async function renderSummary(kind){
  });
  const eventCount=events.length;
  document.getElementById("summaryContent").innerHTML=`
- <div class="hero"><strong>${title}</strong><br>Observation : ${effectiveStart} → ${effectiveEnd}${effectiveStart>start?`<br><span class="small">Début limité à la création de ce profil.</span>`:""}</div>
+ <div class="hero summary-hero"><strong>${title}</strong><br>Observation : ${effectiveStart} → ${effectiveEnd}${effectiveStart>start?`<br><span class="small">Début limité à la création de ce profil.</span>`:""}</div>
  <div class="summary-grid">
    <div class="metric"><span>Moyenne journalière globale</span><strong>${daySeries.length?globalScore:"—"}${daySeries.length?"%":""}</strong></div>
    <div class="metric"><span>Jours renseignés</span><strong>${daySeries.length}</strong></div>
@@ -2221,13 +2562,13 @@ async function renderSummary(kind){
    const pts=series.map((p,i)=>`${series.length===1?left+pw/2:left+(i/(series.length-1))*pw},${top+((100-p.score)/100)*ph}`).join(" ");
    const dots=series.map((p,i)=>{const xx=series.length===1?left+pw/2:left+(i/(series.length-1))*pw,yy=top+((100-p.score)/100)*ph;return `<circle cx="${xx}" cy="${yy}" r="1.5" fill="currentColor"/><text x="${xx}" y="${Math.max(4,yy-3)}" text-anchor="middle" font-size="4">${p.score}%</text><text x="${xx}" y="97" text-anchor="middle" font-size="3.5">${p.day.slice(5).split("-").reverse().join("/")}</text>`}).join("");
    const grid=[0,25,50,75,100].map(v=>{const yy=top+((100-v)/100)*ph;return `<line x1="${left}" y1="${yy}" x2="${w-right}" y2="${yy}" stroke="#e2dcd3" stroke-width=".5"/><text x="${left-2}" y="${yy+1.5}" text-anchor="end" font-size="3.5">${v}</text>`}).join("");
-   return `<div class="card"><div class="context-block"><strong>${x.c.icon} ${x.c.title}</strong><br><span class="theme-score">${series.length?x.score:"—"}${series.length?"%":""}</span><span class="small"> moyenne journalière · ${x.avgPlanned} objectifs/jour dont ${x.avgPriority} prioritaires · ${series.length} jour${series.length>1?"s":""}</span></div><div class="chart">${series.length?`<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Progression ${x.c.title}">${grid}<polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/>${dots}</svg>`:`<div class="note">Pas encore de résultat pour cette thématique.</div>`}</div></div>`;
+   return `<div class="card summary-theme-card cat-${x.c.key}"><div class="context-block"><strong>${x.c.icon} ${x.c.title}</strong><br><span class="theme-score">${series.length?x.score:"—"}${series.length?"%":""}</span><span class="small"> moyenne journalière · ${x.avgPlanned} objectifs/jour dont ${x.avgPriority} prioritaires · ${series.length} jour${series.length>1?"s":""}</span></div><div class="chart">${series.length?`<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Progression ${x.c.title}">${grid}<polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/>${dots}</svg>`:`<div class="note">Pas encore de résultat pour cette thématique.</div>`}</div></div>`;
  }).join("")}
  <h3 class="section-title">Actions à maintenir et à améliorer</h3>
- ${CATS.map(c=>{const m=maintain.find(x=>x.c.key===c.key).items,im=improve.find(x=>x.c.key===c.key).items;return `<div class="card"><div class="head"><div class="head-left"><div class="icon">${c.icon}</div><h2>${c.title}</h2></div></div><div class="note"><strong class="goodtxt">✅ À maintenir</strong><br>${m.length?m.map(x=>`${escapeHtml(x.name)} — ${x.score}%`).join("<br>"):"Pas encore d’action suffisamment régulière."}</div><div class="note"><strong class="badtxt">⚠️ À améliorer</strong><br>${im.length?im.map(x=>`${escapeHtml(x.name)} — ${x.score}%`).join("<br>"):"Aucune priorité détectée sur cette période."}</div></div>`}).join("")}
+ ${CATS.map(c=>{const m=maintain.find(x=>x.c.key===c.key).items,im=improve.find(x=>x.c.key===c.key).items;return `<div class="card summary-action-card cat-${c.key}"><div class="head"><div class="head-left"><div class="icon">${c.icon}</div><h2>${c.title}</h2></div></div><div class="note"><strong class="goodtxt">✅ À maintenir</strong><br>${m.length?m.map(x=>`${escapeHtml(x.name)} — ${x.score}%`).join("<br>"):"Pas encore d’action suffisamment régulière."}</div><div class="note"><strong class="badtxt">⚠️ À améliorer</strong><br>${im.length?im.map(x=>`${escapeHtml(x.name)} — ${x.score}%`).join("<br>"):"Aucune priorité détectée sur cette période."}</div></div>`}).join("")}
  <h3 class="section-title">Plan d’action proposé</h3>
  <div class="hero">Cette proposition est calculée à partir de tes résultats. Elle ne modifie jamais tes objectifs automatiquement.</div>
- <div class="card">${plan.map(x=>`<div class="plan-theme"><strong>${x.c.icon} ${x.c.title}</strong><div class="small" style="margin-top:5px">${escapeHtml(x.text)}</div></div>`).join("")}</div>
+ <div class="card">${plan.map(x=>`<div class="plan-theme cat-${x.c.key}"><strong>${x.c.icon} ${x.c.title}</strong><div class="small" style="margin-top:5px">${escapeHtml(x.text)}</div></div>`).join("")}</div>
  ${(()=>{const md=days.filter(d=>d.mood!=null),dd=days.filter(d=>d.difficulty!=null);
  const ma=md.length?(md.reduce((s,d)=>s+Number(d.mood),0)/md.length).toFixed(1):null;
  const da=dd.length?(dd.reduce((s,d)=>s+Number(d.difficulty),0)/dd.length).toFixed(1):null;
@@ -2476,11 +2817,31 @@ document.getElementById("timeCategoryForm").addEventListener("submit",addTimeCat
 document.getElementById("goEvening").addEventListener("click",()=>setPanel("evening"));document.getElementById("saveDay").addEventListener("click",saveDay);document.getElementById("positiveForm").addEventListener("submit",addPositive);document.getElementById("negativeForm").addEventListener("submit",addNegative);
 document.getElementById("copyPrevGoalsBtn").addEventListener("click",copyPreviousDayGoals);
 document.getElementById("prevDay").addEventListener("click",async()=>{currentDay=shiftDate(currentDay,-1);await loadDay()});document.getElementById("nextDay").addEventListener("click",async()=>{currentDay=shiftDate(currentDay,1);await loadDay()});document.getElementById("todayBtn").addEventListener("click",async()=>{currentDay=todayISO();await loadDay()});
-supabase.auth.onAuthStateChange((_event,session)=>{
- // La session est fournie par Supabase : ne pas rappeler getSession() depuis le callback.
- setTimeout(()=>{if(session)authRefresh(session);else showSignedOut()},0);
+function showLoginLanding(){
+ user=null;
+ document.getElementById("profileView").style.display="none";
+ document.getElementById("mainView").style.display="none";
+ document.getElementById("authView").style.display="block";
+}
+
+supabase.auth.onAuthStateChange((event,session)=>{
+ // Au chargement d'une nouvelle page, Supabase peut restaurer automatiquement
+ // l'ancienne session. On garde néanmoins l'écran de connexion comme page d'accueil.
+ if(event==="INITIAL_SESSION"){
+   showLoginLanding();
+   return;
+ }
+ setTimeout(()=>{
+   if(session && (event==="SIGNED_IN" || event==="TOKEN_REFRESHED" || event==="USER_UPDATED")){
+     authRefresh(session);
+   }else if(!session){
+     showSignedOut();
+   }
+ },0);
 });
-authRefresh();
+
+// Toujours commencer visuellement sur l'écran de connexion.
+showLoginLanding();
 </script>
 
 <script id="v576-presentational-js">
