@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.9 — visuel de connexion utilisé comme véritable interface -->
+<!-- Avoda Hachem — Version V5.8.13 — zone de connexion réellement placée sous l’image -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -2268,6 +2268,652 @@ body.v574-parent #family.panel.active{
 }
 </style>
 
+
+<style id="v5810-login-fix">
+/* V5.8.10 — mobile-first correction of V5.8.9 */
+html, body { overflow-x:hidden!important; }
+
+#authView.v586-auth{
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+}
+
+#authView .v586-login-stage{
+  position:relative!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  aspect-ratio:3/2!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  overflow:hidden!important;
+  background-size:100% 100%!important;
+  background-position:center center!important;
+  background-repeat:no-repeat!important;
+}
+
+/* Overlay keeps the artwork visible: no duplicate boxes/buttons */
+#authView .v589-login-overlay{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  pointer-events:none!important;
+}
+
+/* Inputs sit exactly on the painted fields and are transparent apart from typed text */
+#authView .v589-email,
+#authView .v589-password{
+  position:absolute!important;
+  left:6.75%!important;
+  width:15.35%!important;
+  height:4.05%!important;
+  margin:0!important;
+  padding:0 1.3%!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:none!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#20384d!important;
+  font-weight:600!important;
+  pointer-events:auto!important;
+}
+#authView .v589-email{ top:32.55%!important; }
+#authView .v589-password{ top:38.35%!important; }
+
+/* Hide placeholders so the artwork's own labels remain clean */
+#authView .v589-email::placeholder,
+#authView .v589-password::placeholder{
+  color:transparent!important;
+}
+
+/* Real login button = transparent hit area over the painted blue button */
+#authView .v589-login-btn{
+  position:absolute!important;
+  left:3.35%!important;
+  top:47.15%!important;
+  width:19.0%!important;
+  height:4.35%!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:transparent!important;
+  box-shadow:none!important;
+  pointer-events:auto!important;
+}
+
+/* Keep signup available, but unobtrusive and outside the painted controls */
+#authView .v589-signup-btn{
+  position:absolute!important;
+  left:7.4%!important;
+  top:57.0%!important;
+  width:11%!important;
+  height:2.5%!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  color:transparent!important;
+  text-decoration:none!important;
+  pointer-events:auto!important;
+}
+
+/* Error message only appears when there is one */
+#authView .v589-auth-msg{
+  position:absolute!important;
+  left:3.5%!important;
+  top:59.4%!important;
+  width:18.7%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  color:#a13232!important;
+  text-align:center!important;
+  background:rgba(255,248,238,.92)!important;
+  border-radius:6px!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+  pointer-events:none!important;
+}
+#authView .v589-auth-msg:empty{ display:none!important; }
+
+/* Desktop: cap the visual so it stays elegant */
+@media(min-width:701px){
+  #authView.v586-auth{
+    width:min(96vw,1400px)!important;
+    margin:10px auto 24px!important;
+  }
+  #authView .v586-login-stage{
+    border-radius:22px!important;
+    box-shadow:0 18px 55px rgba(24,39,52,.14)!important;
+  }
+  #authView .v589-email,
+  #authView .v589-password{
+    font-size:clamp(10px,.92vw,14px)!important;
+  }
+}
+
+/* iPhone: no crop, no horizontal overflow, no duplicate UI */
+@media(max-width:700px){
+  #authView.v586-auth{
+    width:100vw!important;
+    max-width:100vw!important;
+  }
+  #authView .v586-login-stage{
+    width:100vw!important;
+    max-width:100vw!important;
+    aspect-ratio:3/2!important;
+    border-radius:0!important;
+  }
+  #authView .v589-email,
+  #authView .v589-password{
+    font-size:7.5px!important;
+  }
+  #authView .v589-auth-msg{
+    font-size:6px!important;
+  }
+}
+</style>
+
+
+<style id="v5811-real-login-card">
+/* V5.8.11 — replace the painted fake login area with a real, compact HTML login card */
+#authView .v589-login-overlay{
+  position:absolute!important;
+  left:1.9%!important;
+  top:20.8%!important;
+  width:22.2%!important;
+  height:auto!important;
+  inset:auto!important;
+  padding:16px 14px 13px!important;
+  box-sizing:border-box!important;
+  border-radius:18px!important;
+  background:rgba(249,244,235,.98)!important;
+  border:1px solid rgba(164,145,119,.26)!important;
+  box-shadow:0 10px 26px rgba(85,61,35,.14)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  pointer-events:auto!important;
+}
+
+/* Rebuild the original functional login form visually */
+#authView .v589-login-overlay::before{
+  content:"Bienvenue ! 👋";
+  display:block;
+  margin:0 0 4px;
+  text-align:center;
+  font-size:clamp(12px,1.35vw,21px);
+  line-height:1.1;
+  font-weight:900;
+  color:#0b3764;
+}
+#authView .v589-login-overlay::after{
+  content:"Connecte-toi à ton espace personnel";
+  display:block;
+  position:absolute;
+  left:0; right:0;
+  top:42px;
+  text-align:center;
+  font-size:clamp(7px,.72vw,10px);
+  color:#36516a;
+  pointer-events:none;
+}
+
+#authView .v589-email,
+#authView .v589-password{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  height:39px!important;
+  margin:23px 0 0!important;
+  padding:0 12px!important;
+  box-sizing:border-box!important;
+  border:1px solid rgba(144,125,103,.35)!important;
+  border-radius:10px!important;
+  outline:none!important;
+  background:#fff!important;
+  color:#263d50!important;
+  font-size:clamp(9px,.9vw,13px)!important;
+  font-weight:500!important;
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.02)!important;
+  pointer-events:auto!important;
+}
+#authView .v589-password{ margin-top:8px!important; }
+#authView .v589-email::placeholder,
+#authView .v589-password::placeholder{
+  color:#7b8893!important;
+}
+
+#authView .v589-login-btn{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  height:40px!important;
+  margin:11px 0 0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:#073c70!important;
+  color:#fff!important;
+  font-size:clamp(9px,.95vw,14px)!important;
+  font-weight:800!important;
+  box-shadow:0 5px 12px rgba(7,60,112,.16)!important;
+  pointer-events:auto!important;
+}
+
+#authView .v589-signup-btn{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  height:34px!important;
+  margin:8px 0 0!important;
+  padding:0!important;
+  border:1px solid rgba(7,60,112,.35)!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.66)!important;
+  color:#073c70!important;
+  font-size:clamp(8px,.78vw,11px)!important;
+  font-weight:700!important;
+  text-decoration:none!important;
+  pointer-events:auto!important;
+}
+
+#authView .v589-auth-msg{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  margin:7px 0 0!important;
+  padding:0!important;
+  min-height:0!important;
+  background:transparent!important;
+  color:#9a3131!important;
+  text-align:center!important;
+  font-size:clamp(7px,.68vw,10px)!important;
+  pointer-events:none!important;
+}
+#authView .v589-auth-msg:empty{display:none!important}
+
+/* Cover the fake painted panel completely so only the real form is perceived */
+#authView .v589-login-overlay{
+  overflow:hidden!important;
+}
+
+/* Mobile: same real card, proportionally larger for touch */
+@media(max-width:700px){
+  #authView .v589-login-overlay{
+    left:3.6%!important;
+    top:20.5%!important;
+    width:46%!important;
+    padding:9px 9px 8px!important;
+    border-radius:12px!important;
+  }
+  #authView .v589-login-overlay::before{
+    font-size:11px!important;
+    margin-bottom:1px!important;
+  }
+  #authView .v589-login-overlay::after{
+    top:26px!important;
+    font-size:5.7px!important;
+  }
+  #authView .v589-email,
+  #authView .v589-password{
+    height:27px!important;
+    margin-top:14px!important;
+    padding:0 7px!important;
+    border-radius:7px!important;
+    font-size:7px!important;
+  }
+  #authView .v589-password{margin-top:5px!important}
+  #authView .v589-login-btn{
+    height:28px!important;
+    margin-top:6px!important;
+    border-radius:7px!important;
+    font-size:7px!important;
+  }
+  #authView .v589-signup-btn{
+    height:24px!important;
+    margin-top:5px!important;
+    border-radius:7px!important;
+    font-size:6px!important;
+  }
+  #authView .v589-auth-msg{
+    margin-top:4px!important;
+    font-size:5.5px!important;
+  }
+}
+</style>
+
+
+<style id="v5812-login-below-image">
+/* V5.8.12 — same real login card, now directly below the complete artwork */
+#authView.v586-auth{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+}
+
+#authView .v586-login-stage{
+  position:relative!important;
+  width:100%!important;
+  aspect-ratio:3/2!important;
+  min-height:0!important;
+  background-size:100% 100%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+}
+
+/* The form is no longer superimposed on the artwork */
+#authView .v589-login-overlay{
+  position:absolute!important;
+  left:50%!important;
+  top:100%!important;
+  transform:translateX(-50%)!important;
+  width:min(390px,92%)!important;
+  height:auto!important;
+  margin-top:14px!important;
+  padding:18px 18px 15px!important;
+  box-sizing:border-box!important;
+  border-radius:18px!important;
+  background:rgba(249,244,235,.99)!important;
+  border:1px solid rgba(164,145,119,.26)!important;
+  box-shadow:0 10px 28px rgba(85,61,35,.13)!important;
+  overflow:visible!important;
+  z-index:5!important;
+}
+
+/* Reserve the exact space occupied by the form below the image */
+#authView.v586-auth{
+  padding-bottom:270px!important;
+}
+
+#authView .v589-login-overlay::before{
+  content:"Bienvenue ! 👋"!important;
+  display:block!important;
+  position:static!important;
+  margin:0 0 4px!important;
+  text-align:center!important;
+  font-size:21px!important;
+  line-height:1.1!important;
+  font-weight:900!important;
+  color:#0b3764!important;
+}
+#authView .v589-login-overlay::after{
+  content:"Connecte-toi à ton espace personnel"!important;
+  display:block!important;
+  position:static!important;
+  margin:0 0 13px!important;
+  text-align:center!important;
+  font-size:11px!important;
+  color:#36516a!important;
+}
+
+#authView .v589-email,
+#authView .v589-password{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  height:42px!important;
+  margin:0!important;
+  padding:0 12px!important;
+  border:1px solid rgba(144,125,103,.35)!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#263d50!important;
+  font-size:13px!important;
+}
+#authView .v589-password{margin-top:8px!important}
+
+#authView .v589-login-btn{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  height:42px!important;
+  margin:11px 0 0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:#073c70!important;
+  color:#fff!important;
+  font-size:14px!important;
+  font-weight:800!important;
+}
+
+#authView .v589-signup-btn{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  height:36px!important;
+  margin:8px 0 0!important;
+  padding:0!important;
+  border:1px solid rgba(7,60,112,.35)!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#073c70!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+
+#authView .v589-auth-msg{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:100%!important;
+  margin:7px 0 0!important;
+  background:transparent!important;
+  text-align:center!important;
+  font-size:10px!important;
+}
+#authView .v589-auth-msg:empty{display:none!important}
+
+@media(max-width:700px){
+  #authView.v586-auth{
+    padding-bottom:230px!important;
+  }
+  #authView .v589-login-overlay{
+    width:92%!important;
+    margin-top:9px!important;
+    padding:13px 13px 11px!important;
+    border-radius:14px!important;
+  }
+  #authView .v589-login-overlay::before{
+    font-size:17px!important;
+  }
+  #authView .v589-login-overlay::after{
+    margin-bottom:9px!important;
+    font-size:9px!important;
+  }
+  #authView .v589-email,
+  #authView .v589-password{
+    height:36px!important;
+    font-size:11px!important;
+  }
+  #authView .v589-login-btn{
+    height:37px!important;
+    font-size:12px!important;
+  }
+  #authView .v589-signup-btn{
+    height:32px!important;
+    font-size:10px!important;
+  }
+}
+</style>
+
+
+<style id="v5813-login-flow-fix">
+/* V5.8.13 — actual DOM flow: image first, login card second */
+#authView.v586-auth{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  width:100%!important;
+  max-width:1536px!important;
+  margin:0 auto 24px!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+#authView .v586-login-stage{
+  position:relative!important;
+  flex:none!important;
+  width:100%!important;
+  max-width:100%!important;
+  aspect-ratio:3/2!important;
+  min-height:0!important;
+  background-size:100% 100%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+  overflow:hidden!important;
+}
+
+/* Real login card now lives OUTSIDE the image container */
+#authView > .v589-login-overlay{
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:auto!important;
+  transform:none!important;
+  display:block!important;
+  flex:none!important;
+  width:min(390px,92%)!important;
+  height:auto!important;
+  margin:12px auto 0!important;
+  padding:17px 18px 15px!important;
+  box-sizing:border-box!important;
+  border-radius:18px!important;
+  background:#f9f4eb!important;
+  border:1px solid rgba(164,145,119,.28)!important;
+  box-shadow:0 9px 26px rgba(85,61,35,.13)!important;
+  overflow:visible!important;
+  z-index:10!important;
+  pointer-events:auto!important;
+}
+#authView > .v589-login-overlay::before{
+  content:"Bienvenue ! 👋"!important;
+  display:block!important;
+  position:static!important;
+  margin:0 0 3px!important;
+  text-align:center!important;
+  color:#0b3764!important;
+  font-size:20px!important;
+  line-height:1.1!important;
+  font-weight:900!important;
+}
+#authView > .v589-login-overlay::after{
+  content:"Connecte-toi à ton espace personnel"!important;
+  display:block!important;
+  position:static!important;
+  margin:0 0 12px!important;
+  text-align:center!important;
+  color:#36516a!important;
+  font-size:10px!important;
+}
+
+#authView > .v589-login-overlay .v589-email,
+#authView > .v589-login-overlay .v589-password{
+  position:relative!important;
+  inset:auto!important;
+  display:block!important;
+  width:100%!important;
+  height:40px!important;
+  margin:0!important;
+  padding:0 12px!important;
+  box-sizing:border-box!important;
+  border:1px solid rgba(144,125,103,.38)!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#263d50!important;
+  font-size:13px!important;
+  font-weight:500!important;
+  pointer-events:auto!important;
+}
+#authView > .v589-login-overlay .v589-password{margin-top:8px!important}
+#authView > .v589-login-overlay .v589-email::placeholder,
+#authView > .v589-login-overlay .v589-password::placeholder{color:#7b8893!important}
+
+#authView > .v589-login-overlay .v589-login-btn{
+  position:relative!important;
+  inset:auto!important;
+  display:block!important;
+  width:100%!important;
+  height:41px!important;
+  margin:10px 0 0!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:#073c70!important;
+  color:#fff!important;
+  font-size:13px!important;
+  font-weight:800!important;
+  pointer-events:auto!important;
+}
+#authView > .v589-login-overlay .v589-signup-btn{
+  position:relative!important;
+  inset:auto!important;
+  display:block!important;
+  width:100%!important;
+  height:34px!important;
+  margin:7px 0 0!important;
+  border:1px solid rgba(7,60,112,.35)!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#073c70!important;
+  font-size:10px!important;
+  font-weight:700!important;
+  pointer-events:auto!important;
+}
+#authView > .v589-login-overlay .v589-auth-msg{
+  position:relative!important;
+  inset:auto!important;
+  width:100%!important;
+  margin:6px 0 0!important;
+  padding:0!important;
+  background:transparent!important;
+  color:#9a3131!important;
+  text-align:center!important;
+  font-size:9px!important;
+}
+#authView > .v589-login-overlay .v589-auth-msg:empty{display:none!important}
+
+@media(max-width:700px){
+  #authView.v586-auth{
+    width:100%!important;
+    padding:0 0 18px!important;
+  }
+  #authView .v586-login-stage{
+    width:100%!important;
+    aspect-ratio:3/2!important;
+  }
+  #authView > .v589-login-overlay{
+    width:92%!important;
+    margin-top:10px!important;
+    padding:13px 13px 11px!important;
+    border-radius:14px!important;
+  }
+  #authView > .v589-login-overlay::before{font-size:17px!important}
+  #authView > .v589-login-overlay::after{font-size:9px!important;margin-bottom:9px!important}
+  #authView > .v589-login-overlay .v589-email,
+  #authView > .v589-login-overlay .v589-password{
+    height:36px!important;font-size:11px!important;
+  }
+  #authView > .v589-login-overlay .v589-login-btn{
+    height:37px!important;font-size:12px!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -2277,6 +2923,10 @@ body.v574-parent #family.panel.active{
     <div class="v586-shade"></div>
     
 
+
+
+
+  </div>
 <div class="v586-login-card v588-login-card v589-login-overlay">
   <input id="email" class="v589-email" type="email" placeholder="Adresse email" autocomplete="email" aria-label="Adresse email">
   <input id="password" class="v589-password" type="password" placeholder="Mot de passe" autocomplete="current-password" aria-label="Mot de passe">
@@ -2284,9 +2934,6 @@ body.v574-parent #family.panel.active{
   <button id="signupBtn" class="v589-signup-btn" type="button">Créer un accès</button>
   <div id="authMsg" class="msg v589-auth-msg"></div>
 </div>
-
-
-  </div>
 </section>
 
 <section id="mainView" style="display:none">
