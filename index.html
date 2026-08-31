@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.7.0 — gestion parentale des objectifs enfants -->
+<!-- Avoda Hachem — Version V5.7.0 — objectifs enfants personnels + objectifs parentaux imposés -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -734,6 +734,19 @@ function bindDayDraftAutosave(){
  ["dayMood","dayDifficulty"].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.autosaveBound){el.addEventListener("change",async()=>{markDayDraftDirty();await saveDayDraft();});el.dataset.autosaveBound="1";}});
 }
 
+async function ensureParentAssignedGoalsForDay(){
+ if(!isChildProfile()||!dayRow||currentDay<todayISO())return false;
+ const assigned=goals.filter(g=>isParentAssignedGoal(g));if(!assigned.length)return false;
+ let changed=false;
+ for(const g of assigned){
+  const existing=dailyGoals.find(x=>String(x.goal_id)===String(g.id));
+  const payload={planned:true,goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null};
+  if(existing&&!existing.planned){const u=await supabase.from("daily_goals").update(payload).eq("user_id",user.id).eq("id",existing.id);if(!u.error)changed=true}
+  else if(!existing){const ins=await supabase.from("daily_goals").insert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,...payload});if(!ins.error)changed=true}
+ }
+ return changed;
+}
+
 async function loadDay(showSpinner=true){
  if(showSpinner)showLoading("Chargement de la journée…");
  try{
@@ -744,6 +757,7 @@ async function loadDay(showSpinner=true){
  const copyPrevMsg=document.getElementById("copyPrevGoalsMsg");if(copyPrevMsg)copyPrevMsg.textContent="";
  await ensureDay();
  let r=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[];
+ if(await ensureParentAssignedGoalsForDay()){r=await supabase.from("daily_goals").select("*").eq("user_id",user.id).eq("day_id",dayRow.id).order("id");dailyGoals=r.data||[]}
  if(currentDay===todayISO()){
    const review=goals.find(g=>g.category==="service_hachem"&&isDailyReviewGoal(g));
    if(review&&!dailyGoals.some(x=>x.planned&&x.goal_id===review.id)){
@@ -974,18 +988,19 @@ async function addTimeCategory(e){
 
 function renderObjectives(){
  const host=document.getElementById("objectiveCategories");host.innerHTML="";
- if(isChildProfile()){const note=document.createElement("div");note.className="child-readonly-note";note.textContent="🔒 Tes objectifs sont définis par tes parents. Tu peux choisir les objectifs prévus pour la journée et renseigner tes réalisations, mais tu ne peux pas modifier leur définition ni les supprimer.";host.appendChild(note)}
+ if(isChildProfile()){const note=document.createElement("div");note.className="child-readonly-note";note.textContent="🎯 Tu peux créer et gérer tes objectifs personnels. Les objectifs assignés par tes parents sont obligatoires : ils sont automatiquement prévus et tu ne peux ni les retirer ni les modifier.";host.appendChild(note)}
  const past=isPastDay();
  CATS.forEach(cat=>{
   const catGoals=goals.filter(g=>g.category===cat.key), selectedCount=catGoals.filter(g=>dailyGoals.some(x=>x.planned&&x.goal_id===g.id)).length;
   const card=document.createElement("div");card.className="category";card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
   catGoals.forEach(g=>{
    const selected=dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
+   const assigned=isChildProfile()&&isParentAssignedGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta)meta.insertAdjacentHTML("beforeend",assigned?' • <strong>Assigné par un parent</strong>':' • Personnel')}
    const cb=row.querySelector(".goal-line > input");
    // La sélection d’objectifs appartient uniquement à la date sélectionnée N.
    // Même sur une date passée, elle reste modifiable : aucune copie N-1 -> N ne crée de gel.
-   cb.disabled=false;
-   cb.addEventListener("change",async e=>{
+   cb.disabled=assigned;
+   if(!assigned)cb.addEventListener("change",async e=>{
     if(e.target.checked){
      const existing=dailyGoals.find(x=>String(x.goal_id)===String(g.id));
      if(existing){
@@ -1006,7 +1021,7 @@ function renderObjectives(){
     const manage=row.querySelector(".manage");
     manage.innerHTML=isBerakhotGoal(g)?'<button type="button" data-act="counter">💯 Compteur</button>':"";
     const pc=row.querySelector(".priorityCheck");if(pc)pc.disabled=true;
-   }else if(isChildProfile()){
+   }else if(assigned){
     const manage=row.querySelector(".manage");if(manage)manage.innerHTML="";
     const pc=row.querySelector(".priorityCheck");if(pc)pc.disabled=true;
    }else{
@@ -1021,11 +1036,11 @@ function renderObjectives(){
    const counterBtn=row.querySelector('[data-act="counter"]'); if(counterBtn) counterBtn.addEventListener("click",()=>setPanel("berakhot"));
    card.appendChild(row);
   });
-  if(!past&&!isChildProfile()){
+  if(!past){
    const form=document.createElement("form");form.className="add";
-   form.innerHTML=`<input placeholder="Nouvel objectif"><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button>`;
+   form.innerHTML=`<input placeholder="${isChildProfile()?"Nouvel objectif personnel":"Nouvel objectif"}"><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button>`;
    form.addEventListener("submit",async e=>{e.preventDefault();const name=form.children[0].value.trim(),type=form.children[1].value,target=form.children[2].value,unit=form.children[3].value.trim();if(!name)return;
-    const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:type==="global"?null:(target===""?null:Number(target)),unit:type==="global"?null:(unit||null),objective_key:name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_"),priority:true}).select().single();
+    const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:type==="global"?null:(target===""?null:Number(target)),unit:type==="global"?null:(unit||null),objective_key:name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_"),priority:true,goal_origin:"personal"}).select().single();
     if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id"});
     await refreshGoals();await loadDay();
    }); card.appendChild(form);
@@ -1102,9 +1117,9 @@ function renderEvening(){
  document.getElementById("positiveCat").innerHTML=CATS.map(c=>`<option value="${c.key}">${c.title}</option>`).join("");
  document.getElementById("negativeCat").innerHTML=CATS.map(c=>`<option value="${c.key}">${c.title}</option>`).join("");
  const pMake=document.getElementById("positiveMakeGoal"),nMake=document.getElementById("negativeMakeGoal");
- if(pMake){pMake.disabled=isChildProfile();if(isChildProfile())pMake.value="no"}
- if(nMake){nMake.disabled=isChildProfile();if(isChildProfile())nMake.value="no"}
- document.getElementById("positiveGoalName").disabled=isChildProfile();document.getElementById("negativeGoalName").disabled=isChildProfile();
+ if(pMake)pMake.disabled=false;
+ if(nMake)nMake.disabled=false;
+ document.getElementById("positiveGoalName").disabled=false;document.getElementById("negativeGoalName").disabled=false;
 }
 
 function renderEventLibrary(type){
@@ -1135,7 +1150,7 @@ async function saveDay(){
  msg("saveMsg","Journée enregistrée ✓ — le bilan du jour est compté comme réalisé.");await loadDay();
 }
 async function createGoalFromEvent(category,name,goalType="global"){
- if(!name||isChildProfile())return null;
+ if(!name)return null;
  let g=goals.find(x=>x.category===category&&x.name.toLowerCase()===name.toLowerCase());
  if(g)return g;
  const ins=await supabase.from("goals").insert({
@@ -1145,7 +1160,8 @@ async function createGoalFromEvent(category,name,goalType="global"){
    goal_type:goalType,
    target_value:null,
    unit:null,
-   objective_key:name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_")
+   objective_key:name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu,"_"),
+   goal_origin:"personal"
  }).select().single();
  await refreshGoals();
  return ins.data||null;
@@ -1360,6 +1376,7 @@ async function ensureCurrentProfileRole(){
 }
 function isChildProfile(){return appProfile?.profile_type==="child"}
 function isParentProfile(){return appProfile?.profile_type==="parent"}
+function isParentAssignedGoal(g){return g?.goal_origin==="parent"}
 function valOrUnknown(v){return (v===null||v===undefined||String(v).trim()==="")?"Inconnu":String(v)}
 function prettyProfileDate(v){if(!v)return "Inconnu";const [y,m,d]=v.split("-");return (y&&m&&d)?`${d}/${m}/${y}`:v}
 function sexLabel(v){return v==="male"?"Homme":v==="female"?"Femme":"Inconnu"}
@@ -1433,12 +1450,12 @@ async function renderFamilyChildGoals(child){
  if(r.error){host.innerHTML=`<div class="child-goals-panel"><div class="msg">Objectifs indisponibles : ${escapeHtml(r.error.message)}</div></div>`;return}
  const childGoals=r.data||[];
  const categoryOptions=CATS.map(c=>`<option value="${c.key}">${escapeHtml(c.title)}</option>`).join("");
- host.innerHTML=`<div class="child-goals-panel"><div class="child-goals-head"><div><h2>🎯 Objectifs de ${escapeHtml(child.first_name||"l’enfant")}</h2><div class="small">Création et paramétrage réservés aux parents. Les catégories restent celles de la V5.6.6.</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div><div class="child-goal-lock">🔒 L’enfant peut utiliser ses objectifs au quotidien, mais il ne peut plus modifier leur nom, leur cible, leur priorité ni les désactiver.</div><div data-child-goal-list></div><form class="child-goal-form" data-child-goal-form><input placeholder="Nouvel objectif" required><select>${categoryOptions}</select><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button></form></div>`;
+ host.innerHTML=`<div class="child-goals-panel"><div class="child-goals-head"><div><h2>🎯 Objectifs de ${escapeHtml(child.first_name||"l’enfant")}</h2><div class="small">Les objectifs assignés ici sont obligatoires pour l’enfant. Ses objectifs personnels restent sous son contrôle et ne pourront pas générer d’argent de poche.</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div><div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu pour l’enfant et ne peut pas être refusé.</div><div data-child-goal-list></div><form class="child-goal-form" data-child-goal-form><input placeholder="Nouvel objectif" required><select>${categoryOptions}</select><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button></form></div>`;
  const list=host.querySelector('[data-child-goal-list]');
  const draw=()=>{
-  list.innerHTML=childGoals.length?childGoals.map(g=>{const cat=catMeta(g.category)?.title||g.category;const meta=g.goal_type==="global"?"Qualitatif":`${g.target_value??"—"} ${g.unit||""}`.trim();return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${g.priority!==false?" · Prioritaire":" · Non prioritaire"}</div></div></div><div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div></div>`}).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
+  list.innerHTML=childGoals.length?childGoals.map(g=>{const cat=catMeta(g.category)?.title||g.category;const meta=g.goal_type==="global"?"Qualitatif":`${g.target_value??"—"} ${g.unit||""}`.trim();return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${g.priority!==false?" · Prioritaire":" · Non prioritaire"} · ${isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — sans argent de poche"}</div></div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`}).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
   list.querySelectorAll('[data-goal-id]').forEach(row=>{
-   const id=Number(row.dataset.goalId),g=childGoals.find(x=>Number(x.id)===id);if(!g)return;
+   const id=Number(row.dataset.goalId),g=childGoals.find(x=>Number(x.id)===id);if(!g||!isParentAssignedGoal(g))return;
    row.querySelector('[data-edit]').addEventListener('click',async()=>{
     const name=prompt('Nom de l’objectif :',g.name);if(name===null||!name.trim())return;
     const catChoices=CATS.map((c,i)=>`${i+1}. ${c.title}`).join('\n');
