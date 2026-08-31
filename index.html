@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.7.9 — connexion forcée + sous-menus par domaine -->
+<!-- Avoda Hachem — Version V5.8.0 — sous-menus synthèse/famille + illustrations + Pirkei Avot -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -1322,6 +1322,131 @@ textarea,input,select{
 }
 </style>
 
+
+<style id="v580-design">
+/* lightweight image breaks */
+.v580-visual-break{
+  margin:0 0 12px;border-radius:20px;overflow:hidden;
+  border:1px solid rgba(42,61,77,.08);
+  box-shadow:0 8px 22px rgba(31,45,58,.07);
+  background:#fff
+}
+.v580-visual-break svg{display:block;width:100%;height:auto;max-height:155px}
+
+/* summary submenu uses category identity */
+#summarySubnav [data-summary-filter="service_hachem"].active{background:linear-gradient(135deg,#3975b9,#5a91c8)}
+#summarySubnav [data-summary-filter="torah"].active{background:linear-gradient(135deg,#6e4dac,#8b6ac7)}
+#summarySubnav [data-summary-filter="autres"].active{background:linear-gradient(135deg,#c85b35,#df7a50)}
+#summarySubnav [data-summary-filter="maison_hachem"].active{background:linear-gradient(135deg,#338158,#53a276)}
+#summarySubnav [data-summary-filter="time"].active{background:linear-gradient(135deg,#986a30,#bb8947)}
+#summarySubnav [data-summary-filter="days"].active{background:linear-gradient(135deg,#566b80,#75899b)}
+
+/* Pirkei Avot card */
+.v580-pirkei-card{
+  display:grid;grid-template-columns:210px 1fr;gap:16px;
+  margin:12px 0 15px;padding:12px;
+  border-radius:22px;
+  background:linear-gradient(135deg,#fff9ee,#fff 56%,#f2f8fb);
+  border:1px solid rgba(177,135,65,.18);
+  box-shadow:0 11px 28px rgba(53,48,38,.09)
+}
+.v580-pirkei-illustration{overflow:hidden;border-radius:17px}
+.v580-pirkei-illustration svg{display:block;width:100%;height:100%;min-height:132px}
+.v580-pirkei-content{padding:5px 8px 5px 2px}
+.v580-pirkei-ref{
+  display:inline-block;margin-bottom:7px;padding:5px 8px;
+  border-radius:999px;background:#f2e7d4;color:#84642d;
+  font-size:11px;font-weight:850
+}
+.v580-pirkei-content>strong{display:block;font-size:18px;color:#173c5d}
+.v580-pirkei-content p{margin:7px 0 9px;line-height:1.5;color:#4f5e69}
+.v580-situation{
+  padding:9px 11px;border-radius:13px;background:#f7f4ff;
+  color:#5e5570;font-size:12px;line-height:1.45
+}
+.v580-situation span{display:block;font-weight:850;color:#7559a5;margin-bottom:2px}
+
+/* family top image */
+.v580-family-visual{
+  display:grid;grid-template-columns:1fr 250px;align-items:center;
+  margin-bottom:12px;padding:14px 16px 14px 20px;
+  border-radius:22px;overflow:hidden;
+  background:linear-gradient(135deg,#f8fbff,#fff9ed);
+  border:1px solid rgba(44,73,100,.09);
+  box-shadow:0 10px 26px rgba(28,44,58,.08)
+}
+.v580-family-visual strong{display:block;font-size:20px;color:#173c5d}
+.v580-family-visual span{display:block;margin-top:4px;font-size:12px;color:#6c7882}
+.v580-family-visual svg{display:block;width:100%;height:auto}
+
+/* family member = level 1 */
+.v580-family-members-nav{
+  display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
+  padding:8px;margin:0 0 12px;border-radius:18px;
+  background:#fff;border:1px solid rgba(31,54,74,.08);
+  box-shadow:0 8px 22px rgba(27,43,58,.07)
+}
+.v580-family-members-nav::-webkit-scrollbar{display:none}
+.v580-family-member-tab{
+  flex:0 0 auto;min-width:112px;
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border:0;border-radius:13px;
+  background:#f5f7f9;color:#50606e;font-weight:800;
+  cursor:pointer
+}
+.v580-family-member-tab.active{
+  background:linear-gradient(135deg,#0d4675,#176393);
+  color:#fff;box-shadow:0 7px 17px rgba(20,76,118,.20)
+}
+.v580-member-avatar{
+  width:32px;height:32px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(255,255,255,.80)
+}
+.v580-selected-member{
+  display:flex;align-items:center;gap:11px;
+  padding:12px 14px;margin-bottom:10px;border-radius:16px;
+  background:linear-gradient(135deg,#f4f8fb,#fff);
+  border:1px solid rgba(38,64,87,.08)
+}
+.v580-selected-avatar{
+  width:45px;height:45px;border-radius:50%;
+  display:grid;place-items:center;font-size:23px;
+  background:#fff;box-shadow:0 5px 14px rgba(35,49,61,.09)
+}
+.v580-selected-member strong{display:block;font-size:17px;color:#183a58}
+.v580-selected-member span{display:block;margin-top:2px;font-size:12px;color:#74808a}
+
+/* family activity = level 2 */
+.v580-family-activity-nav{margin-top:4px!important;margin-bottom:12px!important}
+.v580-family-activity-nav [data-family-activity="goals"].active{
+  background:linear-gradient(135deg,#3975b9,#5a91c8)
+}
+.v580-family-activity-nav [data-family-activity="allowance"].active{
+  background:linear-gradient(135deg,#b27b28,#d5a546)
+}
+.child-goals-panel{
+  padding:14px!important;border-radius:21px!important
+}
+.child-goals-head{
+  padding-bottom:10px;border-bottom:1px solid #edf0f2
+}
+.child-goal-form{
+  background:#f8fafb;border:1px solid #edf0f2!important;
+  padding:12px!important;border-radius:15px!important
+}
+[data-family-activity-panel="allowance"]{
+  margin-top:0!important
+}
+
+@media(max-width:700px){
+  .v580-pirkei-card{grid-template-columns:1fr}
+  .v580-pirkei-illustration svg{max-height:125px}
+  .v580-family-visual{grid-template-columns:1fr 125px;padding:12px}
+  .v580-family-visual strong{font-size:17px}
+  .v580-family-member-tab{min-width:102px}
+}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -1414,6 +1539,28 @@ textarea,input,select{
       <button type="button" class="v579-subnav-btn" data-obj-filter="autres">🤝 Relation aux autres</button>
       <button type="button" class="v579-subnav-btn" data-obj-filter="maison_hachem">🏛️ Maison Hachem</button>
     </div>
+    <div class="v580-visual-break v579-objective-overview" aria-hidden="true">
+      <svg viewBox="0 0 720 150" role="img">
+        <defs>
+          <linearGradient id="v580sky1" x1="0" x2="1">
+            <stop offset="0" stop-color="#fff1d6"/><stop offset=".55" stop-color="#f6e2ef"/><stop offset="1" stop-color="#dcecff"/>
+          </linearGradient>
+        </defs>
+        <rect width="720" height="150" rx="24" fill="url(#v580sky1)"/>
+        <circle cx="570" cy="48" r="27" fill="#ffd87a" opacity=".9"/>
+        <path d="M0 122 L110 68 L195 119 L302 58 L412 123 L520 83 L620 120 L720 76 L720 150 L0 150Z" fill="#8da990" opacity=".45"/>
+        <path d="M0 133 L138 91 L237 137 L348 85 L456 139 L588 96 L720 132 L720 150 L0 150Z" fill="#587b6b" opacity=".52"/>
+        <g transform="translate(55 35)">
+          <rect x="0" y="10" width="62" height="75" rx="7" fill="#fffaf1" stroke="#bc8a45" stroke-width="3"/>
+          <rect x="62" y="10" width="62" height="75" rx="7" fill="#fffaf1" stroke="#bc8a45" stroke-width="3"/>
+          <path d="M62 15 Q45 7 8 18M62 15 Q79 7 116 18" fill="none" stroke="#d9b270" stroke-width="3"/>
+          <path d="M14 32h35M14 43h30M76 32h34M76 43h29" stroke="#8c7455" stroke-width="3" stroke-linecap="round"/>
+        </g>
+        <text x="215" y="58" font-size="24" font-weight="800" fill="#173b5c">Une journée, un pas à la fois</text>
+        <text x="215" y="87" font-size="15" fill="#667786">Torah • Mitsvot • Chalom • Famille</text>
+        <text x="215" y="111" font-size="13" fill="#7b756b">L’important est la régularité, pas la perfection.</text>
+      </svg>
+    </div>
     <div class="v579-objective-overview" id="v576DayCard" class="v576-day-card" style="display:none"></div>
     <div class="v579-objective-overview" id="v576AllowanceCard" class="v576-wallet-card" style="display:none"></div>
     <div class="hero v579-objective-overview">Les objectifs de la veille ne sont jamais repris automatiquement. Si tu le souhaites, utilise le bouton ci-dessous : il effectue un simple copier-coller ponctuel des objectifs de <strong>N-1</strong> vers la date sélectionnée <strong>N</strong>, pour ce compte uniquement.</div>
@@ -1431,6 +1578,26 @@ textarea,input,select{
       <button type="button" class="v579-subnav-btn" data-evening-filter="autres">🤝 Relation aux autres</button>
       <button type="button" class="v579-subnav-btn" data-evening-filter="maison_hachem">🏛️ Maison Hachem</button>
       <button type="button" class="v579-subnav-btn" data-evening-filter="reflection">💭 Réflexion</button>
+    </div>
+    <div class="v580-visual-break v580-evening-description" aria-hidden="true">
+      <svg viewBox="0 0 720 135" role="img">
+        <defs>
+          <linearGradient id="v580sky2" x1="0" x2="1">
+            <stop offset="0" stop-color="#e9efff"/><stop offset=".52" stop-color="#efe7fb"/><stop offset="1" stop-color="#fff0e7"/>
+          </linearGradient>
+        </defs>
+        <rect width="720" height="135" rx="24" fill="url(#v580sky2)"/>
+        <circle cx="615" cy="40" r="24" fill="#fff3b2"/>
+        <circle cx="625" cy="33" r="24" fill="#e7ecfb"/>
+        <path d="M0 115 Q100 75 210 114 T430 110 T720 107 V135 H0Z" fill="#6f7896" opacity=".28"/>
+        <g transform="translate(65 35)">
+          <circle cx="30" cy="30" r="30" fill="#fff" opacity=".75"/>
+          <path d="M16 31 q14 16 28 0" fill="none" stroke="#8f678f" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="20" cy="22" r="3" fill="#8f678f"/><circle cx="40" cy="22" r="3" fill="#8f678f"/>
+        </g>
+        <text x="145" y="56" font-size="23" font-weight="800" fill="#263e5b">Le bilan du soir</text>
+        <text x="145" y="84" font-size="14" fill="#6b7485">Comprendre la journée pour mieux choisir demain.</text>
+      </svg>
     </div>
     <div class="v578-section-banner v579-evening-description">
       <div class="v578-section-icon">🌙</div>
@@ -1588,11 +1755,37 @@ textarea,input,select{
       <button class="period" data-period="month">Mois</button>
       <button class="period" data-period="year">Année</button>
     </div>
+    <div class="v579-subnav v580-summary-subnav" id="summarySubnav">
+      <button type="button" class="v579-subnav-btn active" data-summary-filter="overview">🏠 Vue générale</button>
+      <button type="button" class="v579-subnav-btn" data-summary-filter="service_hachem">🙏 Avoda Hachem</button>
+      <button type="button" class="v579-subnav-btn" data-summary-filter="torah">📖 Torah</button>
+      <button type="button" class="v579-subnav-btn" data-summary-filter="autres">🤝 Relation aux autres</button>
+      <button type="button" class="v579-subnav-btn" data-summary-filter="maison_hachem">🏛️ Maison Hachem</button>
+      <button type="button" class="v579-subnav-btn" data-summary-filter="time">⏱️ Temps</button>
+      <button type="button" class="v579-subnav-btn" data-summary-filter="days">🗓️ Journées</button>
+    </div>
     <div id="summaryContent"></div>
   </section>
 
   <section id="family" class="panel">
-    <div class="hero"><strong>Famille Corcos</strong><br>Cette vue regroupe les comptes réels de la famille. Les données personnelles de chaque compte restent séparées.</div>
+    <div class="v580-family-visual">
+      <div>
+        <strong>La famille avance ensemble</strong>
+        <span>Choisis d’abord un membre, puis l’activité à gérer.</span>
+      </div>
+      <svg viewBox="0 0 250 100" aria-hidden="true">
+        <rect width="250" height="100" rx="22" fill="#eef5fb"/>
+        <circle cx="195" cy="24" r="14" fill="#ffd17a"/>
+        <path d="M0 78 Q55 45 105 79 T250 70 V100 H0Z" fill="#88a889" opacity=".45"/>
+        <g fill="#234d72">
+          <circle cx="70" cy="43" r="12"/><rect x="59" y="55" width="22" height="28" rx="9"/>
+          <circle cx="103" cy="37" r="14"/><rect x="90" y="51" width="26" height="33" rx="10"/>
+          <circle cx="139" cy="46" r="11"/><rect x="129" y="57" width="20" height="26" rx="8"/>
+          <circle cx="165" cy="51" r="8"/><rect x="158" y="59" width="14" height="21" rx="6"/>
+        </g>
+      </svg>
+    </div>
+    <div class="hero"><strong>Famille</strong><br>Les données personnelles de chaque compte restent séparées.</div>
     <div id="familyMsg" class="msg"></div>
     <div id="familyMembers" class="family-grid"></div>
     <div id="familyChildGoals"></div>
@@ -2703,6 +2896,8 @@ async function renderSummary(kind){
  return `<div class="card">${Object.entries(months).map(([m,ds])=>{const moods=ds.filter(d=>d.mood).map(d=>Number(d.mood)),diffs=ds.filter(d=>d.difficulty).map(d=>Number(d.difficulty));return `<div class="note"><strong>${m}</strong><br><span class="small">${ds.length} journée${ds.length>1?"s":""} avec contexte${moods.length?` · humeur moy. ${(moods.reduce((a,b)=>a+b,0)/moods.length).toFixed(1)}/5`:""}${diffs.length?` · difficulté moy. ${(diffs.reduce((a,b)=>a+b,0)/diffs.length).toFixed(1)}/5`:""}</span></div>`}).join("")}</div>`;
  })()}
  <div class="small" style="margin:10px 2px">${completedDays} journée${completedDays>1?"s":""} enregistrée${completedDays>1?"s":""} • ${eventCount} événement${eventCount>1?"s":""} libre${eventCount>1?"s":""} • ${ignoredNonPriority} résultat${ignoredNonPriority>1?"s":""} non prioritaire${ignoredNonPriority>1?"s":""} non atteint${ignoredNonPriority>1?"s":""} écarté${ignoredNonPriority>1?"s":""} du score.</div>`;
+ const activeSummaryFilter=document.querySelector("#summarySubnav [data-summary-filter].active")?.dataset.summaryFilter||"overview";
+ v580ApplySummaryFilter(activeSummaryFilter);
  document.querySelectorAll(".day-link").forEach(b=>b.addEventListener("click",async()=>{currentDay=b.dataset.day;await loadDay();setPanel("evening")}));
  document.querySelectorAll(".context-point").forEach(b=>b.addEventListener("click",()=>{
    document.querySelectorAll(".context-point").forEach(x=>x.classList.toggle("active",x===b));
@@ -2818,11 +3013,17 @@ async function renderFamilyChildGoals(child){
  const childGoals=gr.data||[],finance=ar.data||{};
  const categoryOptions=CATS.map(c=>`<option value="${c.key}">${escapeHtml(c.title)}</option>`).join("");
  host.innerHTML=`<div class="child-goals-panel">
-  <div class="child-goals-head"><div><h2>🎯 Objectifs de ${escapeHtml(child.first_name||"l’enfant")}</h2><div class="small">Objectifs parentaux obligatoires. Les objectifs personnels ne sont jamais rémunérés.</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div>
-  <div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu. Le montant est fixé uniquement par un parent.</div>
-  <div data-child-goal-list></div>
-  <form class="child-goal-form" data-child-goal-form><input placeholder="Nouvel objectif" required><select>${categoryOptions}</select><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button></form>
-  <div class="allowance-box" data-allowance-box></div>
+  <div class="child-goals-head"><div><h2>${escapeHtml(child.first_name||"Enfant")}</h2><div class="small">Gestion familiale</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div>
+  <div class="v579-subnav v580-family-activity-nav">
+    <button type="button" class="v579-subnav-btn active" data-family-activity="goals">🎯 Objectifs</button>
+    <button type="button" class="v579-subnav-btn" data-family-activity="allowance">💶 Argent de poche</button>
+  </div>
+  <div data-family-activity-panel="goals">
+    <div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu. Le montant est fixé uniquement par un parent.</div>
+    <div data-child-goal-list></div>
+    <form class="child-goal-form" data-child-goal-form><input placeholder="Nouvel objectif" required><select>${categoryOptions}</select><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button></form>
+  </div>
+  <div class="allowance-box" data-family-activity-panel="allowance" data-allowance-box style="display:none"></div>
  </div>`;
  const list=host.querySelector('[data-child-goal-list]');
  const draw=()=>{
@@ -2875,6 +3076,125 @@ async function renderChildAllowanceSelf(){
  host.innerHTML=`<div class="allowance-box"><div class="allowance-title">💶 Mon argent de poche</div><div class="allowance-kpis"><div class="allowance-kpi"><span class="small">Gagné cette semaine</span><strong>${euro(f.week_earned)}</strong></div><div class="allowance-kpi"><span class="small">En attente de validation</span><strong>${euro(f.pending_amount)}</strong></div><div class="allowance-kpi"><span class="small">${Number(f.balance||0)>=0?"Reste à recevoir":"Avance reçue"}</span><strong>${euro(Math.abs(Number(f.balance||0)))}</strong></div></div><div class="small">Gagné au total : ${euro(f.total_earned)} · Reçu : ${euro(f.total_paid)}</div><div class="allowance-list"><strong>Derniers paiements</strong>${payments.length?payments.map(p=>`<div class="allowance-row">${escapeHtml(p.paid_on)} · <strong>${euro(p.amount)}</strong></div>`).join(""):'<div class="small">Aucun paiement enregistré.</div>'}</div></div>`;
 }
 
+
+const V580_PIRKEI_AVOT=[
+ {ref:"Pirkei Avot 1:2",title:"Donner un équilibre à sa journée",text:"Le monde repose sur la Torah, le service divin et les actes de bonté.",situation:"Quand une journée devient trop centrée sur un seul domaine, cherche un petit acte concret dans les deux autres."},
+ {ref:"Pirkei Avot 1:12",title:"Chercher la paix",text:"Sois parmi les disciples d’Aharon : aime la paix et poursuis la paix.",situation:"Avant de répondre dans une tension familiale, demande-toi quelle phrase peut réellement rapprocher les personnes."},
+ {ref:"Pirkei Avot 1:14",title:"Agir maintenant",text:"Si je ne suis pas pour moi, qui le sera ? Et si je ne suis que pour moi, que suis-je ? Et si ce n’est pas maintenant, quand ?",situation:"Choisis aujourd’hui une action que tu repousses et fais-en seulement la première étape."},
+ {ref:"Pirkei Avot 2:4",title:"Éviter le jugement trop rapide",text:"Ne juge pas ton prochain avant d’être arrivé à sa place.",situation:"Quand quelqu’un te déçoit, essaie d’identifier une information qui pourrait te manquer avant de conclure."},
+ {ref:"Pirkei Avot 2:5",title:"Prendre ses responsabilités",text:"Dans un lieu où il n’y a pas d’hommes, efforce-toi d’être un homme.",situation:"Si personne ne prend en charge une petite chose utile à la maison ou au travail, sois celui qui commence."},
+ {ref:"Pirkei Avot 4:1",title:"La vraie force",text:"Qui est fort ? Celui qui maîtrise son inclination.",situation:"La prochaine fois qu’une réaction immédiate monte, attends quelques secondes et choisis volontairement ta réponse."},
+ {ref:"Pirkei Avot 4:2",title:"Créer une dynamique positive",text:"Une mitsva entraîne une mitsva.",situation:"Après une réussite, enchaîne tout de suite avec une seconde petite action positive pour transformer l’élan en habitude."}
+];
+
+function v580PirkeiCard(){
+ const x=V580_PIRKEI_AVOT[Math.floor(Math.random()*V580_PIRKEI_AVOT.length)];
+ return `<div class="v580-pirkei-card" data-summary-group="overview">
+   <div class="v580-pirkei-illustration" aria-hidden="true">
+     <svg viewBox="0 0 220 130">
+       <defs><linearGradient id="pv580" x1="0" x2="1"><stop offset="0" stop-color="#fff0d2"/><stop offset="1" stop-color="#dfeef7"/></linearGradient></defs>
+       <rect width="220" height="130" rx="22" fill="url(#pv580)"/>
+       <circle cx="172" cy="31" r="18" fill="#ffd36d"/>
+       <path d="M0 104 Q50 65 98 101 T220 88 V130 H0Z" fill="#6f9a79" opacity=".45"/>
+       <path d="M0 115 Q62 82 111 113 T220 101 V130 H0Z" fill="#436f64" opacity=".45"/>
+       <g transform="translate(31 37)">
+         <rect width="48" height="58" rx="5" fill="#fffaf0" stroke="#a77a42" stroke-width="2"/>
+         <rect x="48" width="48" height="58" rx="5" fill="#fffaf0" stroke="#a77a42" stroke-width="2"/>
+         <path d="M48 5 Q32 0 7 9M48 5 Q64 0 89 9" fill="none" stroke="#cfaa72" stroke-width="2"/>
+         <path d="M10 22h28M10 31h23M58 22h27M58 31h22" stroke="#80694e" stroke-width="2.4" stroke-linecap="round"/>
+       </g>
+     </svg>
+   </div>
+   <div class="v580-pirkei-content">
+     <div class="v580-pirkei-ref">${x.ref}</div>
+     <strong>${x.title}</strong>
+     <p>${x.text}</p>
+     <div class="v580-situation"><span>💡 Situation</span>${x.situation}</div>
+   </div>
+ </div>`;
+}
+
+function v580PrepareSummarySections(){
+ const host=document.getElementById("summaryContent");if(!host)return;
+ host.querySelectorAll(":scope > *").forEach(el=>el.removeAttribute("data-summary-group"));
+ let group="overview";
+ [...host.children].forEach(el=>{
+   if(el.classList.contains("section-title")){
+     const t=(el.textContent||"").trim();
+     if(t.startsWith("Progression par thème")||t.startsWith("Actions à maintenir")||t.startsWith("Plan d’action"))group="domains";
+     else if(t.startsWith("Analyse du temps"))group="time";
+     else if(t.startsWith("Contexte et bilan"))group="days";
+   }
+   el.dataset.summaryGroup=group;
+ });
+ const firstHero=host.querySelector(".summary-hero");
+ if(firstHero && !host.querySelector(".v580-pirkei-card")){
+   firstHero.insertAdjacentHTML("afterend",v580PirkeiCard());
+ }
+}
+
+function v580ApplySummaryFilter(filter){
+ filter=filter||"overview";
+ const host=document.getElementById("summaryContent");if(!host)return;
+ v580PrepareSummarySections();
+ [...host.children].forEach(el=>{
+   const g=el.dataset.summaryGroup||"overview";
+   let show=false;
+   if(filter==="overview")show=g==="overview";
+   else if(filter==="time")show=g==="time";
+   else if(filter==="days")show=g==="days";
+   else show=g==="domains";
+   el.style.display=show?"":"none";
+ });
+ if(!["overview","time","days"].includes(filter)){
+   host.querySelectorAll('[data-summary-group="domains"] [class*="cat-"], [data-summary-group="domains"].summary-theme-card, [data-summary-group="domains"].summary-action-card').forEach(el=>{
+     const isCat=[...el.classList].some(c=>c==="cat-"+filter);
+     if(el.classList.contains("plan-theme")||el.classList.contains("summary-theme-card")||el.classList.contains("summary-action-card")){
+       el.style.display=isCat?"":"none";
+     }
+   });
+ }
+ const nav=document.getElementById("summarySubnav");
+ nav?.querySelectorAll("[data-summary-filter]").forEach(b=>b.classList.toggle("active",b.dataset.summaryFilter===filter));
+}
+
+async function v580SelectFamilyMember(userId){
+ const rows=window.v580FamilyRows||[];
+ const row=rows.find(x=>String(x.user_id)===String(userId));
+ if(!row)return;
+ document.querySelectorAll("[data-family-member]").forEach(b=>b.classList.toggle("active",String(b.dataset.familyMember)===String(userId)));
+ const summary=document.getElementById("v580FamilyMemberSummary");
+ const childHost=document.getElementById("familyChildGoals");
+ const me=String(row.user_id)===String(user?.id),age=calcAge(row.birth_date),sex=sexLabel(row.sex),typ=profileTypeLabel(row.profile_type);
+ if(summary)summary.innerHTML=`<div class="v580-selected-member">
+   <div class="v580-selected-avatar">${row.profile_type==="child"?"🧒":"👤"}</div>
+   <div><strong>${escapeHtml(row.first_name||"Inconnu")}${me?" · Moi":""}</strong>
+   <span>${escapeHtml(typ)} · ${age!==null?age+" ans":"âge inconnu"} · ${escapeHtml(sex)}</span></div>
+ </div>`;
+ if(!childHost)return;
+ if(window.v580FamilyCanManageChildren && row.profile_type==="child"){
+   await renderFamilyChildGoals(row);
+ }else if(isChildProfile() && me){
+   await renderChildAllowanceSelf();
+ }else{
+   childHost.innerHTML='<div class="child-goals-panel"><div class="family-empty">Sélectionne un enfant pour gérer ses objectifs et son argent de poche.</div></div>';
+ }
+}
+
+document.addEventListener("click",function(e){
+ const sf=e.target.closest?.("[data-summary-filter]");
+ if(sf){v580ApplySummaryFilter(sf.dataset.summaryFilter);return}
+ const fm=e.target.closest?.("[data-family-member]");
+ if(fm){v580SelectFamilyMember(fm.dataset.familyMember);return}
+ const fa=e.target.closest?.("[data-family-activity]");
+ if(fa){
+   const panel=fa.closest(".child-goals-panel");
+   if(!panel)return;
+   panel.querySelectorAll("[data-family-activity]").forEach(b=>b.classList.toggle("active",b===fa));
+   panel.querySelectorAll("[data-family-activity-panel]").forEach(p=>p.style.display=p.dataset.familyActivityPanel===fa.dataset.familyActivity?"":"none");
+ }
+});
+
 async function renderFamily(){
  showLoading("Chargement de la famille…");
  try{
@@ -2885,12 +3205,17 @@ async function renderFamily(){
  const rows=r.data||[];
  if(!rows.length){host.innerHTML='<div class="family-empty">Aucun membre familial trouvé.</div>';return}
  const meRow=rows.find(x=>String(x.user_id)===String(user?.id));const canManageChildren=meRow?.profile_type==="parent";
- host.innerHTML=rows.map(x=>{
-   const me=x.user_id===user?.id,age=calcAge(x.birth_date),sex=sexLabel(x.sex),typ=profileTypeLabel(x.profile_type);
-   return `<div class="family-member ${me?"me":""}" data-family-user="${x.user_id}"><div class="family-member-head"><div class="family-avatar">${x.profile_type==="child"?"🧒":"👤"}</div><div><div class="family-name">${escapeHtml(x.first_name||"Inconnu")}${me?' <span class="tag">Moi</span>':""}</div><div class="family-email">${escapeHtml(x.email||"E-mail inconnu")}</div></div></div><div class="family-meta"><span class="family-pill">${escapeHtml(typ)}</span><span class="family-pill">${age!==null?`${age} ans`:"Âge inconnu"}</span><span class="family-pill">${escapeHtml(sex)}</span></div>${canManageChildren&&x.profile_type==="child"?'<div class="family-member-actions"><button class="btn secondary" type="button" data-manage-child-goals>Gérer les objectifs</button></div>':""}</div>`
- }).join("");
- if(isChildProfile())await renderChildAllowanceSelf();
- if(canManageChildren){host.querySelectorAll('[data-manage-child-goals]').forEach(btn=>btn.addEventListener('click',()=>{const card=btn.closest('[data-family-user]'),child=rows.find(x=>String(x.user_id)===String(card?.dataset.familyUser));if(child)renderFamilyChildGoals(child)}))}
+ window.v580FamilyRows=rows;
+ window.v580FamilyCanManageChildren=canManageChildren;
+ host.innerHTML=`<div class="v580-family-members-nav">${rows.map(x=>{
+   const me=String(x.user_id)===String(user?.id);
+   return `<button type="button" class="v580-family-member-tab" data-family-member="${x.user_id}">
+     <span class="v580-member-avatar">${x.profile_type==="child"?"🧒":"👤"}</span>
+     <span>${escapeHtml(x.first_name||"Inconnu")}${me?" · Moi":""}</span>
+   </button>`;
+ }).join("")}</div><div id="v580FamilyMemberSummary"></div>`;
+ const initial=canManageChildren?(rows.find(x=>x.profile_type==="child")||meRow||rows[0]):(meRow||rows[0]);
+ if(initial)await v580SelectFamilyMember(initial.user_id);
  }finally{hideLoading()}
 }
 function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily()}
