@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.22 — Vue du jour synthétique + confirmation copie N-1 -->
+<!-- Avoda Hachem — Version V5.8.24 — V5.8.22 + correction définitive des titres Synthèse -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4791,7 +4791,7 @@ function v580ApplySummaryFilter(filter){
    else if(filter==="time")show=g==="time";
    else if(filter==="days")show=g==="days";
    else show=g==="domains";
-   el.style.display=show?"":"none";
+   el.style.setProperty("display",show?"":"none","important");
  });
  if(!["overview","time","days"].includes(filter)){
    host.querySelectorAll('[data-summary-group="domains"] [class*="cat-"], [data-summary-group="domains"].summary-theme-card, [data-summary-group="domains"].summary-action-card').forEach(el=>{
