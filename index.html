@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.19 — Synthèse : graphique filtré par domaine -->
+<!-- Avoda Hachem — Version V5.8.16 — connexion masquée après login + visuel d’accueil en fond des onglets -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4759,54 +4759,25 @@ function v580ApplySummaryFilter(filter){
  filter=filter||"overview";
  const host=document.getElementById("summaryContent");if(!host)return;
  v580PrepareSummarySections();
-
- const domainFilters=["service_hachem","torah","autres","maison_hachem"];
- const wantedGroup=
-   filter==="overview" ? "overview" :
-   filter==="time" ? "time" :
-   filter==="days" ? "days" :
-   domainFilters.includes(filter) ? "domains" : "overview";
-
  [...host.children].forEach(el=>{
-   const group=el.dataset.summaryGroup||"overview";
-   el.style.setProperty("display",group===wantedGroup ? "" : "none","important");
+   const g=el.dataset.summaryGroup||"overview";
+   let show=false;
+   if(filter==="overview")show=g==="overview";
+   else if(filter==="time")show=g==="time";
+   else if(filter==="days")show=g==="days";
+   else show=g==="domains";
+   el.style.display=show?"":"none";
  });
-
- if(domainFilters.includes(filter)){
-   /* 1) Ne garder que les cartes/éléments du domaine sélectionné */
-   host.querySelectorAll('[data-summary-group="domains"] .summary-theme-card, [data-summary-group="domains"] .summary-action-card, [data-summary-group="domains"] .plan-theme').forEach(el=>{
-     const isCat=el.classList.contains("cat-"+filter);
-     el.style.setProperty("display",isCat ? "" : "none","important");
-   });
-
-   /* 2) Filtrer aussi les barres/éléments du graphique "Progression par thème" */
-   host.querySelectorAll('[data-summary-group="domains"] .theme-row, [data-summary-group="domains"] .summary-theme-row, [data-summary-group="domains"] .theme-progress-row, [data-summary-group="domains"] .chart-row, [data-summary-group="domains"] [data-category]').forEach(el=>{
-     let isCat=false;
-     if(el.dataset?.category) isCat=el.dataset.category===filter;
-     if(!isCat) isCat=el.classList.contains("cat-"+filter);
-     el.style.setProperty("display",isCat ? "" : "none","important");
-   });
-
-   /* 3) Si le graphique utilise des enfants directs avec classes de catégorie, filtrer ceux-ci également */
-   host.querySelectorAll('[data-summary-group="domains"] .summary-theme-chart > *, [data-summary-group="domains"] .theme-chart > *, [data-summary-group="domains"] .progress-by-theme > *').forEach(el=>{
-     const hasKnownCat=domainFilters.some(cat=>el.classList.contains("cat-"+cat) || el.dataset?.category===cat);
-     if(hasKnownCat){
-       const isCat=el.classList.contains("cat-"+filter) || el.dataset?.category===filter;
-       el.style.setProperty("display",isCat ? "" : "none","important");
+ if(!["overview","time","days"].includes(filter)){
+   host.querySelectorAll('[data-summary-group="domains"] [class*="cat-"], [data-summary-group="domains"].summary-theme-card, [data-summary-group="domains"].summary-action-card').forEach(el=>{
+     const isCat=[...el.classList].some(c=>c==="cat-"+filter);
+     if(el.classList.contains("plan-theme")||el.classList.contains("summary-theme-card")||el.classList.contains("summary-action-card")){
+       el.style.display=isCat?"":"none";
      }
    });
  }
-
- /* Titres strictement limités à la section active */
- host.querySelectorAll(":scope > .section-title").forEach(title=>{
-   const group=title.dataset.summaryGroup||"overview";
-   title.style.setProperty("display",group===wantedGroup ? "" : "none","important");
- });
-
  const nav=document.getElementById("summarySubnav");
- nav?.querySelectorAll("[data-summary-filter]").forEach(b=>{
-   b.classList.toggle("active",b.dataset.summaryFilter===filter);
- });
+ nav?.querySelectorAll("[data-summary-filter]").forEach(b=>b.classList.toggle("active",b.dataset.summaryFilter===filter));
 }
 
 async function v580SelectFamilyMember(userId){
