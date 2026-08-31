@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.7.2 corrigée — argent de poche fiabilisé, snapshots et corrections -->
+<!-- Avoda Hachem — Version V5.7.3 — refonte visuelle enfant/parent, sans modification de données -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -100,6 +100,25 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 
 /* V5.6.6 — indicateur global de chargement */
 .loading-overlay{position:fixed;inset:0;z-index:2147483647;background:rgba(245,242,236,.68);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:20px}.loading-overlay.active{display:flex!important}.loading-box{background:#24483a;color:#fff;border:2px solid #fff;border-radius:18px;box-shadow:0 12px 38px rgba(32,36,40,.28);padding:17px 22px;display:flex;align-items:center;gap:12px;font-weight:800}.loading-hourglass{font-size:28px;display:inline-block;animation:loadingFlip 1.15s ease-in-out infinite}.loading-text{font-size:14px}.loading-overlay[aria-hidden="true"]{pointer-events:none}@keyframes loadingFlip{0%,45%{transform:rotate(0deg)}55%,100%{transform:rotate(180deg)}}
+</style>
+<style id="v573-visual-refresh">
+:root{--ink:#17304d;--gold:#d79b35;--shadow:0 10px 28px rgba(35,48,68,.10)}
+body{background:radial-gradient(circle at 10% 4%,rgba(238,199,125,.18),transparent 26rem),radial-gradient(circle at 92% 10%,rgba(119,170,145,.12),transparent 24rem),#fbfaf7}
+body:before{content:"✦  תורה  •  מצוות  •  שלום  ✦";display:block;text-align:center;letter-spacing:.12em;padding:8px 12px;color:#7d6945;font-size:12px;background:linear-gradient(90deg,#fff8e8,#f7fbf6,#fff8e8);border-bottom:1px solid rgba(126,103,65,.12)}
+.card,.panel,.family-card,.summary-card{border-radius:18px!important;box-shadow:var(--shadow)}
+button,.btn,input,select,textarea{border-radius:12px!important} button,.btn{transition:.15s} button:hover,.btn:hover{transform:translateY(-1px)}
+.v573-welcome{margin:10px 0 16px;padding:16px 18px;border-radius:20px;background:linear-gradient(135deg,rgba(255,247,225,.96),rgba(244,251,247,.96));border:1px solid rgba(190,151,78,.20);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.v573-welcome:after{content:"✦";position:absolute;right:18px;top:10px;font-size:38px;color:rgba(210,157,55,.24)}
+.v573-welcome-title{font-weight:800;color:var(--ink);font-size:18px}.v573-welcome-sub{margin-top:4px;color:#6e6a61;font-size:13px}
+.v573-pillars{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}.v573-pillars span{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:700;background:white;border:1px solid rgba(55,80,67,.10)}
+.v573-torah{color:#3e6690}.v573-mitsvot{color:#a8506f}.v573-chalom{color:#4f8067}
+.allowance-box{background:linear-gradient(135deg,#fffdf7,#fff7e6)!important;border:1px solid rgba(211,158,54,.22)!important;box-shadow:0 10px 28px rgba(154,111,31,.10)!important}.allowance-kpi,.goal-row,.objective-row,.allowance-row{border-radius:15px!important}
+body.v573-child{--accent:#3f78c5;background:radial-gradient(circle at 0 0,rgba(106,164,235,.16),transparent 25rem),radial-gradient(circle at 100% 20%,rgba(226,179,213,.17),transparent 28rem),#fbfaf7}
+body.v573-child.v573-girl{--accent:#c55388;background:radial-gradient(circle at 0 0,rgba(231,157,195,.20),transparent 25rem),radial-gradient(circle at 100% 20%,rgba(174,144,218,.15),transparent 28rem),#fffafb}
+body.v573-child .v573-welcome{border-top:4px solid var(--accent)}
+body.v573-parent{background:radial-gradient(circle at 0 0,rgba(33,70,99,.10),transparent 28rem),radial-gradient(circle at 100% 10%,rgba(84,126,101,.10),transparent 26rem),#f7f8f6}
+body.v573-parent .v573-welcome{border-left:4px solid #355f55}
+@media(max-width:700px){body:before{font-size:10px;letter-spacing:.07em}.v573-welcome{margin:8px 0 13px;padding:14px}}
 </style>
 </head>
 <body>
@@ -1601,6 +1620,22 @@ supabase.auth.onAuthStateChange((_event,session)=>{
  setTimeout(()=>{if(session)authRefresh(session);else showSignedOut()},0);
 });
 authRefresh();
+</script>
+<script id="v573-visual-js">
+(function(){
+ function decorate(){
+  var p=null; try{p=window.currentProfile||window.profile||null}catch(e){}
+  document.body.classList.remove("v573-child","v573-parent","v573-girl");
+  if(p){var type=String(p.profile_type||p.type||"").toLowerCase();
+   if(type==="child"){document.body.classList.add("v573-child");var sex=String(p.sex||p.gender||"").toLowerCase();if(["f","female","fille","girl","féminin","feminin"].includes(sex))document.body.classList.add("v573-girl")}
+   else if(type==="parent")document.body.classList.add("v573-parent");
+  }
+  var main=document.querySelector("main,.main,.content,#app"); if(!main||main.querySelector(".v573-welcome"))return;
+  var box=document.createElement("div");box.className="v573-welcome";
+  box.innerHTML='<div class="v573-welcome-title">Avoda Hachem ✨</div><div class="v573-welcome-sub">Grandir chaque jour, un objectif après l’autre.</div><div class="v573-pillars"><span class="v573-torah">📖 Torah</span><span class="v573-mitsvot">♥ Mitsvot</span><span class="v573-chalom">🕊 Chalom</span></div>';main.prepend(box);
+ }
+ new MutationObserver(decorate).observe(document.documentElement,{childList:true,subtree:true});window.addEventListener("load",decorate);setTimeout(decorate,500);
+})();
 </script>
 </body>
 </html>
