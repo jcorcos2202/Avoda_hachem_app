@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.21 — Synthèse : suppression des titres inutiles selon l’onglet -->
+<!-- Avoda Hachem — Version V5.8.22 — Vue du jour synthétique + confirmation copie N-1 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3079,6 +3079,13 @@ body.v5816-app-open .topbar{
 }
 </style>
 
+<style id="v5822-daily-overview">
+.v5822-daily-summary{margin:0 0 14px;padding:14px;border-radius:20px;background:rgba(255,255,255,.96);border:1px solid rgba(31,54,74,.09);box-shadow:0 9px 24px rgba(27,43,58,.07)}
+.v5822-summary-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:11px}.v5822-summary-head strong{display:block;color:#173c5d;font-size:18px}.v5822-summary-head span{display:block;margin-top:3px;color:#74808a;font-size:11px}.v5822-summary-total{flex:0 0 auto;padding:7px 10px;border-radius:999px;background:#eef5fb;color:#174d79;font-size:12px;font-weight:850}
+.v5822-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.v5822-cat-card{--cat:#3975b9;--cat-rgb:57,117,185;width:100%;min-height:82px;padding:11px 12px;text-align:left;border:1px solid rgba(var(--cat-rgb),.14);border-left:5px solid var(--cat);border-radius:15px;background:linear-gradient(135deg,rgba(var(--cat-rgb),.08),#fff 65%);color:#294157;cursor:pointer;box-shadow:none}.v5822-cat-card.cat-service_hachem{--cat:#3975b9;--cat-rgb:57,117,185}.v5822-cat-card.cat-torah{--cat:#7a56bd;--cat-rgb:122,86,189}.v5822-cat-card.cat-autres{--cat:#d66a3d;--cat-rgb:214,106,61}.v5822-cat-card.cat-maison_hachem{--cat:#3e9367;--cat-rgb:62,147,103}.v5822-cat-top{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:850;color:var(--cat)}.v5822-cat-count{margin-top:7px;font-size:22px;line-height:1;font-weight:900;color:#173c5d}.v5822-cat-sub{margin-top:4px;font-size:10px;color:#75818b}.v5822-cat-card:active{transform:translateY(1px)}
+#copyPrevGoalsMsg.v5822-copy-success{min-height:0!important;margin:10px 0 13px!important;padding:12px 13px!important;border-radius:14px!important;background:linear-gradient(135deg,#eaf8ef,#f7fcf9)!important;border:1px solid rgba(48,145,89,.20)!important;color:#24653f!important;font-weight:700!important;line-height:1.45!important}#copyPrevGoalsMsg.v5822-copy-empty{min-height:0!important;margin:10px 0 13px!important;padding:11px 13px!important;border-radius:14px!important;background:#fff7e9!important;border:1px solid rgba(196,145,49,.18)!important;color:#86631e!important}#copyPrevGoalsMsg.v5822-copy-error{min-height:0!important;margin:10px 0 13px!important;padding:11px 13px!important;border-radius:14px!important;background:#fff0f0!important;border:1px solid rgba(169,68,68,.18)!important;color:#9b4242!important}
+@media(max-width:420px){.v5822-daily-summary{padding:11px}.v5822-category-grid{gap:7px}.v5822-cat-card{min-height:77px;padding:10px}.v5822-cat-top{font-size:11px}.v5822-cat-count{font-size:20px}}
+</style>
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -3165,6 +3172,7 @@ body.v5816-app-open .topbar{
     </div>
     <div class="v579-objective-overview" id="v576DayCard" class="v576-day-card" style="display:none"></div>
     <div class="v579-objective-overview" id="v576AllowanceCard" class="v576-wallet-card" style="display:none"></div>
+    <div id="v5822DailySummary" class="v5822-daily-summary v579-objective-overview"></div>
     <div class="hero v579-objective-overview">Les objectifs de la veille ne sont jamais repris automatiquement. Si tu le souhaites, utilise le bouton ci-dessous : il effectue un simple copier-coller ponctuel des objectifs de <strong>N-1</strong> vers la date sélectionnée <strong>N</strong>, pour ce compte uniquement.</div>
     <button id="copyPrevGoalsBtn" class="btn full copy-prev-btn v579-objective-overview" type="button"><span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs de N-1</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span></button>
     <div id="copyPrevGoalsMsg" class="msg v579-objective-overview"></div>
@@ -3672,12 +3680,17 @@ async function copyPreviousDayGoals(){
    const up=await supabase.from("daily_goals").upsert(copies,{onConflict:"user_id,day_id,goal_id"});
    if(up.error)throw up.error;
   }
-  if(msgEl)msgEl.textContent=copies.length
-   ?`✅ ${copies.length} objectif${copies.length>1?"s":""} copié${copies.length>1?"s":""} du ${pretty(prev)} vers le ${pretty(n)}. Les deux journées restent indépendantes.`
-   :`Aucun objectif coché à copier depuis le ${pretty(prev)}.`;
+  const copiedCount=copies.length;
   await loadDay();
+  const freshMsg=document.getElementById("copyPrevGoalsMsg");
+  if(freshMsg){
+   freshMsg.classList.remove("v5822-copy-success","v5822-copy-empty","v5822-copy-error");
+   if(copiedCount){freshMsg.classList.add("v5822-copy-success");freshMsg.innerHTML=`✅ <strong>Copie terminée : ${copiedCount} objectif${copiedCount>1?"s":""} repris.</strong><br>Ils sont maintenant répartis dans les catégories de la vue du jour ci-dessus. Touche une catégorie pour les voir.`;}
+   else{freshMsg.classList.add("v5822-copy-empty");freshMsg.textContent=`Aucun objectif coché à copier depuis le ${pretty(prev)}.`;}
+  }
  }catch(err){
-  if(msgEl)msgEl.textContent="Erreur pendant la copie : "+(err?.message||err);
+  const freshMsg=document.getElementById("copyPrevGoalsMsg");
+  if(freshMsg){freshMsg.classList.remove("v5822-copy-success","v5822-copy-empty");freshMsg.classList.add("v5822-copy-error");freshMsg.textContent="Erreur pendant la copie : "+(err?.message||err);}
  }finally{if(btn)btn.disabled=false}
 }
 
@@ -4137,8 +4150,20 @@ function allowanceMetaForItem(item){
  if(v?.status==="refused")return `💰 ${euro(amount)} · non validé`;
  return `💰 ${euro(amount)} · ${item.result||item.actual_value!=null?"en attente de validation":"à gagner"}`;
 }
+function renderV5822DailySummary(){
+ const host=document.getElementById("v5822DailySummary");if(!host)return;
+ const selected=(dailyGoals||[]).filter(x=>x.planned);
+ const activeById=new Map((goals||[]).map(g=>[String(g.id),g]));
+ const counts={};CATS.forEach(cat=>counts[cat.key]=0);
+ selected.forEach(x=>{const cat=x.category||activeById.get(String(x.goal_id))?.category;if(Object.prototype.hasOwnProperty.call(counts,cat))counts[cat]++;});
+ const total=Object.values(counts).reduce((a,b)=>a+b,0);
+ host.innerHTML=`<div class="v5822-summary-head"><div><strong>🎯 Tes objectifs du jour</strong><span>Vue rapide · touche une catégorie pour voir le détail</span></div><div class="v5822-summary-total">${total} prévu${total>1?"s":""}</div></div><div class="v5822-category-grid">${CATS.map(cat=>`<button type="button" class="v5822-cat-card cat-${cat.key}" data-v5822-open-cat="${cat.key}"><div class="v5822-cat-top"><span>${cat.icon}</span><span>${cat.title}</span></div><div class="v5822-cat-count">${counts[cat.key]||0}</div><div class="v5822-cat-sub">objectif${(counts[cat.key]||0)>1?"s":""} prévu${(counts[cat.key]||0)>1?"s":""} · ouvrir →</div></button>`).join("")}</div>`;
+ host.querySelectorAll("[data-v5822-open-cat]").forEach(btn=>btn.addEventListener("click",()=>{const filter=btn.dataset.v5822OpenCat;if(window.applyObjectiveFilter)window.applyObjectiveFilter(filter);document.getElementById("objectivesSubnav")?.scrollIntoView({behavior:"smooth",block:"start"});}));
+}
+
 function renderObjectives(){
  const host=document.getElementById("objectiveCategories");host.innerHTML="";
+ renderV5822DailySummary();
  setTimeout(()=>{
    if(window.refreshV576VisualDashboard)window.refreshV576VisualDashboard();
    const active=document.querySelector("#objectivesSubnav .v579-subnav-btn.active")?.dataset.objFilter||"overview";
@@ -4776,16 +4801,6 @@ function v580ApplySummaryFilter(filter){
      }
    });
  }
- /* V5.8.21 — masquer uniquement les titres qui n'appartiennent pas à l'onglet choisi */
- host.querySelectorAll(":scope > .section-title").forEach(title=>{
-   const g=title.dataset.summaryGroup||"overview";
-   let keep=false;
-   if(filter==="time") keep=g==="time";
-   else if(filter==="days") keep=g==="days";
-   else if(!["overview","time","days"].includes(filter)) keep=g==="domains";
-   title.style.setProperty("display",keep?"":"none","important");
- });
-
  const nav=document.getElementById("summarySubnav");
  nav?.querySelectorAll("[data-summary-filter]").forEach(b=>b.classList.toggle("active",b.dataset.summaryFilter===filter));
 }
