@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.17 — titres de Synthèse adaptés à chaque section -->
+<!-- Avoda Hachem — Version V5.8.18 — Synthèse : suppression stricte des titres hors section -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4760,62 +4760,37 @@ function v580ApplySummaryFilter(filter){
  const host=document.getElementById("summaryContent");if(!host)return;
  v580PrepareSummarySections();
 
- const labels={
-   service_hachem:"Avoda Hachem",
-   torah:"Torah",
-   autres:"Relation aux autres",
-   maison_hachem:"Maison Hachem"
- };
+ const domainFilters=["service_hachem","torah","autres","maison_hachem"];
+ const wantedGroup=
+   filter==="overview" ? "overview" :
+   filter==="time" ? "time" :
+   filter==="days" ? "days" :
+   domainFilters.includes(filter) ? "domains" : "overview";
 
+ /* Masquage strict : aucun titre d'une autre section ne doit subsister. */
  [...host.children].forEach(el=>{
-   const g=el.dataset.summaryGroup||"overview";
-   let show=false;
-   if(filter==="overview")show=g==="overview";
-   else if(filter==="time")show=g==="time";
-   else if(filter==="days")show=g==="days";
-   else show=g==="domains";
-   el.style.display=show?"":"none";
+   const group=el.dataset.summaryGroup||"overview";
+   el.style.setProperty("display",group===wantedGroup ? "" : "none","important");
  });
 
- if(!["overview","time","days"].includes(filter)){
-   host.querySelectorAll('[data-summary-group="domains"] [class*="cat-"], [data-summary-group="domains"].summary-theme-card, [data-summary-group="domains"].summary-action-card').forEach(el=>{
-     const isCat=[...el.classList].some(c=>c==="cat-"+filter);
-     if(el.classList.contains("plan-theme")||el.classList.contains("summary-theme-card")||el.classList.contains("summary-action-card")){
-       el.style.display=isCat?"":"none";
-     }
-   });
-
-   /* A domain tab must read like a domain page, not like the full synthesis. */
-   const domainName=labels[filter]||"";
-   host.querySelectorAll(':scope > .section-title[data-summary-group="domains"]').forEach(title=>{
-     const base=(title.textContent||"").trim();
-     if(base.startsWith("Progression par thème")) title.textContent=`Progression — ${domainName}`;
-     else if(base.startsWith("Actions à maintenir")) title.textContent=`À maintenir / à améliorer — ${domainName}`;
-     else if(base.startsWith("Plan d’action")) title.textContent=`Plan d’action — ${domainName}`;
-   });
- }else{
-   /* Restore the full-synthesis wording when leaving a domain tab. */
-   host.querySelectorAll(':scope > .section-title[data-summary-group="domains"]').forEach(title=>{
-     const t=(title.textContent||"").trim();
-     if(t.startsWith("Progression")) title.textContent="Progression par thème";
-     else if(t.startsWith("À maintenir")||t.startsWith("Actions à maintenir")) title.textContent="Actions à maintenir et à améliorer";
-     else if(t.startsWith("Plan d’action")) title.textContent="Plan d’action proposé";
+ /* Dans un domaine, ne garder que les cartes de ce domaine. */
+ if(domainFilters.includes(filter)){
+   host.querySelectorAll('[data-summary-group="domains"] .summary-theme-card, [data-summary-group="domains"] .summary-action-card, [data-summary-group="domains"] .plan-theme').forEach(el=>{
+     const isCat=el.classList.contains("cat-"+filter);
+     el.style.setProperty("display",isCat ? "" : "none","important");
    });
  }
 
- /* Only keep section headings that belong to the currently selected synthesis section. */
+ /* Sécurité supplémentaire sur les 5 grands titres générés dans la synthèse. */
  host.querySelectorAll(":scope > .section-title").forEach(title=>{
-   const g=title.dataset.summaryGroup||"overview";
-   const relevant=
-     (filter==="overview" && g==="overview") ||
-     (filter==="time" && g==="time") ||
-     (filter==="days" && g==="days") ||
-     (!["overview","time","days"].includes(filter) && g==="domains");
-   if(!relevant) title.style.display="none";
+   const group=title.dataset.summaryGroup||"overview";
+   title.style.setProperty("display",group===wantedGroup ? "" : "none","important");
  });
 
  const nav=document.getElementById("summarySubnav");
- nav?.querySelectorAll("[data-summary-filter]").forEach(b=>b.classList.toggle("active",b.dataset.summaryFilter===filter));
+ nav?.querySelectorAll("[data-summary-filter]").forEach(b=>{
+   b.classList.toggle("active",b.dataset.summaryFilter===filter);
+ });
 }
 
 async function v580SelectFamilyMember(userId){
