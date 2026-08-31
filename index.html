@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.7.5 — connexion conviviale, gestion inchangée -->
+<!-- Avoda Hachem — Version V5.7.6 — refonte visuelle proche du mockup, gestion inchangée -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -486,6 +486,435 @@ body.v574-child .hero{
 }
 </style>
 
+
+<style id="v576-mockup-skin">
+:root{
+  --c-navy:#083e70;
+  --c-navy2:#0f568f;
+  --c-pink:#bd4b8b;
+  --c-pink2:#dc78ad;
+  --c-purple:#7445bd;
+  --c-green:#188c47;
+  --c-orange:#e56625;
+  --c-gold:#d8a038;
+  --c-ink:#17334f;
+  --c-line:rgba(29,54,77,.10);
+  --c-shadow:0 12px 32px rgba(35,46,60,.12);
+}
+
+body{
+  background:
+    radial-gradient(circle at -3% 1%,rgba(104,155,105,.18),transparent 16rem),
+    radial-gradient(circle at 103% 1%,rgba(213,171,89,.15),transparent 18rem),
+    linear-gradient(180deg,#fffaf2 0,#f8f7f4 48%,#f5f7f8 100%)!important;
+}
+
+/* Decorative masthead */
+.v574-header{
+  padding:20px 22px!important;
+  min-height:132px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  background:
+    radial-gradient(circle at 8% 42%,rgba(255,255,255,.85),transparent 9rem),
+    radial-gradient(circle at 92% 18%,rgba(255,255,255,.70),transparent 9rem),
+    linear-gradient(135deg,#fff5df,#fffaf3 42%,#f0f8f2)!important;
+  border:1px solid rgba(207,164,82,.20)!important;
+  box-shadow:0 14px 34px rgba(72,64,44,.10)!important;
+}
+.v574-header:before{
+  content:"📜";
+  position:absolute;left:22px;top:18px;
+  font-size:54px;opacity:.25;transform:rotate(-8deg);
+}
+.v574-header:after{
+  content:"🕊️";
+  position:absolute;right:20px;top:18px;
+  font-size:46px;opacity:.22;
+}
+.v574-appname{
+  font-family:Georgia,"Times New Roman",serif!important;
+  font-size:32px!important;
+  text-align:center;
+  color:#07375f!important;
+  letter-spacing:-.025em!important;
+}
+.v574-tagline{text-align:center!important;font-size:14px!important}
+.v574-values{justify-content:center!important}
+.v574-quote{display:none!important}
+
+/* Main shell */
+#mainView{
+  border-radius:30px!important;
+  padding:16px!important;
+  background:rgba(255,255,255,.74)!important;
+  border:1px solid rgba(29,54,77,.07)!important;
+  box-shadow:0 22px 58px rgba(27,43,60,.09)!important;
+}
+
+/* Hero identity strip */
+.top{
+  min-height:82px;
+  border-radius:24px!important;
+  padding:17px 19px!important;
+  margin-bottom:12px!important;
+}
+body.v574-child .top{
+  background:
+    radial-gradient(circle at 85% 25%,rgba(255,255,255,.18),transparent 8rem),
+    linear-gradient(135deg,#7b45b8,#c35293 70%,#dc78ad)!important;
+}
+body.v574-child:not(.v574-girl) .top{
+  background:
+    radial-gradient(circle at 85% 25%,rgba(255,255,255,.16),transparent 8rem),
+    linear-gradient(135deg,#336bb0,#4f82c5 72%,#79a1d2)!important;
+}
+body.v574-parent .top{
+  background:
+    radial-gradient(circle at 90% 20%,rgba(255,255,255,.10),transparent 9rem),
+    linear-gradient(135deg,#07345f,#074777 72%,#0f5c91)!important;
+}
+.top h1{font-size:24px!important;letter-spacing:-.02em!important}
+.top .date{opacity:.92!important}
+.identity-badge{
+  background:rgba(255,255,255,.15)!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  backdrop-filter:blur(10px);
+  color:#fff!important;
+}
+.top .logout{
+  background:rgba(255,255,255,.11)!important;
+  border-radius:10px!important;
+  padding:8px 10px!important;
+  color:white!important;
+}
+
+/* Navigation like an app */
+.tabs{
+  display:grid!important;
+  grid-template-columns:repeat(6,1fr)!important;
+  gap:7px!important;
+  padding:8px!important;
+  border-radius:19px!important;
+  background:#fff!important;
+  box-shadow:0 10px 25px rgba(24,47,67,.08)!important;
+  border:1px solid rgba(30,55,76,.07)!important;
+}
+.tab{
+  min-height:54px;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:2px!important;
+  font-size:11px!important;
+  line-height:1.1!important;
+}
+.tab:before{font-size:18px;line-height:1}
+.tab[data-panel="objectives"]:before{content:"🎯"}
+.tab[data-panel="evening"]:before{content:"✅"}
+.tab[data-panel="berakhot"]:before{content:"📿"}
+.tab[data-panel="time"]:before{content:"🕰️"}
+.tab[data-panel="summary"]:before{content:"📊"}
+.tab[data-panel="family"]:before{content:"👨‍👩‍👧‍👦"}
+body.v574-child .tab.active{
+  color:#fff!important;
+  background:linear-gradient(135deg,#a64587,#cd67a1)!important;
+  box-shadow:0 7px 18px rgba(180,66,133,.22)!important;
+}
+body.v574-child:not(.v574-girl) .tab.active{
+  background:linear-gradient(135deg,#3e73b4,#5b8ac5)!important;
+}
+body.v574-parent .tab.active{
+  background:linear-gradient(135deg,#073b68,#0e5a92)!important;
+  color:#fff!important;
+}
+
+/* Child dashboard summary */
+.v576-day-card{
+  position:relative;
+  overflow:hidden;
+  margin:0 0 12px;
+  padding:18px;
+  border-radius:22px;
+  min-height:132px;
+  color:#20394f;
+  background:
+    radial-gradient(circle at 85% 20%,rgba(255,255,255,.70),transparent 9rem),
+    linear-gradient(135deg,#ffe8ef,#f5d6e9 48%,#dfe8ff);
+  border:1px solid rgba(165,74,133,.14);
+  box-shadow:var(--c-shadow);
+}
+.v576-day-card:after{
+  content:"⭐";
+  position:absolute;right:20px;top:20px;
+  display:grid;place-items:center;
+  width:56px;height:56px;border-radius:50%;
+  background:rgba(255,255,255,.72);
+  font-size:30px;box-shadow:0 7px 18px rgba(91,64,82,.12);
+}
+.v576-day-title{font-size:20px;font-weight:900;color:#1c3650}
+.v576-day-count{margin-top:8px;font-size:14px;font-weight:700}
+.v576-progress{
+  margin-top:13px;width:70%;height:12px;border-radius:999px;
+  background:rgba(255,255,255,.80);overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(35,46,60,.08)
+}
+.v576-progress > span{
+  display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,#963ab4,#c7488c,#e47cab)
+}
+.v576-bravo{margin-top:8px;font-size:12px;color:#7b5370}
+
+body.v574-child:not(.v574-girl) .v576-day-card{
+  background:
+    radial-gradient(circle at 85% 20%,rgba(255,255,255,.72),transparent 9rem),
+    linear-gradient(135deg,#eaf3ff,#dceaff 50%,#eaf4ff);
+  border-color:rgba(61,114,178,.15);
+}
+body.v574-child:not(.v574-girl) .v576-progress > span{
+  background:linear-gradient(90deg,#3d70b1,#5c8bc6,#80a7d5)
+}
+
+/* Wallet on daily screen */
+.v576-wallet-card{
+  margin:0 0 15px;
+  padding:16px;
+  border-radius:22px;
+  background:#fff;
+  border:1px solid rgba(91,68,32,.09);
+  box-shadow:var(--c-shadow)
+}
+.v576-wallet-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;font-size:17px;font-weight:900;color:#253a50
+}
+.v576-wallet-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.v576-wallet-kpi{
+  min-height:86px;padding:11px;border-radius:16px;
+  display:flex;flex-direction:column;justify-content:center;
+  border:1px solid rgba(50,67,81,.08)
+}
+.v576-wallet-kpi:nth-child(1){background:linear-gradient(135deg,#f4fbef,#fff)}
+.v576-wallet-kpi:nth-child(2){background:linear-gradient(135deg,#fff5e8,#fff)}
+.v576-wallet-kpi:nth-child(3){background:linear-gradient(135deg,#eef4ff,#fff)}
+.v576-wallet-kpi strong{font-size:21px;color:#123d6a}
+.v576-wallet-kpi:nth-child(1) strong{color:#21813d}
+.v576-wallet-kpi:nth-child(2) strong{color:#d85a1b}
+.v576-wallet-kpi small{margin-top:3px;color:#6e7a86;line-height:1.2}
+
+/* Existing explanatory hero becomes lighter and secondary */
+#objectives > .hero{
+  font-size:12px!important;
+  padding:11px 13px!important;
+  border-radius:15px!important;
+  background:#fffaf1!important;
+  color:#776a59!important;
+  box-shadow:none!important;
+}
+
+/* Objective categories become the main visual cards */
+.category{
+  border-radius:21px!important;
+  overflow:hidden!important;
+  margin-bottom:13px!important;
+  box-shadow:0 11px 27px rgba(33,47,61,.09)!important;
+  border:1px solid rgba(33,54,72,.08)!important;
+}
+.category .head{
+  padding:14px 15px!important;
+  background:linear-gradient(90deg,#f8fbff,#fff)!important;
+}
+.category .head .icon{
+  width:42px!important;height:42px!important;
+  border-radius:14px!important;
+  background:#eef5ff!important;
+  font-size:21px!important;
+}
+.category:nth-of-type(1){border-left:5px solid #376ead!important}
+.category:nth-of-type(2){border-left:5px solid #7552b7!important}
+.category:nth-of-type(3){border-left:5px solid #cb557e!important}
+.category:nth-of-type(4){border-left:5px solid #3c8c62!important}
+.category:nth-of-type(5){border-left:5px solid #d58a2f!important}
+.goal{
+  padding:12px 15px!important;
+  background:#fff!important;
+}
+.goal:hover{background:#fffdf8!important}
+.goal-line>input{
+  width:21px!important;height:21px!important;
+  accent-color:#24934b!important;
+}
+.goal-name{font-size:14px!important}
+.meta{font-size:11px!important}
+.manage button{
+  border-radius:9px!important;background:#f7f8fa!important;
+  border:1px solid #e4e7eb!important
+}
+
+/* Family / allowance parent visual treatment */
+#family.panel.active{
+  border-radius:22px;
+}
+body.v574-parent #family.panel.active{
+  padding:14px;
+  background:linear-gradient(180deg,#083e70,#075080);
+  box-shadow:0 16px 36px rgba(7,62,112,.18)
+}
+body.v574-parent #family.panel.active > .hero{
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  background:rgba(255,255,255,.09)!important;
+  box-shadow:none!important
+}
+body.v574-parent #family.panel.active .family-member,
+body.v574-parent #family.panel.active .child-goals-panel{
+  box-shadow:0 10px 22px rgba(0,26,52,.18)!important
+}
+.family-member{
+  border-radius:18px!important;
+  transition:transform .15s ease
+}
+.family-member:hover{transform:translateY(-2px)}
+.family-avatar{
+  width:50px!important;height:50px!important;border-radius:50%!important;
+  background:linear-gradient(135deg,#f5e8ff,#e9f4ff)!important
+}
+
+.allowance-box{
+  border-radius:22px!important;
+  background:#fff!important;
+  border:1px solid rgba(45,62,79,.10)!important;
+  box-shadow:0 10px 26px rgba(29,47,63,.10)!important;
+}
+.allowance-kpis{
+  gap:10px!important
+}
+.allowance-kpi{
+  min-height:90px!important;
+  border-radius:17px!important;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.allowance-kpi:nth-child(1){background:#f2faed!important}
+.allowance-kpi:nth-child(2){background:#fff4e9!important}
+.allowance-kpi:nth-child(3){background:#eef4ff!important}
+.allowance-row{
+  border:1px solid #edf0f3!important;
+  padding:11px!important;
+  margin-top:8px!important
+}
+
+/* Other panels get same friendly card language without functional changes */
+.card{
+  border-radius:20px!important;
+  box-shadow:0 10px 27px rgba(32,46,59,.08)!important
+}
+.card .head{padding:14px!important}
+.card .icon{
+  width:39px!important;height:39px!important;border-radius:13px!important;
+  background:#f1f5f7!important
+}
+textarea,input,select{
+  border-radius:12px!important;
+  border-color:#dedfe2!important;
+  background:#fff!important
+}
+.btn{
+  min-height:42px;
+  border-radius:13px!important;
+  font-weight:750!important
+}
+.btn:not(.secondary){
+  background:linear-gradient(135deg,#1f7051,#2c8a68)!important
+}
+
+/* Connection screen much closer to the same visual universe */
+.v575-auth{
+  max-width:900px!important;
+}
+.v575-auth-shell{
+  grid-template-columns:1fr 1fr!important;
+  gap:0!important;
+  overflow:hidden;
+  border-radius:30px;
+  background:#fff;
+  box-shadow:0 24px 60px rgba(34,44,56,.14)
+}
+.v575-auth-brand{
+  border-radius:0!important;
+  min-height:500px!important;
+  border:0!important;
+  box-shadow:none!important;
+  background:
+    radial-gradient(circle at 78% 22%,rgba(255,255,255,.72),transparent 10rem),
+    radial-gradient(circle at 15% 90%,rgba(113,166,126,.18),transparent 12rem),
+    linear-gradient(145deg,#fff0d1,#fff7e9 47%,#eaf7ed)!important;
+}
+.v575-auth-brand:before{
+  content:"🌿"!important;
+  display:block!important;
+  width:auto!important;height:auto!important;
+  background:none!important;
+  left:18px!important;top:16px!important;right:auto!important;bottom:auto!important;
+  font-size:40px!important;opacity:.35
+}
+.v575-auth-brand:after{
+  content:"🕊️"!important;
+  display:block!important;
+  width:auto!important;height:auto!important;
+  background:none!important;
+  right:22px!important;top:18px!important;left:auto!important;
+  font-size:42px!important;opacity:.35
+}
+.v575-scroll{
+  width:88px!important;height:88px!important;
+  font-size:48px!important;border-radius:26px!important
+}
+.v575-auth-title{
+  font-family:Georgia,"Times New Roman",serif!important;
+  font-size:38px!important;
+  color:#063b67!important
+}
+.v575-login-card{
+  border-radius:0!important;
+  box-shadow:none!important;
+  border:0!important;
+  padding:40px 34px!important
+}
+.v575-login-icon{
+  width:58px!important;height:58px!important;border-radius:18px!important;font-size:27px!important
+}
+.v575-login-btn{
+  background:linear-gradient(135deg,#0b4778,#12639d)!important;
+  min-height:49px!important
+}
+.v575-signup-btn{min-height:47px!important}
+
+/* Mobile: keep it usable */
+@media(max-width:700px){
+  .v574-header{min-height:112px;padding:17px 14px!important}
+  .v574-header:before{font-size:38px;left:11px}
+  .v574-header:after{font-size:34px;right:10px}
+  .v574-appname{font-size:26px!important}
+  #mainView{padding:9px!important}
+  .tabs{grid-template-columns:repeat(3,1fr)!important}
+  .tab{min-height:50px!important}
+  .v576-day-card{min-height:124px;padding:16px}
+  .v576-day-card:after{right:15px;top:18px;width:50px;height:50px;font-size:26px}
+  .v576-progress{width:72%}
+  .v576-wallet-grid{grid-template-columns:repeat(3,1fr);gap:6px}
+  .v576-wallet-kpi{min-height:83px;padding:9px}
+  .v576-wallet-kpi strong{font-size:18px}
+  .v576-wallet-kpi small{font-size:10px}
+  .v575-auth-shell{grid-template-columns:1fr!important;border-radius:24px}
+  .v575-auth-brand{min-height:235px!important;padding:25px 20px!important}
+  .v575-scroll{width:62px!important;height:62px!important;font-size:34px!important}
+  .v575-auth-title{font-size:30px!important}
+  .v575-login-card{padding:24px 20px!important}
+}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -571,6 +1000,8 @@ body.v574-child .hero{
   </div>
 
   <section id="objectives" class="panel active">
+    <div id="v576DayCard" class="v576-day-card" style="display:none"></div>
+    <div id="v576AllowanceCard" class="v576-wallet-card" style="display:none"></div>
     <div class="hero">Les objectifs de la veille ne sont jamais repris automatiquement. Si tu le souhaites, utilise le bouton ci-dessous : il effectue un simple copier-coller ponctuel des objectifs de <strong>N-1</strong> vers la date sélectionnée <strong>N</strong>, pour ce compte uniquement.</div>
     <button id="copyPrevGoalsBtn" class="btn full copy-prev-btn" type="button"><span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs de N-1</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span></button>
     <div id="copyPrevGoalsMsg" class="msg"></div>
@@ -1463,6 +1894,7 @@ function allowanceMetaForItem(item){
 }
 function renderObjectives(){
  const host=document.getElementById("objectiveCategories");host.innerHTML="";
+ setTimeout(()=>{if(window.refreshV576VisualDashboard)window.refreshV576VisualDashboard()},0);
  if(isChildProfile()){const note=document.createElement("div");note.className="child-readonly-note";note.textContent="🎯 Tu peux créer et gérer tes objectifs personnels. Les objectifs assignés par tes parents sont obligatoires : ils sont automatiquement prévus et tu ne peux ni les retirer ni les modifier.";host.appendChild(note)}
  const past=isPastDay();
  CATS.forEach(cat=>{
@@ -2050,5 +2482,63 @@ supabase.auth.onAuthStateChange((_event,session)=>{
 });
 authRefresh();
 </script>
+
+<script id="v576-presentational-js">
+(function(){
+  async function refreshVisualDashboard(){
+    try{
+      if(typeof appProfile==="undefined" || !appProfile) return;
+      var dayCard=document.getElementById("v576DayCard");
+      var wallet=document.getElementById("v576AllowanceCard");
+      if(!dayCard || !wallet) return;
+
+      if(appProfile.profile_type!=="child"){
+        dayCard.style.display="none";
+        wallet.style.display="none";
+        return;
+      }
+
+      var planned=(typeof dailyGoals!=="undefined"?dailyGoals:[]).filter(function(x){return x.planned && x.goal_id});
+      var achieved=planned.filter(function(x){
+        try{return typeof scoreRow==="function" && Number(scoreRow(x))>=80}catch(e){return false}
+      }).length;
+      var total=planned.length;
+      var pct=total?Math.round(achieved/total*100):0;
+      var first=(appProfile.first_name||"").trim();
+      dayCard.innerHTML=
+        '<div class="v576-day-title">⭐ Ma journée'+(first?" · "+first:"")+'</div>'+
+        '<div class="v576-day-count">'+achieved+' / '+total+' objectifs réalisés</div>'+
+        '<div class="v576-progress"><span style="width:'+pct+'%"></span></div>'+
+        '<div class="v576-bravo">'+(pct>=80?'Bravo, belle progression !':'Chaque petit effort compte.')+'</div>';
+      dayCard.style.display="block";
+
+      if(typeof supabase!=="undefined"){
+        var r=await supabase.rpc("get_my_allowance");
+        if(!r.error && r.data){
+          var f=r.data;
+          var euroFn=(typeof euro==="function")?euro:function(v){return Number(v||0).toFixed(2)+" €"};
+          wallet.innerHTML=
+            '<div class="v576-wallet-head"><span>💼 Mon argent de poche</span><span>✨</span></div>'+
+            '<div class="v576-wallet-grid">'+
+              '<div class="v576-wallet-kpi"><strong>'+euroFn(f.week_earned)+'</strong><small>gagnés cette semaine</small></div>'+
+              '<div class="v576-wallet-kpi"><strong>'+euroFn(f.pending_amount)+'</strong><small>en attente de validation</small></div>'+
+              '<div class="v576-wallet-kpi"><strong>'+euroFn(f.total_earned)+'</strong><small>gagnés au total</small></div>'+
+            '</div>';
+          wallet.style.display="block";
+        }
+      }
+    }catch(e){console.warn("Visual dashboard:",e)}
+  }
+
+  window.refreshV576VisualDashboard=refreshVisualDashboard;
+  window.addEventListener("load",function(){setTimeout(refreshVisualDashboard,900)});
+  document.addEventListener("click",function(e){
+    if(e.target && e.target.closest && e.target.closest('[data-panel="objectives"]')){
+      setTimeout(refreshVisualDashboard,250);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
