@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.16 — connexion masquée après login + visuel d’accueil en fond des onglets -->
+<!-- Avoda Hachem — Version V5.8.21 — Synthèse : suppression des titres inutiles selon l’onglet -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4776,6 +4776,16 @@ function v580ApplySummaryFilter(filter){
      }
    });
  }
+ /* V5.8.21 — masquer uniquement les titres qui n'appartiennent pas à l'onglet choisi */
+ host.querySelectorAll(":scope > .section-title").forEach(title=>{
+   const g=title.dataset.summaryGroup||"overview";
+   let keep=false;
+   if(filter==="time") keep=g==="time";
+   else if(filter==="days") keep=g==="days";
+   else if(!["overview","time","days"].includes(filter)) keep=g==="domains";
+   title.style.setProperty("display",keep?"":"none","important");
+ });
+
  const nav=document.getElementById("summarySubnav");
  nav?.querySelectorAll("[data-summary-filter]").forEach(b=>b.classList.toggle("active",b.dataset.summaryFilter===filter));
 }
