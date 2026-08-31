@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.15 — correction écran blanc au démarrage -->
+<!-- Avoda Hachem — Version V5.8.16 — connexion masquée après login + visuel d’accueil en fond des onglets -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3015,6 +3015,70 @@ body:not(.v5814-signed-out):not(.v5815-authenticated) #authView{
 }
 </style>
 
+
+<style id="v5816-auth-background">
+/* V5.8.16 — once authenticated, the landing page is fully removed */
+body.v5816-app-open #authView{
+  display:none!important;
+  visibility:hidden!important;
+  position:absolute!important;
+  width:0!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+}
+
+/* Reuse the exact landing illustration as a soft app background */
+body.v5816-app-open{
+  background:
+    linear-gradient(rgba(247,250,252,.78),rgba(247,250,252,.78)),
+    var(--v5816-app-bg) center top / cover fixed no-repeat!important;
+}
+
+body.v5816-app-open #mainView{
+  position:relative;
+  background:transparent!important;
+}
+
+/* Keep content perfectly readable while allowing the illustration to live behind it */
+body.v5816-app-open #mainView > .panel{
+  background:rgba(249,252,254,.91)!important;
+  -webkit-backdrop-filter:blur(5px);
+  backdrop-filter:blur(5px);
+  border:1px solid rgba(255,255,255,.70)!important;
+  box-shadow:0 12px 34px rgba(26,54,77,.08)!important;
+}
+
+/* Family keeps its identity, but no longer becomes one large opaque navy rectangle */
+body.v5816-app-open #family.panel{
+  background:rgba(244,249,252,.92)!important;
+}
+
+/* Navigation remains opaque enough for effortless reading */
+body.v5816-app-open .tabs,
+body.v5816-app-open nav,
+body.v5816-app-open .topbar{
+  -webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(8px);
+}
+
+@media(max-width:700px){
+  body.v5816-app-open{
+    background:
+      linear-gradient(rgba(247,250,252,.82),rgba(247,250,252,.82)),
+      var(--v5816-app-bg) 58% top / auto 100vh fixed no-repeat!important;
+  }
+  body.v5816-app-open #mainView > .panel{
+    background:rgba(249,252,254,.90)!important;
+    border-radius:20px!important;
+  }
+}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -3507,12 +3571,22 @@ async function authRefresh(sessionOverride){
  let session=sessionOverride;
  if(arguments.length===0){const r=await supabase.auth.getSession();session=r.data.session}
  user=session?.user||null;
+ if(user){
+   document.body.classList.add("v5815-authenticated","v5816-app-open");
+   document.body.classList.remove("v5814-signed-out");
+   const loginStage=document.querySelector(".v586-login-stage");
+   const appBg=loginStage?.style.getPropertyValue("--v586-bg");
+   if(appBg) document.body.style.setProperty("--v5816-app-bg",appBg);
+ }else{
+   document.body.classList.remove("v5815-authenticated","v5816-app-open");
+   document.body.classList.add("v5814-signed-out");
+ }
  document.getElementById("authView").style.display=user?"none":"block";document.getElementById("mainView").style.display=user?"block":"none";
  if(user){showLoading("Ouverture de ton espace…");try{await normalizeLegacyGoals();await refreshGoals();await ensureCurrentProfileRole();const inserted=await ensureBuiltInGoals();if(inserted)await refreshGoals();await loadDay(false);loadIdentityBadge();if(document.getElementById("summary")?.classList.contains("active")){const activePeriod=document.querySelector(".period.active")?.dataset.period||"week";await renderSummary(activePeriod)}}finally{hideLoading()}}
  })();
  try{return await authRefreshPromise}finally{authRefreshPromise=null}
 }
-function showSignedOut(){ document.body.classList.remove("v5815-authenticated"); document.body.classList.add("v5814-signed-out");
+function showSignedOut(){ document.body.classList.remove("v5815-authenticated","v5816-app-open"); document.body.classList.add("v5814-signed-out");
  user=null;dayRow=null;dailyGoals=[];dayEvents=[];timeCategories=[];timeEntries=[];timeRules=[];timeRuleResults=[];
  document.getElementById("profileView").style.display="none";
  document.getElementById("mainView").style.display="none";
@@ -4804,7 +4878,7 @@ document.getElementById("timeCategoryForm").addEventListener("submit",addTimeCat
 document.getElementById("goEvening").addEventListener("click",()=>setPanel("evening"));document.getElementById("saveDay").addEventListener("click",saveDay);document.getElementById("positiveForm").addEventListener("submit",addPositive);document.getElementById("negativeForm").addEventListener("submit",addNegative);
 document.getElementById("copyPrevGoalsBtn").addEventListener("click",copyPreviousDayGoals);
 document.getElementById("prevDay").addEventListener("click",async()=>{currentDay=shiftDate(currentDay,-1);await loadDay()});document.getElementById("nextDay").addEventListener("click",async()=>{currentDay=shiftDate(currentDay,1);await loadDay()});document.getElementById("todayBtn").addEventListener("click",async()=>{currentDay=todayISO();await loadDay()});
-function showLoginLanding(){ document.body.classList.remove("v5815-authenticated"); document.body.classList.add("v5814-signed-out");
+function showLoginLanding(){ document.body.classList.remove("v5815-authenticated","v5816-app-open"); document.body.classList.add("v5814-signed-out");
  user=null;
  document.getElementById("profileView").style.display="none";
  document.getElementById("mainView").style.display="none";
