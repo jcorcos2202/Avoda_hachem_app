@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.28 — refresh argent de poche au retour depuis Objectifs ; conservation des règles V5.8.27 -->
+<!-- Avoda Hachem — Version V5.8.29 — vue enfant argent de poche détaillée en lecture seule + règle de réussite alignée -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4742,8 +4742,19 @@ async function renderChildAllowanceSelf(){
  const host=document.getElementById("familyChildGoals");if(!host||!isChildProfile())return;
  const r=await supabase.rpc("get_my_allowance");
  if(r.error){host.innerHTML="";return}
- const f=r.data||{},payments=f.payments||[];
- host.innerHTML=`<div class="allowance-box"><div class="allowance-title">💶 Mon argent de poche</div><div class="allowance-kpis"><div class="allowance-kpi"><span class="small">Gagné cette semaine</span><strong>${euro(f.week_earned)}</strong></div><div class="allowance-kpi"><span class="small">En attente de validation</span><strong>${euro(f.pending_amount)}</strong></div><div class="allowance-kpi"><span class="small">${Number(f.balance||0)>=0?"Reste à recevoir":"Avance reçue"}</span><strong>${euro(Math.abs(Number(f.balance||0)))}</strong></div></div><div class="small">Gagné au total : ${euro(f.total_earned)} · Reçu : ${euro(f.total_paid)}</div><div class="allowance-list"><strong>Derniers paiements</strong>${payments.length?payments.map(p=>`<div class="allowance-row">${escapeHtml(p.paid_on)} · <strong>${euro(p.amount)}</strong></div>`).join(""):'<div class="small">Aucun paiement enregistré.</div>'}</div></div>`;
+ const f=r.data||{},pending=f.pending||[],decisions=f.decisions||[],payments=f.payments||[];
+ host.innerHTML=`<div class="allowance-box">
+   <div class="allowance-title">💶 Mon argent de poche</div>
+   <div class="allowance-kpis">
+     <div class="allowance-kpi"><span class="small">Gagné cette semaine</span><strong>${euro(f.week_earned)}</strong></div>
+     <div class="allowance-kpi"><span class="small">En attente de validation</span><strong>${euro(f.pending_amount)}</strong></div>
+     <div class="allowance-kpi"><span class="small">${Number(f.balance||0)>=0?"Reste à recevoir":"Avance reçue"}</span><strong>${euro(Math.abs(Number(f.balance||0)))}</strong></div>
+   </div>
+   <div class="small">Gagné au total : ${euro(f.total_earned)} · Reçu : ${euro(f.total_paid)}</div>
+   <div style="margin-top:14px"><strong>⏳ En attente de validation</strong><div class="allowance-list">${pending.length?pending.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ⏳ À valider · ${euro(x.amount)}</div></div>`).join(""):'<div class="small">Aucune réalisation en attente.</div>'}</div></div>
+   <div style="margin-top:14px"><strong>Décisions récentes</strong><div class="allowance-list">${decisions.length?decisions.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ${x.status==="approved"?"✅ Validé · "+euro(x.amount):"❌ Refusé · "+euro(x.amount)}</div></div>`).join(""):'<div class="small">Aucune décision récente.</div>'}</div></div>
+   <div style="margin-top:14px"><strong>Derniers paiements</strong><div class="allowance-list">${payments.length?payments.map(p=>`<div class="allowance-row">${escapeHtml(p.paid_on)} · <strong>${euro(p.amount)}</strong></div>`).join(""):'<div class="small">Aucun paiement enregistré.</div>'}</div></div>
+ </div>`;
 }
 
 
