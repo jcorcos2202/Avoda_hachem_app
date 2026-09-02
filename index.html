@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.30 — synchronisation du statut argent de poche dans les objectifs enfant -->
+<!-- Avoda Hachem — Version V5.8.31 — statut argent de poche des cartes enfant aligné sur get_my_allowance -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4154,8 +4154,19 @@ async function addTimeCategory(e){
 async function loadAllowanceDayState(){
  allowanceDayState={};
  if(!isChildProfile()||!dayRow)return;
- const r=await supabase.from("allowance_validations").select("daily_goal_id,status,amount_snapshot,validated_at").eq("child_user_id",user.id);
- if(!r.error)(r.data||[]).forEach(x=>allowanceDayState[String(x.daily_goal_id)]=x);
+ // Côté enfant, allowance_validations peut être protégée par RLS.
+ // On passe donc par le RPC get_my_allowance(), qui est déjà la source
+ // de vérité utilisée dans l'écran Argent de poche.
+ const r=await supabase.rpc("get_my_allowance");
+ if(r.error)return;
+ const finance=r.data||{};
+ (finance.decisions||[]).forEach(x=>{
+   allowanceDayState[String(x.daily_goal_id)]={
+     daily_goal_id:x.daily_goal_id,
+     status:x.status,
+     amount_snapshot:Number(x.amount||0)
+   };
+ });
 }
 function allowanceMetaForItem(item){
  if(!isChildProfile()||!item?.goal_id)return "";
