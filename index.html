@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.29 — vue enfant argent de poche détaillée en lecture seule + règle de réussite alignée -->
+<!-- Avoda Hachem — Version V5.8.30 — synchronisation du statut argent de poche dans les objectifs enfant -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4164,7 +4164,7 @@ function allowanceMetaForItem(item){
  const v=allowanceDayState[String(item.id)];
  if(v?.status==="approved")return `💰 ${euro(v.amount_snapshot)} gagné · validé`;
  const amount=item.allowance_amount_snapshot??g.allowance_amount;
- if(v?.status==="refused")return `💰 ${euro(amount)} · refusé`;
+ if(v?.status==="refused")return `❌ 0,00 € · refusé`;
  const answered=item.result!=null||item.actual_value!=null;
  const success=item.goal_type==="precise"
    ? (item.actual_value!=null && Number(item.target_value)>0 && Number(item.actual_value)>=Number(item.target_value))
@@ -4913,7 +4913,7 @@ async function renderFamily(){
  if(initial)await v580SelectFamilyMember(initial.user_id);
  }finally{hideLoading()}
 }
-function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily()}
+function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily();if((id==="evening"||id==="objectives")&&isChildProfile()){loadAllowanceDayState().then(()=>{renderObjectives();renderEvening()})}}
 let explicitLoginRequested=false;
 document.getElementById("loginBtn").addEventListener("click",async()=>{
  explicitLoginRequested=true;
