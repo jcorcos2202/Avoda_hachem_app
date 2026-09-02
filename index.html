@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.31 — statut argent de poche des cartes enfant aligné sur get_my_allowance -->
+<!-- Avoda Hachem — Version V5.8.32 — gains/pertes sur événements imprévus, isolés du moteur historique -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4685,12 +4685,13 @@ async function renderFamilyChildGoals(child){
  const host=document.getElementById("familyChildGoals");if(!host)return;
  if(!child){host.innerHTML="";return}
  host.innerHTML='<div class="child-goals-panel"><div class="family-empty">Chargement…</div></div>';
- const [gr,ar]=await Promise.all([
+ const [gr,ar,sr]=await Promise.all([
   supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id}),
-  supabase.rpc("parent_get_child_allowance",{p_child_user_id:child.user_id})
+  supabase.rpc("parent_get_child_allowance",{p_child_user_id:child.user_id}),
+  supabase.rpc("parent_get_child_spontaneous_allowance",{p_child_user_id:child.user_id})
  ]);
  if(gr.error){host.innerHTML=`<div class="child-goals-panel"><div class="msg">Objectifs indisponibles : ${escapeHtml(gr.error.message)}</div></div>`;return}
- const childGoals=gr.data||[],finance=ar.data||{};
+ const childGoals=gr.data||[],finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{};
  const categoryOptions=CATS.map(c=>`<option value="${c.key}">${escapeHtml(c.title)}</option>`).join("");
  host.innerHTML=`<div class="child-goals-panel">
   <div class="child-goals-head"><div><h2>${escapeHtml(child.first_name||"Enfant")}</h2><div class="small">Gestion familiale</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div>
@@ -4734,8 +4735,16 @@ async function renderFamilyChildGoals(child){
  };
  draw();
  const box=host.querySelector("[data-allowance-box]"),pending=finance.pending||[],decisions=finance.decisions||[],payments=finance.payments||[];
- box.innerHTML=`<div class="allowance-title">💶 Argent de poche</div><div class="allowance-kpis"><div class="allowance-kpi"><span class="small">Gagné cette semaine</span><strong>${euro(finance.week_earned)}</strong></div><div class="allowance-kpi"><span class="small">En attente</span><strong>${euro(finance.pending_amount)}</strong></div><div class="allowance-kpi"><span class="small">${Number(finance.balance||0)>=0?"Reste à recevoir":"Avance"}</span><strong>${euro(Math.abs(Number(finance.balance||0)))}</strong></div></div>
- <div><strong>À valider</strong><div class="allowance-list">${pending.length?pending.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ${euro(x.amount)}</div><div class="allowance-actions"><button data-approve="${x.daily_goal_id}">Valider</button><button data-refuse="${x.daily_goal_id}">Refuser</button></div></div>`).join(""):'<div class="small">Aucune réalisation réussie en attente.</div>'}</div></div>
+ const spontPending=spontaneous.pending_events||[],spontDecisions=spontaneous.decisions||[];
+ const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0);
+ const combinedWeek=Number(finance.week_earned||0)+spontWeek,combinedBalance=Number(finance.balance||0)+spontTotal;
+ const signedSpont=x=>(x.event_type==="negative"?"−":"+")+euro(Number(x.amount||0));
+ box.innerHTML=`<div class="allowance-title">💶 Argent de poche</div><div class="allowance-kpis"><div class="allowance-kpi"><span class="small">Net cette semaine</span><strong>${euro(combinedWeek)}</strong></div><div class="allowance-kpi"><span class="small">Objectifs en attente</span><strong>${euro(finance.pending_amount)}</strong></div><div class="allowance-kpi"><span class="small">${combinedBalance>=0?"Reste à recevoir":"Avance"}</span><strong>${euro(Math.abs(combinedBalance))}</strong></div></div>
+ <div class="small">Événements imprévus : ${spontTotal>=0?"+":"−"}${euro(Math.abs(spontTotal))} au total</div>
+ <div style="margin-top:14px"><strong>Objectifs à valider</strong><div class="allowance-list">${pending.length?pending.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ${euro(x.amount)}</div><div class="allowance-actions"><button data-approve="${x.daily_goal_id}">Valider</button><button data-refuse="${x.daily_goal_id}">Refuser</button></div></div>`).join(""):'<div class="small">Aucune réalisation réussie en attente.</div>'}</div></div>
+ <div style="margin-top:18px"><strong>✨ Événements imprévus à traiter</strong><div class="allowance-list">${spontPending.length?spontPending.map(x=>`<div class="allowance-row" data-spont-event="${x.event_id}"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ${x.event_type==="negative"?"Perte":"Gain"}</div><div class="allowance-actions"><input data-spont-amount type="number" min="0" step="0.10" placeholder="Montant €" style="max-width:130px"><button data-spont-confirm="${x.event_id}">Confirmer</button></div></div>`).join(""):'<div class="small">Aucun événement imprévu à traiter.</div>'}</div></div>
+ <div style="margin-top:14px"><strong>➕ Ajouter un événement</strong><form class="allowance-pay-form" data-spont-manual-form><select name="type"><option value="positive">Gain</option><option value="negative">Perte</option></select><input name="description" placeholder="Description" required><input name="amount" type="number" min="0" step="0.10" placeholder="Montant €" required><input name="day" type="date" value="${todayISO()}" required><button class="btn" type="submit">Confirmer</button></form></div>
+ <div style="margin-top:14px"><strong>Décisions sur événements</strong><div class="allowance-list">${spontDecisions.length?spontDecisions.map(x=>`<div class="allowance-row" data-spont-decision="${x.id}"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ${x.event_type==="negative"?"❌ Perte ":"✅ Gain "}${signedSpont(x)}</div><div class="allowance-actions"><button data-spont-correct="${x.id}">Corriger</button><span data-spont-correct-actions="${x.id}" style="display:none;gap:7px"><input data-spont-correct-amount type="number" min="0" step="0.10" value="${Number(x.amount||0)}" style="max-width:120px"><button data-spont-save="${x.id}">Enregistrer</button></span></div></div>`).join(""):'<div class="small">Aucune décision sur événement.</div>'}</div></div>
  <div style="margin-top:14px"><strong>Validations récentes</strong><div class="allowance-list">${decisions.length?decisions.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ${x.status==="approved"?"✅ Validé · "+euro(x.amount):"❌ Refusé · "+euro(x.amount)}</div><div class="allowance-actions"><button data-correct="${x.daily_goal_id}">Corriger</button><span data-correct-actions="${x.daily_goal_id}" style="display:none;gap:7px"><button data-reapprove="${x.daily_goal_id}">Valider</button><button data-rerefuse="${x.daily_goal_id}">Refuser</button></span></div></div>`).join(""):'<div class="small">Aucune validation récente.</div>'}</div></div>
  <div style="margin-top:14px"><strong>Paiements</strong><form class="allowance-pay-form"><input name="amount" type="number" min="0.01" step="0.01" placeholder="Montant €" required><input name="date" type="date" value="${todayISO()}" required><button class="btn" type="submit">Enregistrer</button></form><div class="allowance-list">${payments.length?payments.map(p=>`<div class="allowance-row">${escapeHtml(p.paid_on)} · <strong>${euro(p.amount)}</strong>${p.note?` · ${escapeHtml(p.note)}`:""}</div>`).join(""):'<div class="small">Aucun paiement enregistré.</div>'}</div></div>`;
  box.querySelectorAll("[data-correct]").forEach(btn=>btn.onclick=()=>{const actions=box.querySelector(`[data-correct-actions="${btn.dataset.correct}"]`);if(!actions)return;actions.style.display=actions.style.display==="none"?"inline-flex":"none"});
@@ -4743,7 +4752,11 @@ async function renderFamilyChildGoals(child){
  box.querySelectorAll("[data-refuse]").forEach(btn=>btn.onclick=async()=>{const r=await supabase.rpc("parent_validate_allowance",{p_daily_goal_id:Number(btn.dataset.refuse),p_approved:false});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
  box.querySelectorAll("[data-reapprove]").forEach(btn=>btn.onclick=async()=>{const r=await supabase.rpc("parent_validate_allowance",{p_daily_goal_id:Number(btn.dataset.reapprove),p_approved:true});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
  box.querySelectorAll("[data-rerefuse]").forEach(btn=>btn.onclick=async()=>{const r=await supabase.rpc("parent_validate_allowance",{p_daily_goal_id:Number(btn.dataset.rerefuse),p_approved:false});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
- box.querySelector(".allowance-pay-form").onsubmit=async e=>{e.preventDefault();const amount=Number(e.target.elements.amount.value),date=e.target.elements.date.value;const r=await supabase.rpc("parent_record_allowance_payment",{p_child_user_id:child.user_id,p_amount:amount,p_paid_on:date,p_note:null});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)};
+ box.querySelectorAll("[data-spont-confirm]").forEach(btn=>btn.onclick=async()=>{const row=btn.closest("[data-spont-event]"),inp=row?.querySelector("[data-spont-amount]"),amount=Number(inp?.value||0);if(!Number.isFinite(amount)||amount<0){alert("Montant invalide");return}const r=await supabase.rpc("parent_confirm_event_allowance",{p_daily_event_id:Number(btn.dataset.spontConfirm),p_amount:amount});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
+ box.querySelectorAll("[data-spont-correct]").forEach(btn=>btn.onclick=()=>{const a=box.querySelector(`[data-spont-correct-actions="${btn.dataset.spontCorrect}"]`);if(a)a.style.display=a.style.display==="none"?"inline-flex":"none"});
+ box.querySelectorAll("[data-spont-save]").forEach(btn=>btn.onclick=async()=>{const a=box.querySelector(`[data-spont-correct-actions="${btn.dataset.spontSave}"]`),inp=a?.querySelector("[data-spont-correct-amount]"),amount=Number(inp?.value||0);if(!Number.isFinite(amount)||amount<0){alert("Montant invalide");return}const r=await supabase.rpc("parent_update_spontaneous_allowance",{p_decision_id:Number(btn.dataset.spontSave),p_amount:amount});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
+ const manualForm=box.querySelector("[data-spont-manual-form]");if(manualForm)manualForm.onsubmit=async e=>{e.preventDefault();const f=e.target,amount=Number(f.elements.amount.value);const r=await supabase.rpc("parent_add_manual_spontaneous_allowance",{p_child_user_id:child.user_id,p_description:f.elements.description.value.trim(),p_event_type:f.elements.type.value,p_amount:amount,p_day:f.elements.day.value});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)};
+ box.querySelector(".allowance-pay-form:not([data-spont-manual-form])").onsubmit=async e=>{e.preventDefault();const amount=Number(e.target.elements.amount.value),date=e.target.elements.date.value;const r=await supabase.rpc("parent_record_allowance_payment",{p_child_user_id:child.user_id,p_amount:amount,p_paid_on:date,p_note:null});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)};
  host.querySelector('[data-close-child-goals]').onclick=()=>host.innerHTML="";
  const form=host.querySelector('[data-child-goal-form]');
  form.onsubmit=async e=>{e.preventDefault();const els=form.elements,name=els[0].value.trim(),category=els[1].value,type=els[2].value,targetRaw=els[3].value,unitRaw=els[4].value.trim();if(!name)return;const target=type==="global"?null:(targetRaw===""?null:Number(targetRaw));const c=await supabase.rpc("parent_create_child_goal",{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(unitRaw||null),p_priority:true});if(c.error)alert(c.error.message);else await renderFamilyChildGoals(child)};
@@ -4751,18 +4764,22 @@ async function renderFamilyChildGoals(child){
 
 async function renderChildAllowanceSelf(){
  const host=document.getElementById("familyChildGoals");if(!host||!isChildProfile())return;
- const r=await supabase.rpc("get_my_allowance");
+ const [r,sr]=await Promise.all([supabase.rpc("get_my_allowance"),supabase.rpc("get_my_spontaneous_allowance")]);
  if(r.error){host.innerHTML="";return}
- const f=r.data||{},pending=f.pending||[],decisions=f.decisions||[],payments=f.payments||[];
+ const f=r.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},pending=f.pending||[],decisions=f.decisions||[],payments=f.payments||[],spontPending=spontaneous.pending_events||[],spontDecisions=spontaneous.decisions||[];
+ const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0),combinedWeek=Number(f.week_earned||0)+spontWeek,combinedBalance=Number(f.balance||0)+spontTotal;
+ const signedSpont=x=>(x.event_type==="negative"?"−":"+")+euro(Number(x.amount||0));
  host.innerHTML=`<div class="allowance-box">
    <div class="allowance-title">💶 Mon argent de poche</div>
    <div class="allowance-kpis">
-     <div class="allowance-kpi"><span class="small">Gagné cette semaine</span><strong>${euro(f.week_earned)}</strong></div>
+     <div class="allowance-kpi"><span class="small">Net cette semaine</span><strong>${euro(combinedWeek)}</strong></div>
      <div class="allowance-kpi"><span class="small">En attente de validation</span><strong>${euro(f.pending_amount)}</strong></div>
-     <div class="allowance-kpi"><span class="small">${Number(f.balance||0)>=0?"Reste à recevoir":"Avance reçue"}</span><strong>${euro(Math.abs(Number(f.balance||0)))}</strong></div>
+     <div class="allowance-kpi"><span class="small">${combinedBalance>=0?"Reste à recevoir":"Avance reçue"}</span><strong>${euro(Math.abs(combinedBalance))}</strong></div>
    </div>
    <div class="small">Gagné au total : ${euro(f.total_earned)} · Reçu : ${euro(f.total_paid)}</div>
    <div style="margin-top:14px"><strong>⏳ En attente de validation</strong><div class="allowance-list">${pending.length?pending.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ⏳ À valider · ${euro(x.amount)}</div></div>`).join(""):'<div class="small">Aucune réalisation en attente.</div>'}</div></div>
+   <div style="margin-top:14px"><strong>✨ Événements imprévus en attente</strong><div class="allowance-list">${spontPending.length?spontPending.map(x=>`<div class="allowance-row"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ⏳ Montant à décider par un parent</div></div>`).join(""):'<div class="small">Aucun événement imprévu en attente.</div>'}</div></div>
+   <div style="margin-top:14px"><strong>Décisions sur événements</strong><div class="allowance-list">${spontDecisions.length?spontDecisions.map(x=>`<div class="allowance-row"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ${x.event_type==="negative"?"❌ Perte ":"✅ Gain "}${signedSpont(x)}</div></div>`).join(""):'<div class="small">Aucune décision sur événement.</div>'}</div></div>
    <div style="margin-top:14px"><strong>Décisions récentes</strong><div class="allowance-list">${decisions.length?decisions.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ${x.status==="approved"?"✅ Validé · "+euro(x.amount):"❌ Refusé · "+euro(x.amount)}</div></div>`).join(""):'<div class="small">Aucune décision récente.</div>'}</div></div>
    <div style="margin-top:14px"><strong>Derniers paiements</strong><div class="allowance-list">${payments.length?payments.map(p=>`<div class="allowance-row">${escapeHtml(p.paid_on)} · <strong>${euro(p.amount)}</strong></div>`).join(""):'<div class="small">Aucun paiement enregistré.</div>'}</div></div>
  </div>`;
