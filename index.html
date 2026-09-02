@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.27 — argent de poche : seuls les objectifs réellement réussis passent en validation parentale ; décisions traitées avec bouton Corriger -->
+<!-- Avoda Hachem — Version V5.8.28 — refresh argent de poche au retour depuis Objectifs ; conservation des règles V5.8.27 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4843,6 +4843,7 @@ async function v580SelectFamilyMember(userId){
  </div>`;
  if(!childHost)return;
  if(window.v580FamilyCanManageChildren && row.profile_type==="child"){
+   window.v580CurrentFamilyChild=row;
    await renderFamilyChildGoals(row);
  }else if(isChildProfile() && me){
    await renderChildAllowanceSelf();
@@ -4851,17 +4852,30 @@ async function v580SelectFamilyMember(userId){
  }
 }
 
-document.addEventListener("click",function(e){
+document.addEventListener("click",async function(e){
  const sf=e.target.closest?.("[data-summary-filter]");
  if(sf){v580ApplySummaryFilter(sf.dataset.summaryFilter);return}
  const fm=e.target.closest?.("[data-family-member]");
  if(fm){v580SelectFamilyMember(fm.dataset.familyMember);return}
  const fa=e.target.closest?.("[data-family-activity]");
  if(fa){
+   const activity=fa.dataset.familyActivity;
    const panel=fa.closest(".child-goals-panel");
    if(!panel)return;
+   // V5.8.28 : au retour Objectifs -> Argent de poche, ne jamais réutiliser
+   // les données financières chargées lors de l'ouverture du profil enfant.
+   // On recharge le profil enfant depuis Supabase, puis on rouvre l'onglet Argent de poche.
+   if(activity==="allowance" && window.v580CurrentFamilyChild){
+     const child=window.v580CurrentFamilyChild;
+     await renderFamilyChildGoals(child);
+     const freshPanel=document.getElementById("familyChildGoals")?.querySelector(".child-goals-panel");
+     if(!freshPanel)return;
+     freshPanel.querySelectorAll("[data-family-activity]").forEach(b=>b.classList.toggle("active",b.dataset.familyActivity==="allowance"));
+     freshPanel.querySelectorAll("[data-family-activity-panel]").forEach(p=>p.style.display=p.dataset.familyActivityPanel==="allowance"?"":"none");
+     return;
+   }
    panel.querySelectorAll("[data-family-activity]").forEach(b=>b.classList.toggle("active",b===fa));
-   panel.querySelectorAll("[data-family-activity-panel]").forEach(p=>p.style.display=p.dataset.familyActivityPanel===fa.dataset.familyActivity?"":"none");
+   panel.querySelectorAll("[data-family-activity-panel]").forEach(p=>p.style.display=p.dataset.familyActivityPanel===activity?"":"none");
  }
 });
 
