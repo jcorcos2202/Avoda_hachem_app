@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.26 TEST 1 — diagnostic argent de poche : décisions traitées distinguées + bouton Corriger, sans modification SQL ni données automatique -->
+<!-- Avoda Hachem — Version V5.8.27 — argent de poche : seuls les objectifs réellement réussis passent en validation parentale ; décisions traitées avec bouton Corriger -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4164,8 +4164,13 @@ function allowanceMetaForItem(item){
  const v=allowanceDayState[String(item.id)];
  if(v?.status==="approved")return `💰 ${euro(v.amount_snapshot)} gagné · validé`;
  const amount=item.allowance_amount_snapshot??g.allowance_amount;
- if(v?.status==="refused")return `💰 ${euro(amount)} · non validé`;
- return `💰 ${euro(amount)} · ${item.result||item.actual_value!=null?"en attente de validation":"à gagner"}`;
+ if(v?.status==="refused")return `💰 ${euro(amount)} · refusé`;
+ const answered=item.result!=null||item.actual_value!=null;
+ const success=item.goal_type==="precise"
+   ? (item.actual_value!=null && Number(item.target_value)>0 && Number(item.actual_value)>=Number(item.target_value))
+   : (item.result==="correct"||item.result==="very_good");
+ if(!answered)return `💰 ${euro(amount)} · à gagner`;
+ return success?`💰 ${euro(amount)} · en attente de validation`:`💰 0,00 € · objectif non atteint`;
 }
 function renderV5822DailySummary(){
  const host=document.getElementById("v5822DailySummary");if(!host)return;
