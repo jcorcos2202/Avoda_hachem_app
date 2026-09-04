@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.8.32 — gains/pertes sur événements imprévus, isolés du moteur historique -->
+<!-- Avoda Hachem — Version V5.9.0 — moteur de paliers, basé sur V5.8.32 validée -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3474,7 +3474,7 @@ const CATS=[
  {key:"autres",title:"Relation avec son prochain",icon:"🤝"},
  {key:"maison_hachem",title:"Maison Hachem",icon:"🏛️"}
 ];
-let user=null,currentDay=todayISO(),goals=[],dayRow=null,dailyGoals=[],dayEvents=[],eventLibrary=[],berakhotDay=null,berakhotItems=[],todayDefaultGoals=[],timeCategories=[],timeEntries=[],timeRules=[],timeRuleResults=[];
+let user=null,currentDay=todayISO(),goals=[],goalMilestones=[],dayRow=null,dailyGoals=[],dayEvents=[],eventLibrary=[],berakhotDay=null,berakhotItems=[],todayDefaultGoals=[],timeCategories=[],timeEntries=[],timeRules=[],timeRuleResults=[];
 
 
 const BERAKHOT_FIXED = {
@@ -3911,6 +3911,10 @@ async function ensureParentAssignedGoalsForDay(){
  return changed;
 }
 
+async function loadGoalMilestones(){
+ const r=await supabase.rpc("get_my_goal_milestones");goalMilestones=r.error?[]:(r.data||[]);
+}
+function milestonesForGoal(goalId){return goalMilestones.filter(m=>String(m.goal_id)===String(goalId)).sort((a,b)=>Number(a.position)-Number(b.position))}
 async function loadDay(showSpinner=true){
  if(showSpinner)showLoading("Chargement de la journée…");
  try{
@@ -3933,7 +3937,7 @@ async function loadDay(showSpinner=true){
  }
  const timeActive=document.getElementById("time")?.classList.contains("active");
  // Ces chargements sont indépendants : les lancer en parallèle évite d'additionner les temps réseau.
- await Promise.all([refreshEvents(),ensureBerakhotDay(),ensureTimeData(!!timeActive),loadTodayDefaultGoals(),loadAllowanceDayState()]);
+ await Promise.all([refreshEvents(),ensureBerakhotDay(),ensureTimeData(!!timeActive),loadTodayDefaultGoals(),loadAllowanceDayState(),loadGoalMilestones()]);
  document.getElementById("dayDescription").value=dayRow.day_description||"";document.getElementById("dayMood").value=dayRow.mood??"";document.getElementById("dayDifficulty").value=dayRow.difficulty??"";document.getElementById("worked").value=dayRow.worked_text||"";document.getElementById("failed").value=dayRow.failed_text||"";document.getElementById("change").value=dayRow.change_text||"";
  dayDraftDirty=false; bindDayDraftAutosave();
  const st=document.getElementById("draftSaveState");if(st)st.textContent="";
@@ -4312,14 +4316,19 @@ function renderEvening(){
     const target=Number(item.time_target_minutes||0),ok=item.time_operator==="lte"?mins<=target:mins>=target;
     row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">⏱️ ${escapeHtml(cat?.name||"Temps")} ${item.time_operator==="lte"?"≤":"≥"} ${fmtMinutes(target)}</div><div class="auto-result">${ok?"✅":"⚠️"} Réalisé automatiquement : <strong>${fmtMinutes(mins)}</strong><br><span class="small">Le résultat vient de l’onglet Temps.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
    } else if(item.goal_type==="global"){
+    const ms=milestonesForGoal(item.goal_id);
     row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="status"></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
-    const st=row.querySelector(".status");[["very_good","Très bien"],["correct","Correct"],["work","À travailler"],["fail","Échec"]].forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.dataset.v=v;b.textContent=l;if(item.result===v)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:v}).eq("id",item.id);await loadDay()});st.appendChild(b)});
+    const st=row.querySelector(".status");
+    if(ms.length){
+      const none=document.createElement("button");none.type="button";none.textContent="Non atteint";if(!item.milestone_reached_id)none.classList.add("active");none.onclick=async()=>{await supabase.from("daily_goals").update({milestone_reached_id:null,milestone_label_snapshot:null,result:"fail"}).eq("id",item.id);await loadDay()};st.appendChild(none);
+      ms.forEach((m,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`Palier ${m.position} · ${m.label}`;if(String(item.milestone_reached_id)===String(m.id))b.classList.add("active");b.onclick=async()=>{await supabase.from("daily_goals").update({milestone_reached_id:m.id,milestone_label_snapshot:m.label,result:i===ms.length-1?"very_good":"correct"}).eq("id",item.id);await loadDay()};st.appendChild(b)});
+    }else [["very_good","Très bien"],["correct","Correct"],["work","À travailler"],["fail","Échec"]].forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.dataset.v=v;b.textContent=l;if(item.result===v)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:v}).eq("id",item.id);await loadDay()});st.appendChild(b)});
    }else{
     const target=Number(item.target_value||0),actual=item.actual_value??"";
     row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">Cible : ${target||"—"} ${item.unit||""}</div><div class="quant-box"><input type="number" min="0" step="any" value="${actual}" placeholder="Réalisé"><span class="unit-label">${item.unit||""}</span></div><div class="progressline"><div></div></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
     const inp=row.querySelector('input[type="number"]'),bar=row.querySelector(".progressline>div");
     const paint=()=>{const a=Number(inp.value||0);bar.style.width=Math.min(100,target>0?a/target*100:0)+"%"};
-    paint();inp.addEventListener("change",async()=>{const a=inp.value===""?null:Number(inp.value);let result=null;if(a!==null&&target>0)result=a>=target?"done":a>0?"partial":"missed";await supabase.from("daily_goals").update({actual_value:a,result}).eq("id",item.id);paint()});
+    paint();inp.addEventListener("change",async()=>{const a=inp.value===""?null:Number(inp.value);let result=null;if(a!==null&&target>0)result=a>=target?"done":a>0?"partial":"missed";const ms=milestonesForGoal(item.goal_id).filter(m=>m.target_value!=null&&a!==null&&Number(a)>=Number(m.target_value));const best=ms.length?ms.sort((x,y)=>Number(y.target_value)-Number(x.target_value))[0]:null;await supabase.from("daily_goals").update({actual_value:a,result,milestone_reached_id:best?.id||null,milestone_label_snapshot:best?.label||null}).eq("id",item.id);paint()});
    }
    const allowanceText=allowanceMetaForItem(item);if(allowanceText){const am=document.createElement("div");am.className="allowance-status";am.textContent=allowanceText;row.insertBefore(am,row.querySelector("textarea"))}
    row.querySelector("textarea").addEventListener("change",async e=>await supabase.from("daily_goals").update({comment:e.target.value}).eq("id",item.id));
@@ -4685,13 +4694,14 @@ async function renderFamilyChildGoals(child){
  const host=document.getElementById("familyChildGoals");if(!host)return;
  if(!child){host.innerHTML="";return}
  host.innerHTML='<div class="child-goals-panel"><div class="family-empty">Chargement…</div></div>';
- const [gr,ar,sr]=await Promise.all([
+ const [gr,ar,sr,mr]=await Promise.all([
   supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_allowance",{p_child_user_id:child.user_id}),
-  supabase.rpc("parent_get_child_spontaneous_allowance",{p_child_user_id:child.user_id})
+  supabase.rpc("parent_get_child_spontaneous_allowance",{p_child_user_id:child.user_id}),
+  supabase.rpc("parent_get_child_goal_milestones",{p_child_user_id:child.user_id})
  ]);
  if(gr.error){host.innerHTML=`<div class="child-goals-panel"><div class="msg">Objectifs indisponibles : ${escapeHtml(gr.error.message)}</div></div>`;return}
- const childGoals=gr.data||[],finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{};
+ const childGoals=gr.data||[],childMilestones=mr.error?[]:(mr.data||[]),finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{};
  const categoryOptions=CATS.map(c=>`<option value="${c.key}">${escapeHtml(c.title)}</option>`).join("");
  host.innerHTML=`<div class="child-goals-panel">
   <div class="child-goals-head"><div><h2>${escapeHtml(child.first_name||"Enfant")}</h2><div class="small">Gestion familiale</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div>
@@ -4702,7 +4712,7 @@ async function renderFamilyChildGoals(child){
   <div data-family-activity-panel="goals">
     <div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu. Le montant est fixé uniquement par un parent.</div>
     <div data-child-goal-list></div>
-    <form class="child-goal-form" data-child-goal-form><input placeholder="Nouvel objectif" required><select>${categoryOptions}</select><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="submit">+ Ajouter</button></form>
+    <form class="child-goal-form" data-child-goal-form><input placeholder="Nouvel objectif" required><select>${categoryOptions}</select><select><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input type="number" min="0" step="any" placeholder="Cible"><input placeholder="Unité"><button class="btn" type="button" data-create-add-ms>+ Ajouter un palier</button><div data-create-ms-list style="grid-column:1/-1"></div><button class="btn" type="submit">+ Ajouter l’objectif</button></form>
   </div>
   <div class="allowance-box" data-family-activity-panel="allowance" data-allowance-box style="display:none"></div>
  </div>`;
@@ -4713,7 +4723,7 @@ async function renderFamilyChildGoals(child){
    const remunerable=isParentAssignedGoal(g)||isSystemGoal(g);
    const origin=isSystemGoal(g)?"Système obligatoire":(isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — non rémunérable");
    const money=remunerable?`<label class="small">Argent de poche <input class="money-input" data-money type="number" min="0" step="0.10" value="${Number(g.allowance_amount||0)}"> €</label>`:"";
-   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)} · ${origin}</div>${money}</div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
+   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)} · ${origin}</div>${money}<div class="small">${childMilestones.filter(m=>String(m.goal_id)===String(g.id)).length?`🎚️ ${childMilestones.filter(m=>String(m.goal_id)===String(g.id)).length} palier(s) configuré(s)`:"Aucun palier"}</div></div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-milestones>Paliers</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
   }).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
   list.querySelectorAll('[data-money]').forEach(inp=>inp.addEventListener('change',async()=>{
    const row=inp.closest('[data-goal-id]'),amount=Math.max(0,Number(inp.value||0));
@@ -4729,6 +4739,11 @@ async function renderFamilyChildGoals(child){
     f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value,target=type==="global"?null:(targetRaw===""?null:Number(targetRaw));if(!name)return;if(targetRaw!==""&&!Number.isFinite(target)){alert("Cible non valide.");return}const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:f.elements.category.value,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(f.elements.unit.value.trim()||null),p_priority:g.priority!==false});if(u.error){alert(u.error.message);return}await renderFamilyChildGoals(child)};
     row.appendChild(f);
    });
+   row.querySelector('[data-milestones]').onclick=()=>{
+    row.querySelector('.milestone-editor')?.remove();const ed=document.createElement('div');ed.className='milestone-editor';ed.style.cssText='margin-top:10px;padding:10px;background:#faf8f4;border:1px solid #e6e0d8;border-radius:12px';
+    let arr=childMilestones.filter(m=>String(m.goal_id)===String(id)).map(m=>({...m}));
+    const render=()=>{ed.innerHTML=`<strong>🎚️ Paliers</strong><div class="small">Le meilleur palier atteint remplacera les précédents. Les montants seront branchés à l’argent de poche en V5.9.1.</div><div data-ms-list></div><div class="allowance-actions"><button type="button" data-add-ms>+ Ajouter un palier</button><button type="button" data-save-ms>Enregistrer</button><button type="button" data-cancel-ms>Annuler</button></div>`;const ml=ed.querySelector('[data-ms-list]');ml.innerHTML=arr.map((m,i)=>`<div style="display:grid;grid-template-columns:${g.goal_type==='precise'?'90px ':''}1fr 90px 34px;gap:6px;margin-top:8px">${g.goal_type==='precise'?`<input data-ms-target type="number" min="0" step="any" value="${m.target_value??''}" placeholder="Cible">`:''}<input data-ms-label value="${escapeHtml(m.label||'')}" placeholder="Libellé du palier"><input data-ms-money type="number" min="0" step="0.10" value="${Number(m.allowance_amount||0)}" placeholder="€"><button type="button" data-rm-ms="${i}">×</button></div>`).join('');ed.querySelector('[data-add-ms]').onclick=()=>{arr.push({label:'',target_value:null,allowance_amount:0});render()};ed.querySelectorAll('[data-rm-ms]').forEach(b=>b.onclick=()=>{arr.splice(Number(b.dataset.rmMs),1);render()});ed.querySelector('[data-cancel-ms]').onclick=()=>ed.remove();ed.querySelector('[data-save-ms]').onclick=async()=>{const rows=[...ml.children],payload=rows.map(r=>({label:r.querySelector('[data-ms-label]').value.trim(),target_value:g.goal_type==='precise'?(r.querySelector('[data-ms-target]').value===''?null:Number(r.querySelector('[data-ms-target]').value)):null,allowance_amount:Number(r.querySelector('[data-ms-money]').value||0)}));if(payload.some(x=>!x.label||(g.goal_type==='precise'&&(x.target_value===null||!Number.isFinite(x.target_value))))){alert('Complète le libellé et la cible de chaque palier.');return}const rr=await supabase.rpc('parent_replace_goal_milestones',{p_goal_id:id,p_milestones:payload});if(rr.error)alert(rr.error.message);else await renderFamilyChildGoals(child)};};render();row.appendChild(ed);
+   };
    row.querySelector('[data-priority]').onclick=async()=>{const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:g.category,p_name:g.name,p_goal_type:g.goal_type,p_target_value:g.target_value,p_unit:g.unit,p_priority:g.priority===false});if(u.error)alert(u.error.message);else await renderFamilyChildGoals(child)};
    row.querySelector('[data-disable]').onclick=async()=>{if(!confirm(`Désactiver cet objectif ?\n\n${g.name}`))return;const d=await supabase.rpc("parent_disable_child_goal",{p_goal_id:id});if(d.error)alert(d.error.message);else await renderFamilyChildGoals(child)};
   });
@@ -4759,7 +4774,8 @@ async function renderFamilyChildGoals(child){
  box.querySelector(".allowance-pay-form:not([data-spont-manual-form])").onsubmit=async e=>{e.preventDefault();const amount=Number(e.target.elements.amount.value),date=e.target.elements.date.value;const r=await supabase.rpc("parent_record_allowance_payment",{p_child_user_id:child.user_id,p_amount:amount,p_paid_on:date,p_note:null});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)};
  host.querySelector('[data-close-child-goals]').onclick=()=>host.innerHTML="";
  const form=host.querySelector('[data-child-goal-form]');
- form.onsubmit=async e=>{e.preventDefault();const els=form.elements,name=els[0].value.trim(),category=els[1].value,type=els[2].value,targetRaw=els[3].value,unitRaw=els[4].value.trim();if(!name)return;const target=type==="global"?null:(targetRaw===""?null:Number(targetRaw));const c=await supabase.rpc("parent_create_child_goal",{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(unitRaw||null),p_priority:true});if(c.error)alert(c.error.message);else await renderFamilyChildGoals(child)};
+ let createMs=[];const drawCreateMs=()=>{const ml=form.querySelector('[data-create-ms-list]'),type=form.elements[2].value;ml.innerHTML=createMs.map((m,i)=>`<div style="display:grid;grid-template-columns:${type==='precise'?'90px ':''}1fr 90px 34px;gap:6px;margin-top:7px">${type==='precise'?`<input data-cms-target type="number" min="0" step="any" placeholder="Cible" value="${m.target_value??''}">`:''}<input data-cms-label placeholder="Palier ${i+1}" value="${escapeHtml(m.label||'')}"><input data-cms-money type="number" min="0" step="0.10" placeholder="€" value="${m.allowance_amount||0}"><button type="button" data-cms-rm="${i}">×</button></div>`).join('');ml.querySelectorAll('[data-cms-rm]').forEach(b=>b.onclick=()=>{createMs.splice(Number(b.dataset.cmsRm),1);drawCreateMs()})};form.querySelector('[data-create-add-ms]').onclick=()=>{createMs.push({label:'',target_value:null,allowance_amount:0});drawCreateMs()};form.elements[2].addEventListener('change',drawCreateMs);
+ form.onsubmit=async e=>{e.preventDefault();const els=form.elements,name=els[0].value.trim(),category=els[1].value,type=els[2].value,targetRaw=els[3].value,unitRaw=els[4].value.trim();if(!name)return;const target=type==="global"?null:(targetRaw===""?null:Number(targetRaw));const msRows=[...form.querySelector('[data-create-ms-list]').children],payload=msRows.map(r=>({label:r.querySelector('[data-cms-label]').value.trim(),target_value:type==='precise'?(r.querySelector('[data-cms-target]').value===''?null:Number(r.querySelector('[data-cms-target]').value)):null,allowance_amount:Number(r.querySelector('[data-cms-money]').value||0)}));if(payload.some(x=>!x.label||(type==='precise'&&(x.target_value===null||!Number.isFinite(x.target_value))))){alert('Complète les paliers.');return}const c=await supabase.rpc("parent_create_child_goal",{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(unitRaw||null),p_priority:true});if(c.error){alert(c.error.message);return}if(payload.length){let gid=Number(c.data);if(!Number.isFinite(gid)){const rr=await supabase.rpc('parent_get_child_goals',{p_child_user_id:child.user_id});const matches=(rr.data||[]).filter(x=>x.name===name&&x.category===category);gid=matches.length?Math.max(...matches.map(x=>Number(x.id))):NaN}if(Number.isFinite(gid)){const mr=await supabase.rpc('parent_replace_goal_milestones',{p_goal_id:gid,p_milestones:payload});if(mr.error){alert('Objectif créé, mais paliers non enregistrés : '+mr.error.message);return}}}await renderFamilyChildGoals(child)};
 }
 
 async function renderChildAllowanceSelf(){
