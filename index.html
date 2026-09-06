@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.9.1.2 — création paliers complète : niveau 1, sauvegarde et relecture -->
+<!-- Avoda Hachem — Version V5.9.2 — correction création Famille + modification des paliers Objectifs/Famille -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3109,6 +3109,11 @@ body.v5816-app-open .topbar{
   cursor:pointer!important;
 }
 </style>
+
+<style id="v592-milestone-fix">
+/* V5.9.2 — un seul champ par palier dans Famille ; l'argent de poche par palier sera branché plus tard. */
+.milestone-line.family,.milestone-line.family.qualitative{grid-template-columns:1fr!important}
+</style>
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -3989,18 +3994,34 @@ function addPastGoalForm(g,card,row){
  row.after(f);
 }
 function editForm(g,card,row){
+ const old=row.parentNode?.querySelector('.edit-form');if(old)old.remove();
  const f=document.createElement("form");f.className="edit-form";
  const timeOpts=`<option value="">Pas lié au temps</option>${timeCategories.map(c=>`<option value="${c.id}" ${String(g.time_category_id||"")===String(c.id)?"selected":""}>${escapeHtml(c.name)}</option>`).join("")}`;
- f.innerHTML=`<input value="${escapeHtml(g.name)}" placeholder="Nom"><select><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select><input type="number" min="0" step="any" value="${g.target_value??""}" placeholder="Cible"><input value="${escapeHtml(g.unit||"")}" placeholder="Unité"><button class="btn" type="submit">Enregistrer</button>
+ const qualitative=g.goal_type==="global";
+ f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required>
+ <select name="type" data-goal-type><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select>
+ <input name="target" data-base-level ${qualitative?'type="text"':'type="number" min="0" step="any"'} value="${escapeHtml(qualitative?(g.base_level_label||''):(g.target_value??''))}" placeholder="${qualitative?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte'}">
+ <input name="unit" data-goal-unit value="${escapeHtml(g.unit||"")}" placeholder="Unité" ${qualitative?'style="display:none"':''}>
+ ${milestoneBuilderHtml(false)}
+ <button class="btn milestone-final-action" type="submit">Enregistrer les modifications</button>
+ <button class="btn secondary" type="button" data-cancel>Annuler</button>
  <div class="note" style="grid-column:1/-1"><strong>⏱️ Alimentation par le suivi du temps (facultatif)</strong><div class="small">Ex. Temps d’écran ≤ 2 h ou Torah ≥ 1 h. La donnée réelle vient alors de l’onglet Temps.</div></div>
  <select class="time-link-cat">${timeOpts}</select>
  <select class="time-link-op"><option value="lte" ${g.time_operator==="lte"?"selected":""}>≤ maximum</option><option value="gte" ${g.time_operator==="gte"?"selected":""}>≥ minimum</option></select>
- <input class="time-link-hours" type="number" min="0" max="24" step="0.25" value="${g.time_target_minutes!=null?Number(g.time_target_minutes)/60:""}" placeholder="Seuil en heures"><span></span><span></span>`;
+ <input class="time-link-hours" type="number" min="0" max="24" step="0.25" value="${g.time_target_minutes!=null?Number(g.time_target_minutes)/60:""}" placeholder="Seuil en heures">`;
+ const sync=()=>{const q=f.elements.type.value==="global",base=f.elements.target,unit=f.elements.unit;base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
+ f.elements.type.addEventListener('change',()=>{sync();const list=f.querySelector('[data-milestone-list]');if(list)list.innerHTML='';});sync();
+ bindMilestoneBuilder(f,{family:false});preloadMilestoneBuilder(f,g);
+ f.querySelector('[data-cancel]').onclick=()=>f.remove();
  f.addEventListener("submit",async e=>{e.preventDefault();
-  const name=f.children[0].value.trim(),type=f.children[1].value,target=f.children[2].value,unit=f.children[3].value.trim();if(!name)return;
+  const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),unitRaw=f.elements.unit.value.trim();if(!name)return;
+  if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}
+  const target=type==="global"?null:Number(targetRaw);if(type==="precise"&&!Number.isFinite(target)){alert("Valeur du niveau 1 non valide.");return}
+  const milestones=readMilestones(f);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}
   const tc=f.querySelector(".time-link-cat").value,op=f.querySelector(".time-link-op").value,hrs=f.querySelector(".time-link-hours").value;
-  const patch={name,goal_type:type,target_value:type==="global"?null:(target===""?null:Number(target)),unit:type==="global"?null:(unit||null),time_category_id:tc?Number(tc):null,time_operator:tc?op:null,time_target_minutes:tc&&hrs!==""?Math.round(Number(hrs)*60):null};
-  await supabase.from("goals").update(patch).eq("id",g.id);
+  const patch={name,goal_type:type,target_value:target,unit:type==="global"?null:(unitRaw||null),base_level_label:type==="global"?targetRaw:null,time_category_id:tc?Number(tc):null,time_operator:tc?op:null,time_target_minutes:tc&&hrs!==""?Math.round(Number(hrs)*60):null};
+  const u=await supabase.from("goals").update(patch).eq("id",g.id).eq("user_id",user.id);if(u.error){alert(u.error.message);return}
+  const mr=await replaceOwnGoalMilestones(g.id,milestones);if(mr.error){alert("Objectif modifié, mais niveaux non enregistrés : "+mr.error.message);return}
   await supabase.from("daily_goals").update({time_category_id:patch.time_category_id,time_operator:patch.time_operator,time_target_minutes:patch.time_target_minutes}).eq("day_id",dayRow.id).eq("goal_id",g.id);
   await refreshGoals();await loadDay();
  });row.after(f);
@@ -4237,7 +4258,7 @@ function bindMilestoneBuilder(form,{family=false}={}){
  const renumber=()=>{[...list.children].forEach((line,i)=>{const t=line.querySelector('[data-ms-title]');if(t)t.textContent=`Niveau ${i+2}`;});};
  const syncHelp=()=>{if(!help)return;help.textContent=typeSelect?.value==="global"?"Le niveau 1 est le premier seuil qualitatif. Ajoute ensuite les niveaux supérieurs avec leur libellé.":"Le niveau 1 est la cible saisie juste au-dessus. Les niveaux suivants sont seulement des valeurs atteintes supplémentaires.";};
  const add=()=>{const qualitative=typeSelect?.value==="global",line=document.createElement('div');line.className=`milestone-line${qualitative?' qualitative':''}${family?' family':''}`;
-  line.innerHTML=`<div class="milestone-card-head"><strong data-ms-title>Niveau ${list.children.length+2}</strong><button type="button" class="milestone-remove" data-remove-ms>Retirer</button></div>${qualitative?'<input data-ms-label placeholder="Libellé du niveau" required>':'<input data-ms-target type="number" min="0" step="any" placeholder="Valeur atteinte" required>'}${family?'<input data-ms-amount type="number" min="0" step="0.10" placeholder="Montant promis €" value="0">':''}`;
+  line.innerHTML=`<div class="milestone-card-head"><strong data-ms-title>Niveau ${list.children.length+2}</strong><button type="button" class="milestone-remove" data-remove-ms>Retirer</button></div>${qualitative?'<input data-ms-label placeholder="Libellé du niveau" required>':'<input data-ms-target type="number" min="0" step="any" placeholder="Valeur atteinte" required>'}`;
   line.querySelector('[data-remove-ms]').onclick=()=>{line.remove();renumber();};list.appendChild(line);renumber();
  };
  box.querySelector('[data-add-milestone]').onclick=add;
@@ -4246,7 +4267,26 @@ function bindMilestoneBuilder(form,{family=false}={}){
 }
 function readMilestones(form,{family=false}={}){
  const qualitative=form.querySelector('[data-goal-type]')?.value==="global";
- return [...form.querySelectorAll('[data-milestone-list] .milestone-line')].map((line,i)=>({position:i+2,label:qualitative?(line.querySelector('[data-ms-label]')?.value.trim()||''):null,target_value:qualitative?null:(line.querySelector('[data-ms-target]')?.value===''?null:Number(line.querySelector('[data-ms-target]').value)),allowance_amount:family?Math.max(0,Number(line.querySelector('[data-ms-amount]')?.value||0)):0}));
+ return [...form.querySelectorAll('[data-milestone-list] .milestone-line')].map((line,i)=>({position:i+2,label:qualitative?(line.querySelector('[data-ms-label]')?.value.trim()||''):null,target_value:qualitative?null:(line.querySelector('[data-ms-target]')?.value===''?null:Number(line.querySelector('[data-ms-target]').value)),allowance_amount:0}));
+}
+
+function preloadMilestoneBuilder(form,g){
+ const list=form.querySelector('[data-milestone-list]');
+ if(!list)return;
+ const qualitative=g.goal_type==="global";
+ list.innerHTML='';
+ (g.milestones||[]).sort((a,b)=>Number(a.position)-Number(b.position)).forEach((m,idx)=>{
+  const line=document.createElement('div');line.className=`milestone-line${qualitative?' qualitative':''}`;
+  line.innerHTML=`<div class="milestone-card-head"><strong data-ms-title>Niveau ${idx+2}</strong><button type="button" class="milestone-remove" data-remove-ms>Retirer</button></div>${qualitative?`<input data-ms-label placeholder="Libellé du niveau" value="${escapeHtml(m.label||'')}" required>`:`<input data-ms-target type="number" min="0" step="any" placeholder="Valeur atteinte" value="${m.target_value??''}" required>`}`;
+  line.querySelector('[data-remove-ms]').onclick=()=>{line.remove();[...list.children].forEach((x,i)=>{const t=x.querySelector('[data-ms-title]');if(t)t.textContent=`Niveau ${i+2}`;});};
+  list.appendChild(line);
+ });
+}
+async function replaceOwnGoalMilestones(goalId,milestones){
+ return await supabase.rpc('replace_my_goal_milestones',{p_goal_id:Number(goalId),p_milestones:milestones});
+}
+async function replaceParentGoalMilestones(goalId,milestones){
+ return await supabase.rpc('parent_replace_goal_milestones',{p_goal_id:Number(goalId),p_milestones:milestones});
 }
 
 async function saveOwnGoalMilestones(goalId,milestones){
@@ -4799,9 +4839,12 @@ async function renderFamilyChildGoals(child){
    const id=Number(row.dataset.goalId),g=childGoals.find(x=>Number(x.id)===id);if(!g||!isParentAssignedGoal(g))return;
    row.querySelector('[data-edit]').addEventListener('click',()=>{
     row.querySelector('.child-goal-edit')?.remove();const f=document.createElement('form');f.className='child-goal-edit';
-    f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required><select name="category">${CATS.map(c=>`<option value="${c.key}" ${c.key===g.category?"selected":""}>${escapeHtml(c.title)}</option>`).join("")}</select><select name="type"><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select><input name="target" type="number" min="0" step="any" value="${g.target_value??""}" placeholder="Cible"><input name="unit" value="${escapeHtml(g.unit||"")}" placeholder="Unité"><div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div>`;
-    const toggle=()=>{const x=f.elements.type.value==="global";f.elements.target.disabled=x;f.elements.unit.disabled=x};f.elements.type.addEventListener("change",toggle);toggle();f.querySelector("[data-cancel]").onclick=()=>f.remove();
-    f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value,target=type==="global"?null:(targetRaw===""?null:Number(targetRaw));if(!name)return;if(targetRaw!==""&&!Number.isFinite(target)){alert("Cible non valide.");return}const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:f.elements.category.value,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(f.elements.unit.value.trim()||null),p_priority:g.priority!==false});if(u.error){alert(u.error.message);return}await renderFamilyChildGoals(child)};
+    const qualitative=g.goal_type==="global";
+    f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required><select name="category">${CATS.map(c=>`<option value="${c.key}" ${c.key===g.category?"selected":""}>${escapeHtml(c.title)}</option>`).join("")}</select><select name="type" data-goal-type><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select><input name="target" data-base-level ${qualitative?'type="text"':'type="number" min="0" step="any"'} value="${escapeHtml(qualitative?(g.base_level_label||''):(g.target_value??''))}" placeholder="${qualitative?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte'}"><input name="unit" data-goal-unit value="${escapeHtml(g.unit||'')}" placeholder="Unité" ${qualitative?'style="display:none"':''}>${milestoneBuilderHtml(false)}<div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div>`;
+    const sync=()=>{const q=f.elements.type.value==="global",base=f.elements.target,unit=f.elements.unit;base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
+    f.elements.type.addEventListener('change',()=>{sync();const list=f.querySelector('[data-milestone-list]');if(list)list.innerHTML='';});sync();
+    bindMilestoneBuilder(f,{family:false});preloadMilestoneBuilder(f,g);f.querySelector("[data-cancel]").onclick=()=>f.remove();
+    f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),target=type==="global"?null:Number(targetRaw);if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}if(type==="precise"&&!Number.isFinite(target)){alert("Valeur du niveau 1 non valide.");return}const milestones=readMilestones(f);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:f.elements.category.value,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(f.elements.unit.value.trim()||null),p_priority:g.priority!==false});if(u.error){alert(u.error.message);return}const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:id,p_label:type==="global"?targetRaw:null});if(br.error){alert("Objectif modifié, mais niveau 1 non enregistré : "+br.error.message);return}const mr=await replaceParentGoalMilestones(id,milestones);if(mr.error){alert("Objectif modifié, mais niveaux non enregistrés : "+mr.error.message);return}await renderFamilyChildGoals(child)};
     row.appendChild(f);
    });
    row.querySelector('[data-priority]').onclick=async()=>{const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:g.category,p_name:g.name,p_goal_type:g.goal_type,p_target_value:g.target_value,p_unit:g.unit,p_priority:g.priority===false});if(u.error)alert(u.error.message);else await renderFamilyChildGoals(child)};
