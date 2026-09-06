@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.9.4 — Argent de poche par palier -->
+<!-- Avoda Hachem — Version V5.9.3.3 — Nouvelle Synthèse par onglets + objectifs alimentés par Temps / 100 Berakhot -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3122,18 +3122,14 @@ body.v5816-app-open .topbar{
 </style>
 
 <style id="v592-milestone-fix">
-/* V5.9.4 — valeur/libellé et gain de chaque palier dans la gestion Famille. */
-.milestone-line.family,.milestone-line.family.qualitative{grid-template-columns:minmax(0,1fr) minmax(118px,.45fr)!important}
-.milestone-money{display:flex;align-items:center;gap:6px}.milestone-money input{width:100%}.milestone-money span{font-weight:800;color:var(--muted)}
-.allowance-levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:7px;margin-top:8px;padding:9px;border-radius:12px;background:#f7f4ef}.allowance-levels label{display:flex;align-items:center;gap:5px}.allowance-levels input{min-width:0;width:100%;padding:7px 8px}
-@media(max-width:620px){.milestone-line.family,.milestone-line.family.qualitative{grid-template-columns:1fr!important}}
+/* V5.9.2 — un seul champ par palier dans Famille ; l'argent de poche par palier sera branché plus tard. */
+.milestone-line.family,.milestone-line.family.qualitative{grid-template-columns:1fr!important}
 </style>
 
 <style id="v5933-style">
-.ns-inner-tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;padding:2px 0 10px;margin:0 0 8px}
-.ns-inner-tab{width:100%;min-height:38px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font-size:12px;line-height:1.15;font-weight:800;white-space:normal;cursor:pointer}
+.ns-inner-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:0 0 8px}
+.ns-inner-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:800;white-space:nowrap;cursor:pointer}
 .ns-inner-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-@media(max-width:700px){.ns-inner-tabs{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.ns-inner-tab{min-height:36px;padding:5px 7px;font-size:11px}}
 .ns-source-box{grid-column:1/-1;border:1px dashed var(--line);border-radius:14px;padding:12px;background:#faf8f4}
 .ns-source-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .ns-source-grid.three{grid-template-columns:1.3fr .8fr 1fr}
@@ -4258,11 +4254,10 @@ async function loadAllowanceDayState(){
 function allowanceMetaForItem(item){
  if(!isChildProfile()||!item?.goal_id)return "";
  const g=goals.find(x=>String(x.id)===String(item.goal_id));
- if(!g||!g.allowance_eligible||!goalHasAllowance(g))return "";
+ if(!g||!g.allowance_eligible||Number(g.allowance_amount||0)<=0)return "";
  const v=allowanceDayState[String(item.id)];
  if(v?.status==="approved")return `💰 ${euro(v.amount_snapshot)} gagné · validé`;
- const position=Number(item.milestone_position_snapshot||0);
- const amount=item.allowance_amount_snapshot??allowanceAmountForLevel(g,position||1);
+ const amount=item.allowance_amount_snapshot??g.allowance_amount;
  if(v?.status==="refused")return `❌ 0,00 € · refusé`;
  const answered=item.result!=null||item.actual_value!=null;
  const success=item.goal_type==="precise"
@@ -4270,14 +4265,6 @@ function allowanceMetaForItem(item){
    : (item.result==="correct"||item.result==="very_good");
  if(!answered)return `💰 ${euro(amount)} · à gagner`;
  return success?`💰 ${euro(amount)} · en attente de validation`:`💰 0,00 € · objectif non atteint`;
-}
-function goalHasAllowance(g){return Number(g?.allowance_amount||0)>0||(g?.milestones||[]).some(m=>Number(m.allowance_amount||0)>0)}
-function allowanceAmountForLevel(g,position){
- position=Math.max(0,Number(position)||0);if(!g||position<1)return 0;
- const configured=(g.milestones||[]).some(m=>Number(m.allowance_amount||0)>0);
- if(position===1||!configured)return Number(g.allowance_amount||0);
- const level=(g.milestones||[]).find(m=>Number(m.position)===position);
- return Number(level?.allowance_amount||0);
 }
 function renderV5822DailySummary(){
  const host=document.getElementById("v5822DailySummary");if(!host)return;
@@ -4306,7 +4293,7 @@ function bindMilestoneBuilder(form,{family=false}={}){
  const renumber=()=>{[...list.children].forEach((line,i)=>{const t=line.querySelector('[data-ms-title]');if(t)t.textContent=`Niveau ${i+2}`;});};
  const syncHelp=()=>{if(!help)return;help.textContent=typeSelect?.value==="global"?"Le niveau 1 est le premier seuil qualitatif. Ajoute ensuite les niveaux supérieurs avec leur libellé.":"Le niveau 1 est la cible saisie juste au-dessus. Les niveaux suivants sont seulement des valeurs atteintes supplémentaires.";};
  const add=()=>{const qualitative=typeSelect?.value==="global",line=document.createElement('div');line.className=`milestone-line${qualitative?' qualitative':''}${family?' family':''}`;
-  line.innerHTML=`<div class="milestone-card-head"><strong data-ms-title>Niveau ${list.children.length+2}</strong><button type="button" class="milestone-remove" data-remove-ms>Retirer</button></div>${qualitative?'<input data-ms-label placeholder="Libellé du niveau" required>':'<input data-ms-target type="number" min="0" step="any" placeholder="Valeur atteinte" required>'}${family?'<label class="milestone-money"><input data-ms-allowance type="number" min="0" step="0.10" value="0" placeholder="Gain du niveau"><span>€</span></label>':''}`;
+  line.innerHTML=`<div class="milestone-card-head"><strong data-ms-title>Niveau ${list.children.length+2}</strong><button type="button" class="milestone-remove" data-remove-ms>Retirer</button></div>${qualitative?'<input data-ms-label placeholder="Libellé du niveau" required>':'<input data-ms-target type="number" min="0" step="any" placeholder="Valeur atteinte" required>'}`;
   line.querySelector('[data-remove-ms]').onclick=()=>{line.remove();renumber();};list.appendChild(line);renumber();
  };
  box.querySelector('[data-add-milestone]').onclick=add;
@@ -4315,18 +4302,17 @@ function bindMilestoneBuilder(form,{family=false}={}){
 }
 function readMilestones(form,{family=false}={}){
  const qualitative=form.querySelector('[data-goal-type]')?.value==="global";
- return [...form.querySelectorAll('[data-milestone-list] .milestone-line')].map((line,i)=>({position:i+2,label:qualitative?(line.querySelector('[data-ms-label]')?.value.trim()||''):null,target_value:qualitative?null:(line.querySelector('[data-ms-target]')?.value===''?null:Number(line.querySelector('[data-ms-target]').value)),allowance_amount:family?Math.max(0,Number(line.querySelector('[data-ms-allowance]')?.value||0)):Number(line.dataset.allowanceAmount||0)}));
+ return [...form.querySelectorAll('[data-milestone-list] .milestone-line')].map((line,i)=>({position:i+2,label:qualitative?(line.querySelector('[data-ms-label]')?.value.trim()||''):null,target_value:qualitative?null:(line.querySelector('[data-ms-target]')?.value===''?null:Number(line.querySelector('[data-ms-target]').value)),allowance_amount:0}));
 }
 
-function preloadMilestoneBuilder(form,g,{family=false}={}){
+function preloadMilestoneBuilder(form,g){
  const list=form.querySelector('[data-milestone-list]');
  if(!list)return;
  const qualitative=g.goal_type==="global";
  list.innerHTML='';
  (g.milestones||[]).sort((a,b)=>Number(a.position)-Number(b.position)).forEach((m,idx)=>{
   const line=document.createElement('div');line.className=`milestone-line${qualitative?' qualitative':''}`;
-  line.dataset.allowanceAmount=Number(m.allowance_amount||0);
-  line.innerHTML=`<div class="milestone-card-head"><strong data-ms-title>Niveau ${idx+2}</strong><button type="button" class="milestone-remove" data-remove-ms>Retirer</button></div>${qualitative?`<input data-ms-label placeholder="Libellé du niveau" value="${escapeHtml(m.label||'')}" required>`:`<input data-ms-target type="number" min="0" step="any" placeholder="Valeur atteinte" value="${m.target_value??''}" required>`}${family?`<label class="milestone-money"><input data-ms-allowance type="number" min="0" step="0.10" value="${Number(m.allowance_amount||0)}" placeholder="Gain du niveau"><span>€</span></label>`:''}`;
+  line.innerHTML=`<div class="milestone-card-head"><strong data-ms-title>Niveau ${idx+2}</strong><button type="button" class="milestone-remove" data-remove-ms>Retirer</button></div>${qualitative?`<input data-ms-label placeholder="Libellé du niveau" value="${escapeHtml(m.label||'')}" required>`:`<input data-ms-target type="number" min="0" step="any" placeholder="Valeur atteinte" value="${m.target_value??''}" required>`}`;
   line.querySelector('[data-remove-ms]').onclick=()=>{line.remove();[...list.children].forEach((x,i)=>{const t=x.querySelector('[data-ms-title]');if(t)t.textContent=`Niveau ${i+2}`;});};
   list.appendChild(line);
  });
@@ -4425,7 +4411,7 @@ function renderObjectives(){
   const card=document.createElement("div");card.className=`category cat-${cat.key}`;card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
   catGoals.forEach(g=>{
    const selected=dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
-   const assigned=isMandatoryChildGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta){const rewards=goalHasAllowance(g)?[{position:1,amount:Number(g.allowance_amount||0)},...(g.milestones||[]).map(m=>({position:Number(m.position),amount:Number(m.allowance_amount||0)}))].filter(x=>x.amount>0).map(x=>`N${x.position} ${euro(x.amount)}`).join(" · "):"";const money=rewards?` • <strong>💰 ${rewards}</strong>`:"";meta.insertAdjacentHTML("beforeend",(isSystemGoal(g)?' • <strong>Système obligatoire</strong>':(assigned?' • <strong>Assigné par un parent</strong>':' • Personnel'))+money)}}
+   const assigned=isMandatoryChildGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta){const money=g.allowance_eligible&&Number(g.allowance_amount||0)>0?` • <strong>💰 ${euro(g.allowance_amount)}</strong>`:"";meta.insertAdjacentHTML("beforeend",(isSystemGoal(g)?' • <strong>Système obligatoire</strong>':(assigned?' • <strong>Assigné par un parent</strong>':' • Personnel'))+money)}}
    const cb=row.querySelector(".goal-line > input");
    // La sélection d’objectifs appartient uniquement à la date sélectionnée N.
    // Même sur une date passée, elle reste modifiable : aucune copie N-1 -> N ne crée de gel.
@@ -4478,14 +4464,9 @@ function renderObjectives(){
     const sourceCfg=readMetricSource(form);
     if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}
     const milestones=readMilestones(form);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}
-    const goalPatch={user_id:user.id,category:cat.key,name,goal_type:type,target_value:target,unit:type==="global"?null:(unit||null),base_level_label:baseLabel,priority:true,goal_origin:"personal",objective_horizon:"daily",data_source:sourceCfg.data_source,time_category_id:sourceCfg.time_category_id,time_operator:sourceCfg.time_operator,time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null,active:true};
-    let ins=await supabase.from("goals").insert({...goalPatch,objective_key:makeObjectiveKey(name)}).select().single();
-    if(ins.error&&String(ins.error.code)==="23505"){
-      const existing=await supabase.from("goals").select("id").eq("user_id",user.id).eq("category",cat.key).eq("name",name).maybeSingle();
-      if(existing.data?.id)ins=await supabase.from("goals").update(goalPatch).eq("id",existing.data.id).eq("user_id",user.id).select().single();
-    }
-    if(ins.error){alert("Cet objectif existe déjà dans cette catégorie et n’a pas pu être réutilisé.");return}
-    if(ins.data){const mr=await replaceOwnGoalMilestones(ins.data.id,milestones);if(mr.error){alert("Objectif enregistré, mais paliers non enregistrés : "+mr.error.message);return}}
+    const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:target,unit:type==="global"?null:(unit||null),base_level_label:baseLabel,objective_key:makeObjectiveKey(name),priority:true,goal_origin:"personal",objective_horizon:"daily",data_source:sourceCfg.data_source,time_category_id:sourceCfg.time_category_id,time_operator:sourceCfg.time_operator,time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null}).select().single();
+    if(ins.error){alert(ins.error.message);return}
+    if(ins.data&&milestones.length){const mr=await saveOwnGoalMilestones(ins.data.id,milestones);if(mr.error){alert("Objectif créé, mais paliers non enregistrés : "+mr.error.message);return}}
     if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null,data_source:ins.data.data_source||"manual"},{onConflict:"user_id,day_id,goal_id"});
     await refreshGoals();await loadDay();
    }); card.appendChild(form);
@@ -4539,14 +4520,14 @@ function renderEvening(){
     const levels=[{position:1,value:Number(item.target_value||0),id:null},...(def?.milestones||[]).map(m=>({position:Number(m.position),value:Number(m.target_value),id:m.id}))].filter(x=>Number.isFinite(x.value)).sort((a,b)=>a.position-b.position);
     const r=sourceReached(levels,total,"gte"), max=levels.length?levels[levels.length-1].position:1;
     row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">📿 Niveaux : ${levels.map(x=>x.value).join(" / ")} berakhot</div><div class="auto-result">${r?"✅":"⚠️"} Réalisé automatiquement : <strong>${total} berakhot</strong><br><span class="small">${r?`Niveau ${r.position} atteint`:"N0 · non atteint"} · résultat issu du détail saisi dans 100 Berakhot.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
-    const result=r?"done":"missed"; if(Number(item.actual_value)!==Number(total)||Number(item.milestone_position_snapshot??-1)!==Number(r?.position??0)) supabase.from("daily_goals").update({actual_value:total,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"N0",milestone_value_snapshot:r?.value??null,allowance_amount_snapshot:allowanceAmountForLevel(def,r?.position||0)}).eq("id",item.id);
+    const result=r?"done":"missed"; if(Number(item.actual_value)!==Number(total)||Number(item.milestone_position_snapshot??-1)!==Number(r?.position??0)) supabase.from("daily_goals").update({actual_value:total,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"N0",milestone_value_snapshot:r?.value??null}).eq("id",item.id);
    } else if((item.data_source==="time"||item.time_category_id)&&item.time_operator){
     const cat=timeCategories.find(c=>String(c.id)===String(item.time_category_id)),def=goals.find(g=>String(g.id)===String(item.goal_id));
     const mins=timeEntries.filter(e=>String(e.category_id)===String(item.time_category_id)).reduce((s,e)=>s+Number(e.minutes||0),0), hours=mins/60;
     const levels=[{position:1,value:Number(item.target_value||0),id:null},...(def?.milestones||[]).map(m=>({position:Number(m.position),value:Number(m.target_value),id:m.id}))].filter(x=>Number.isFinite(x.value)).sort((a,b)=>a.position-b.position);
     const r=sourceReached(levels,hours,item.time_operator);
     row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">⏱️ ${escapeHtml(cat?.name||"Temps")} · ${item.time_operator==="lte"?"≤ inférieur / maximum":"≥ supérieur / minimum"} · niveaux ${levels.map(x=>x.value+" h").join(" / ")}</div><div class="auto-result">${r?"✅":"⚠️"} Réalisé automatiquement : <strong>${fmtMinutes(mins)}</strong><br><span class="small">${r?`Niveau ${r.position} atteint`:"N0 · non atteint"} · résultat issu de l’onglet Temps.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
-    const result=r?"done":"missed"; if(Number(item.actual_value)!==Number(hours)||Number(item.milestone_position_snapshot??-1)!==Number(r?.position??0)) supabase.from("daily_goals").update({actual_value:hours,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"N0",milestone_value_snapshot:r?.value??null,allowance_amount_snapshot:allowanceAmountForLevel(def,r?.position||0)}).eq("id",item.id);
+    const result=r?"done":"missed"; if(Number(item.actual_value)!==Number(hours)||Number(item.milestone_position_snapshot??-1)!==Number(r?.position??0)) supabase.from("daily_goals").update({actual_value:hours,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"N0",milestone_value_snapshot:r?.value??null}).eq("id",item.id);
    } else if(item.goal_type==="global"){
     const def=goals.find(g=>String(g.id)===String(item.goal_id));
     const configured=[def?.base_level_label,...(def?.milestones||[]).map(m=>m.label)].filter(Boolean);
@@ -4554,9 +4535,9 @@ function renderEvening(){
     const st=row.querySelector(".status");
     if(configured.length){
       const choices=[{label:"Pas du tout",position:0,id:null,result:"fail"},...configured.map((label,i)=>({label,position:i+1,id:i===0?null:def.milestones[i-1]?.id||null,result:"correct"}))];
-      choices.forEach(ch=>{const b=document.createElement("button");b.type="button";b.textContent=ch.label;const active=Number(item.milestone_position_snapshot??-1)===ch.position||(item.milestone_position_snapshot==null&&ch.position===0&&item.result==="fail");if(active)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:ch.result,milestone_reached_id:ch.id,milestone_position_snapshot:ch.position,milestone_label_snapshot:ch.label,milestone_value_snapshot:null,allowance_amount_snapshot:allowanceAmountForLevel(def,ch.position)}).eq("id",item.id);await loadDay()});st.appendChild(b)});
+      choices.forEach(ch=>{const b=document.createElement("button");b.type="button";b.textContent=ch.label;const active=Number(item.milestone_position_snapshot??-1)===ch.position||(item.milestone_position_snapshot==null&&ch.position===0&&item.result==="fail");if(active)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:ch.result,milestone_reached_id:ch.id,milestone_position_snapshot:ch.position,milestone_label_snapshot:ch.label,milestone_value_snapshot:null}).eq("id",item.id);await loadDay()});st.appendChild(b)});
     }else{
-      [["very_good","Très bien"],["correct","Correct"],["work","À travailler"],["fail","Échec"]].forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.dataset.v=v;b.textContent=l;if(item.result===v)b.classList.add("active");b.addEventListener("click",async()=>{const success=v==="very_good"||v==="correct";await supabase.from("daily_goals").update({result:v,milestone_reached_id:null,milestone_position_snapshot:success?1:0,milestone_label_snapshot:success?"Niveau 1":"Pas du tout",milestone_value_snapshot:null,allowance_amount_snapshot:success?allowanceAmountForLevel(def,1):0}).eq("id",item.id);await loadDay()});st.appendChild(b)});
+      [["very_good","Très bien"],["correct","Correct"],["work","À travailler"],["fail","Échec"]].forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.dataset.v=v;b.textContent=l;if(item.result===v)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:v,milestone_reached_id:null,milestone_position_snapshot:null,milestone_label_snapshot:null,milestone_value_snapshot:null}).eq("id",item.id);await loadDay()});st.appendChild(b)});
     }
    }else{
     const def=goals.find(g=>String(g.id)===String(item.goal_id));
@@ -4567,7 +4548,7 @@ function renderEvening(){
     const inp=row.querySelector('input[type="number"]'),bar=row.querySelector(".progressline>div"),state=row.querySelector("[data-level-state]");
     const reached=a=>levels.filter(x=>a>=x.value).sort((a,b)=>b.value-a.value)[0]||null;
     const paint=()=>{const a=inp.value===""?null:Number(inp.value),r=a===null?null:reached(a);bar.style.width=Math.min(100,target>0&&a!==null?a/target*100:0)+"%";state.textContent=a===null?"":(r?`Niveau ${r.position} atteint · seuil ${r.value}${item.unit?" "+item.unit:""}`:"Objectif non atteint")};
-    paint();inp.addEventListener("change",async()=>{const a=inp.value===""?null:Number(inp.value),r=a===null?null:reached(a);let result=null;if(a!==null&&target>0)result=a>=target?"done":a>0?"partial":"missed";await supabase.from("daily_goals").update({actual_value:a,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"Pas du tout",milestone_value_snapshot:r?.value??null,allowance_amount_snapshot:allowanceAmountForLevel(def,r?.position||0)}).eq("id",item.id);paint()});
+    paint();inp.addEventListener("change",async()=>{const a=inp.value===""?null:Number(inp.value),r=a===null?null:reached(a);let result=null;if(a!==null&&target>0)result=a>=target?"done":a>0?"partial":"missed";await supabase.from("daily_goals").update({actual_value:a,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"Pas du tout",milestone_value_snapshot:r?.value??null}).eq("id",item.id);paint()});
    }
    const allowanceText=allowanceMetaForItem(item);if(allowanceText){const am=document.createElement("div");am.className="allowance-status";am.textContent=allowanceText;row.insertBefore(am,row.querySelector("textarea"))}
    row.querySelector("textarea").addEventListener("change",async e=>await supabase.from("daily_goals").update({comment:e.target.value}).eq("id",item.id));
@@ -4954,23 +4935,22 @@ async function renderFamilyChildGoals(child){
   <div data-family-activity-panel="goals">
     <div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu. Le montant est fixé uniquement par un parent.</div>
     <div data-child-goal-list></div>
-    <form class="child-goal-form" data-child-goal-form><input name="name" placeholder="Nouvel objectif" required><select name="category">${categoryOptions}</select><select name="type" data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input name="target" data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"><input name="unit" data-goal-unit placeholder="Unité"><label class="milestone-money"><input name="allowance" type="number" min="0" step="0.10" value="0" placeholder="Gain niveau 1"><span>€</span></label>${metricSourceEditorHtml({})}${milestoneBuilderHtml(true)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button></form>
+    <form class="child-goal-form" data-child-goal-form><input name="name" placeholder="Nouvel objectif" required><select name="category">${categoryOptions}</select><select name="type" data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input name="target" data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"><input name="unit" data-goal-unit placeholder="Unité">${metricSourceEditorHtml({})}${milestoneBuilderHtml(true)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button></form>
   </div>
   <div class="allowance-box" data-family-activity-panel="allowance" data-allowance-box style="display:none"></div>
  </div>`;
  const list=host.querySelector('[data-child-goal-list]');
  const draw=()=>{
   list.innerHTML=childGoals.length?childGoals.map(g=>{
-   const cat=catMeta(g.category)?.title||g.category,levels=g.goal_type==="global"?[g.base_level_label,...(g.milestones||[]).map(m=>m.label)].filter(Boolean):[g.target_value,...(g.milestones||[]).map(m=>m.target_value)].filter(v=>v!==null&&v!==undefined&&v!==""),meta=g.goal_type==="global"?(levels.length?`Niveaux : ${levels.join(" / ")}`:"Qualitatif"):(levels.length>1?`Niveaux : ${levels.join(" / ")}${g.unit?` · ${g.unit}`:""}`:`${g.target_value??"—"} ${g.unit||""}`.trim()),sourceMeta=sourceLabel(g);
+   const cat=catMeta(g.category)?.title||g.category,levels=g.goal_type==="global"?[g.base_level_label,...(g.milestones||[]).map(m=>m.label)].filter(Boolean):[g.target_value,...(g.milestones||[]).map(m=>m.target_value)].filter(v=>v!==null&&v!==undefined&&v!==""),meta=g.goal_type==="global"?(levels.length?`Niveaux : ${levels.join(" / ")}`:"Qualitatif"):(levels.length>1?`Niveaux : ${levels.join(" / ")}${g.unit?` · ${g.unit}`:""}`:`${g.target_value??"—"} ${g.unit||""}`.trim());
    const remunerable=isParentAssignedGoal(g)||isSystemGoal(g);
    const origin=isSystemGoal(g)?"Système obligatoire":(isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — non rémunérable");
-   const money=remunerable?`<div class="allowance-levels"><label class="small">Niveau 1 <input data-money-position="1" type="number" min="0" step="0.10" value="${Number(g.allowance_amount||0)}"> €</label>${(g.milestones||[]).map(m=>`<label class="small">Niveau ${Number(m.position)} <input data-money-position="${Number(m.position)}" type="number" min="0" step="0.10" value="${Number(m.allowance_amount||0)}"> €</label>`).join("")}</div>`:"";
+   const money=remunerable?`<label class="small">Argent de poche <input class="money-input" data-money type="number" min="0" step="0.10" value="${Number(g.allowance_amount||0)}"> €</label>`:"";
    return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${sourceMeta?` · ${escapeHtml(sourceMeta)}`:""} · ${origin}</div>${money}</div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
   }).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
-  list.querySelectorAll('[data-money-position]').forEach(inp=>inp.addEventListener('change',async()=>{
-   const row=inp.closest('[data-goal-id]'),g=childGoals.find(x=>Number(x.id)===Number(row.dataset.goalId)),position=Number(inp.dataset.moneyPosition),amount=Math.max(0,Number(inp.value||0));if(!g)return;
-   let r;if(position===1){r=await supabase.rpc("parent_set_goal_allowance",{p_goal_id:Number(g.id),p_amount:amount});if(!r.error)g.allowance_amount=amount}
-   else{const m=(g.milestones||[]).find(x=>Number(x.position)===position);if(m)m.allowance_amount=amount;r=await replaceParentGoalMilestones(g.id,(g.milestones||[]).map(x=>({position:Number(x.position),label:x.label||null,target_value:x.target_value??null,allowance_amount:Number(x.allowance_amount||0)})))}
+  list.querySelectorAll('[data-money]').forEach(inp=>inp.addEventListener('change',async()=>{
+   const row=inp.closest('[data-goal-id]'),amount=Math.max(0,Number(inp.value||0));
+   const r=await supabase.rpc("parent_set_goal_allowance",{p_goal_id:Number(row.dataset.goalId),p_amount:amount});
    if(r.error)alert("Montant non enregistré : "+r.error.message);
   }));
   list.querySelectorAll('[data-goal-id]').forEach(row=>{
@@ -4978,11 +4958,11 @@ async function renderFamilyChildGoals(child){
    row.querySelector('[data-edit]').addEventListener('click',()=>{
     row.querySelector('.child-goal-edit')?.remove();const f=document.createElement('form');f.className='child-goal-edit';
     const qualitative=g.goal_type==="global";
-    f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required><select name="category">${CATS.map(c=>`<option value="${c.key}" ${c.key===g.category?"selected":""}>${escapeHtml(c.title)}</option>`).join("")}</select><select name="type" data-goal-type><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select><input name="target" data-base-level ${qualitative?'type="text"':'type="number" min="0" step="any"'} value="${escapeHtml(qualitative?(g.base_level_label||''):(g.target_value??''))}" placeholder="${qualitative?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte'}"><input name="unit" data-goal-unit value="${escapeHtml(g.unit||'')}" placeholder="Unité" ${qualitative?'style="display:none"':''}><label class="milestone-money"><input name="allowance" type="number" min="0" step="0.10" value="${Number(g.allowance_amount||0)}" placeholder="Gain niveau 1"><span>€</span></label>${metricSourceEditorHtml(g)}${milestoneBuilderHtml(true)}<div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div>`;
+    f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required><select name="category">${CATS.map(c=>`<option value="${c.key}" ${c.key===g.category?"selected":""}>${escapeHtml(c.title)}</option>`).join("")}</select><select name="type" data-goal-type><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select><input name="target" data-base-level ${qualitative?'type="text"':'type="number" min="0" step="any"'} value="${escapeHtml(qualitative?(g.base_level_label||''):(g.target_value??''))}" placeholder="${qualitative?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte'}"><input name="unit" data-goal-unit value="${escapeHtml(g.unit||'')}" placeholder="Unité" ${qualitative?'style="display:none"':''}>${metricSourceEditorHtml(g)}${milestoneBuilderHtml(false)}<div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div>`;
     const sync=()=>{const q=f.elements.type.value==="global",base=f.elements.target,unit=f.elements.unit;base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
     f.elements.type.addEventListener('change',()=>{sync();const list=f.querySelector('[data-milestone-list]');if(list)list.innerHTML='';});sync();
-    bindMetricSourceEditor(f);bindMilestoneBuilder(f,{family:true});preloadMilestoneBuilder(f,g,{family:true});f.querySelector("[data-cancel]").onclick=()=>f.remove();
-    f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),target=type==="global"?null:Number(targetRaw);if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}if(type==="precise"&&!Number.isFinite(target)){alert("Valeur du niveau 1 non valide.");return}const milestones=readMilestones(f,{family:true});if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:f.elements.category.value,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(f.elements.unit.value.trim()||null),p_priority:g.priority!==false});if(u.error){alert(u.error.message);return}const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:id,p_label:type==="global"?targetRaw:null});if(br.error){alert("Objectif modifié, mais niveau 1 non enregistré : "+br.error.message);return}const mr=await replaceParentGoalMilestones(id,milestones);if(mr.error){alert("Objectif modifié, mais niveaux non enregistrés : "+mr.error.message);return}const money=await supabase.rpc("parent_set_goal_allowance",{p_goal_id:id,p_amount:Math.max(0,Number(f.elements.allowance.value||0))});if(money.error){alert("Objectif modifié, mais gain du niveau 1 non enregistré : "+money.error.message);return}const sourceCfg=readMetricSource(f);if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}const sr2=await supabase.rpc("parent_set_goal_source",{p_goal_id:id,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null});if(sr2.error){alert("Objectif modifié, mais source non enregistrée : "+sr2.error.message);return}await renderFamilyChildGoals(child)};
+    bindMetricSourceEditor(f);bindMilestoneBuilder(f,{family:false});preloadMilestoneBuilder(f,g);f.querySelector("[data-cancel]").onclick=()=>f.remove();
+    f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),target=type==="global"?null:Number(targetRaw);if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}if(type==="precise"&&!Number.isFinite(target)){alert("Valeur du niveau 1 non valide.");return}const milestones=readMilestones(f);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:f.elements.category.value,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(f.elements.unit.value.trim()||null),p_priority:g.priority!==false});if(u.error){alert(u.error.message);return}const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:id,p_label:type==="global"?targetRaw:null});if(br.error){alert("Objectif modifié, mais niveau 1 non enregistré : "+br.error.message);return}const mr=await replaceParentGoalMilestones(id,milestones);if(mr.error){alert("Objectif modifié, mais niveaux non enregistrés : "+mr.error.message);return}const sourceCfg=readMetricSource(f);if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}const sr2=await supabase.rpc("parent_set_goal_source",{p_goal_id:id,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null});if(sr2.error){alert("Objectif modifié, mais source non enregistrée : "+sr2.error.message);return}await renderFamilyChildGoals(child)};
     row.appendChild(f);
    });
    row.querySelector('[data-priority]').onclick=async()=>{const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:g.category,p_name:g.name,p_goal_type:g.goal_type,p_target_value:g.target_value,p_unit:g.unit,p_priority:g.priority===false});if(u.error)alert(u.error.message);else await renderFamilyChildGoals(child)};
@@ -5018,7 +4998,7 @@ async function renderFamilyChildGoals(child){
  const syncFamilyBase=()=>{const q=form.elements.type.value==="global",base=form.elements.target,unit=form.elements.unit;base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
  form.elements.type.addEventListener('change',syncFamilyBase);syncFamilyBase();
  bindMetricSourceEditor(form);bindMilestoneBuilder(form,{family:true});
- form.onsubmit=async e=>{e.preventDefault();const name=form.elements.name.value.trim(),category=form.elements.category.value,type=form.elements.type.value,targetRaw=form.elements.target.value.trim(),unitRaw=form.elements.unit.value.trim();if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}const target=type==="global"?null:Number(targetRaw),baseLabel=type==="global"?targetRaw:null,sourceCfg=readMetricSource(form),milestones=readMilestones(form,{family:true});if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const c=await supabase.rpc("parent_create_child_goal",{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(unitRaw||null),p_priority:true});if(c.error){alert(String(c.error.code)==="23505"?`Cet objectif existe déjà pour ${child.first_name||"cet enfant"} dans cette catégorie.`:c.error.message);return}let goalId=Number(c.data?.id??c.data);if(!goalId){const rr=await supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id});if(!rr.error){const matches=(rr.data||[]).filter(x=>x.name===name&&x.category===category);goalId=matches.length?Math.max(...matches.map(x=>Number(x.id)||0)):0}}if(goalId&&type==="global"){const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:goalId,p_label:baseLabel});if(br.error){alert("Objectif créé, mais niveau 1 non enregistré : "+br.error.message);return}}if(goalId){const mr=await replaceParentGoalMilestones(goalId,milestones);if(mr.error){alert("Objectif créé, mais paliers non enregistrés : "+mr.error.message);return}const money=await supabase.rpc("parent_set_goal_allowance",{p_goal_id:goalId,p_amount:Math.max(0,Number(form.elements.allowance.value||0))});if(money.error){alert("Objectif créé, mais gain du niveau 1 non enregistré : "+money.error.message);return}const sr2=await supabase.rpc("parent_set_goal_source",{p_goal_id:goalId,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null});if(sr2.error){alert("Objectif créé, mais source non enregistrée : "+sr2.error.message);return}}await renderFamilyChildGoals(child)};
+ form.onsubmit=async e=>{e.preventDefault();const name=form.elements.name.value.trim(),category=form.elements.category.value,type=form.elements.type.value,targetRaw=form.elements.target.value.trim(),unitRaw=form.elements.unit.value.trim();if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}const target=type==="global"?null:Number(targetRaw),baseLabel=type==="global"?targetRaw:null,sourceCfg=readMetricSource(form),milestones=readMilestones(form,{family:true});if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const c=await supabase.rpc("parent_create_child_goal",{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(unitRaw||null),p_priority:true});if(c.error){alert(c.error.message);return}let goalId=Number(c.data?.id??c.data);if(!goalId){const rr=await supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id});if(!rr.error){const matches=(rr.data||[]).filter(x=>x.name===name&&x.category===category);goalId=matches.length?Math.max(...matches.map(x=>Number(x.id)||0)):0}}if(goalId&&type==="global"){const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:goalId,p_label:baseLabel});if(br.error){alert("Objectif créé, mais niveau 1 non enregistré : "+br.error.message);return}}if(milestones.length&&goalId){const mr=await saveParentGoalMilestones(goalId,milestones);if(mr.error){alert("Objectif créé, mais paliers non enregistrés : "+mr.error.message);return}}if(goalId){const sr2=await supabase.rpc("parent_set_goal_source",{p_goal_id:goalId,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null});if(sr2.error){alert("Objectif créé, mais source non enregistrée : "+sr2.error.message);return}}await renderFamilyChildGoals(child)};
 }
 
 async function renderChildAllowanceSelf(){
