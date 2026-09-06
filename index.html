@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.9.2 — correction création Famille + modification des paliers Objectifs/Famille -->
+<!-- Avoda Hachem — Version V5.9.3 — suivi quotidien des niveaux/paliers -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -4424,14 +4424,26 @@ function renderEvening(){
     const target=Number(item.time_target_minutes||0),ok=item.time_operator==="lte"?mins<=target:mins>=target;
     row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">⏱️ ${escapeHtml(cat?.name||"Temps")} ${item.time_operator==="lte"?"≤":"≥"} ${fmtMinutes(target)}</div><div class="auto-result">${ok?"✅":"⚠️"} Réalisé automatiquement : <strong>${fmtMinutes(mins)}</strong><br><span class="small">Le résultat vient de l’onglet Temps.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
    } else if(item.goal_type==="global"){
+    const def=goals.find(g=>String(g.id)===String(item.goal_id));
+    const configured=[def?.base_level_label,...(def?.milestones||[]).map(m=>m.label)].filter(Boolean);
     row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="status"></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
-    const st=row.querySelector(".status");[["very_good","Très bien"],["correct","Correct"],["work","À travailler"],["fail","Échec"]].forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.dataset.v=v;b.textContent=l;if(item.result===v)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:v}).eq("id",item.id);await loadDay()});st.appendChild(b)});
+    const st=row.querySelector(".status");
+    if(configured.length){
+      const choices=[{label:"Pas du tout",position:0,id:null,result:"fail"},...configured.map((label,i)=>({label,position:i+1,id:i===0?null:def.milestones[i-1]?.id||null,result:"correct"}))];
+      choices.forEach(ch=>{const b=document.createElement("button");b.type="button";b.textContent=ch.label;const active=Number(item.milestone_position_snapshot??-1)===ch.position||(item.milestone_position_snapshot==null&&ch.position===0&&item.result==="fail");if(active)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:ch.result,milestone_reached_id:ch.id,milestone_position_snapshot:ch.position,milestone_label_snapshot:ch.label,milestone_value_snapshot:null}).eq("id",item.id);await loadDay()});st.appendChild(b)});
+    }else{
+      [["very_good","Très bien"],["correct","Correct"],["work","À travailler"],["fail","Échec"]].forEach(([v,l])=>{const b=document.createElement("button");b.type="button";b.dataset.v=v;b.textContent=l;if(item.result===v)b.classList.add("active");b.addEventListener("click",async()=>{await supabase.from("daily_goals").update({result:v,milestone_reached_id:null,milestone_position_snapshot:null,milestone_label_snapshot:null,milestone_value_snapshot:null}).eq("id",item.id);await loadDay()});st.appendChild(b)});
+    }
    }else{
+    const def=goals.find(g=>String(g.id)===String(item.goal_id));
+    const levels=[{position:1,value:Number(item.target_value||0),id:null},...(def?.milestones||[]).map(m=>({position:Number(m.position),value:Number(m.target_value),id:m.id}))].filter(x=>Number.isFinite(x.value)).sort((a,b)=>a.value-b.value);
     const target=Number(item.target_value||0),actual=item.actual_value??"";
-    row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">Cible : ${target||"—"} ${item.unit||""}</div><div class="quant-box"><input type="number" min="0" step="any" value="${actual}" placeholder="Réalisé"><span class="unit-label">${item.unit||""}</span></div><div class="progressline"><div></div></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
-    const inp=row.querySelector('input[type="number"]'),bar=row.querySelector(".progressline>div");
-    const paint=()=>{const a=Number(inp.value||0);bar.style.width=Math.min(100,target>0?a/target*100:0)+"%"};
-    paint();inp.addEventListener("change",async()=>{const a=inp.value===""?null:Number(inp.value);let result=null;if(a!==null&&target>0)result=a>=target?"done":a>0?"partial":"missed";await supabase.from("daily_goals").update({actual_value:a,result}).eq("id",item.id);paint()});
+    const levelText=levels.length>1?`Niveaux : ${levels.map(x=>x.value).join(" / ")} ${item.unit||""}`:`Cible : ${target||"—"} ${item.unit||""}`;
+    row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">${levelText}</div><div class="quant-box"><input type="number" min="0" step="any" value="${actual}" placeholder="Réalisé"><span class="unit-label">${item.unit||""}</span></div><div class="progressline"><div></div></div><div class="meta" data-level-state></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
+    const inp=row.querySelector('input[type="number"]'),bar=row.querySelector(".progressline>div"),state=row.querySelector("[data-level-state]");
+    const reached=a=>levels.filter(x=>a>=x.value).sort((a,b)=>b.value-a.value)[0]||null;
+    const paint=()=>{const a=inp.value===""?null:Number(inp.value),r=a===null?null:reached(a);bar.style.width=Math.min(100,target>0&&a!==null?a/target*100:0)+"%";state.textContent=a===null?"":(r?`Niveau ${r.position} atteint · seuil ${r.value}${item.unit?" "+item.unit:""}`:"Objectif non atteint")};
+    paint();inp.addEventListener("change",async()=>{const a=inp.value===""?null:Number(inp.value),r=a===null?null:reached(a);let result=null;if(a!==null&&target>0)result=a>=target?"done":a>0?"partial":"missed";await supabase.from("daily_goals").update({actual_value:a,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"Pas du tout",milestone_value_snapshot:r?.value??null}).eq("id",item.id);paint()});
    }
    const allowanceText=allowanceMetaForItem(item);if(allowanceText){const am=document.createElement("div");am.className="allowance-status";am.textContent=allowanceText;row.insertBefore(am,row.querySelector("textarea"))}
    row.querySelector("textarea").addEventListener("change",async e=>await supabase.from("daily_goals").update({comment:e.target.value}).eq("id",item.id));
