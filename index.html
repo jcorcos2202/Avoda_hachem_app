@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.9.3 — suivi quotidien des niveaux/paliers -->
+<!-- Avoda Hachem — Version V5.9.3.1 — prototype Nouvelle Synthèse : araignées et taux d’accomplissement -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -114,6 +114,17 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 .milestone-add{width:100%;margin-top:10px;padding:11px;border-radius:10px;border:1px dashed #8aa0bd;background:#fff;font-weight:700}
 .milestone-remove{border:0;background:transparent;color:#a33;font-weight:600}
 @media(max-width:700px){.milestone-line,.milestone-line.family,.milestone-line.qualitative.family{grid-template-columns:1fr}}
+
+/* V5.9.3.1 — Nouvelle synthèse expérimentale, isolée de la synthèse historique */
+#summary2 .ns-controls{margin-bottom:14px}#summary2 .ns-controls label{display:flex;flex-direction:column;gap:6px;font-weight:700}
+#summary2 .ns-controls input{padding:10px;border:1px solid #d8d2c8;border-radius:10px;background:#fff;font:inherit}
+.ns-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}.ns-radar-card{overflow:hidden}
+.ns-radar{width:100%;height:auto;display:block;min-height:300px}.ns-legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:8px;font-size:.88rem}
+.ns-legend span:before{content:"";display:inline-block;width:18px;height:3px;border-radius:3px;margin-right:6px;vertical-align:middle;background:currentColor}
+.ns-a{color:#5b6fb2}.ns-b{color:#b06b58}.ns-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:12px 0}
+.ns-kpi{padding:12px;border-radius:14px;background:#f7f4ee;text-align:center}.ns-kpi strong{display:block;font-size:1.35rem}.ns-domain-btn{width:100%;text-align:left;border:0;background:transparent;padding:0;cursor:pointer;color:inherit}
+.ns-empty{padding:18px;text-align:center;color:#6f6a63}.ns-note{font-size:.86rem;color:#706b64;line-height:1.4}
+
 </style>
 
 <style id="v574-friendly-skin">
@@ -3171,6 +3182,7 @@ body.v5816-app-open .topbar{
     <button class="tab" data-panel="berakhot">100 Berakhot</button>
     <button class="tab" data-panel="time">Temps</button>
     <button class="tab" data-panel="summary">Synthèses</button>
+    <button class="tab" data-panel="summary2">Nouvelle synthèse</button>
     <button class="tab" data-panel="family">Famille</button>
   </div>
 
@@ -3419,6 +3431,18 @@ body.v5816-app-open .topbar{
       <button type="button" class="v579-subnav-btn" data-summary-filter="days">🗓️ Journées</button>
     </div>
     <div id="summaryContent"></div>
+  </section>
+
+  <section id="summary2" class="panel summary-redesign">
+    <div class="hero"><strong>Nouvelle synthèse · Accomplissement & équilibre</strong><br>Compare deux semaines à partir de deux dates de référence. N0 = 0 %, le dernier niveau = 100 %.</div>
+    <div class="card ns-controls">
+      <div class="form-grid">
+        <label><span>Période A · semaine contenant</span><input id="nsDateA" type="date"></label>
+        <label><span>Période B · semaine contenant</span><input id="nsDateB" type="date"></label>
+      </div>
+      <button id="nsRefresh" class="btn" type="button">Comparer</button>
+    </div>
+    <div id="summary2Content"></div>
   </section>
 
   <section id="family" class="panel">
@@ -5074,7 +5098,60 @@ async function renderFamily(){
  if(initial)await v580SelectFamilyMember(initial.user_id);
  }finally{hideLoading()}
 }
-function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily();if((id==="evening"||id==="objectives")&&isChildProfile()){loadAllowanceDayState().then(()=>{renderObjectives();renderEvening()})}}
+
+function nsISO(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function nsWeekRange(anchor){const [y,m,d]=anchor.split("-").map(Number),x=new Date(y,m-1,d),dow=(x.getDay()+6)%7,a=new Date(x);a.setDate(x.getDate()-dow);const b=new Date(a);b.setDate(a.getDate()+6);return [nsISO(a),nsISO(b)]}
+function nsShiftDays(iso,n){const [y,m,d]=iso.split("-").map(Number),x=new Date(y,m-1,d);x.setDate(x.getDate()+n);return nsISO(x)}
+function nsPrettyRange(r){return `${r[0].slice(8,10)}/${r[0].slice(5,7)} → ${r[1].slice(8,10)}/${r[1].slice(5,7)}`}
+function nsEsc(v){return escapeHtml(String(v??""))}
+function nsRadarSVG(labels,a,b){
+ const n=labels.length;if(n<3)return `<div class="ns-empty">Au moins 3 axes sont nécessaires pour une araignée.</div>`;
+ const W=420,H=360,cx=210,cy=172,R=118,pt=(i,r)=>{const ang=-Math.PI/2+i*2*Math.PI/n;return [cx+Math.cos(ang)*R*r,cy+Math.sin(ang)*R*r]},poly=vals=>vals.map((v,i)=>pt(i,Math.max(0,Math.min(100,Number(v)||0))/100).join(",")).join(" ");
+ let grid="";[.25,.5,.75,1].forEach(q=>{grid+=`<polygon points="${labels.map((_,i)=>pt(i,q).join(",")).join(" ")}" fill="none" stroke="#d8d2c8" stroke-width="1"/>`});
+ let axes="",txt="";labels.forEach((l,i)=>{const p=pt(i,1),t=pt(i,1.25);axes+=`<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}" stroke="#ded8cf"/>`;const anchor=t[0]<cx-8?"end":t[0]>cx+8?"start":"middle";txt+=`<text x="${t[0]}" y="${t[1]}" text-anchor="${anchor}" dominant-baseline="middle" font-size="11" fill="#514d47">${nsEsc(l.length>20?l.slice(0,18)+"…":l)}</text>`});
+ return `<svg class="ns-radar" viewBox="0 0 ${W} ${H}" role="img">${grid}${axes}<polygon points="${poly(a)}" fill="#5b6fb2" fill-opacity=".12" stroke="#5b6fb2" stroke-width="3"/><polygon points="${poly(b)}" fill="#b06b58" fill-opacity=".10" stroke="#b06b58" stroke-width="3"/>${txt}</svg>`;
+}
+async function nsLoadPeriod(range){
+ const dr=await supabase.from("days").select("id,day").eq("user_id",user.id).gte("day",range[0]).lte("day",range[1]);const days=dr.data||[],ids=days.map(x=>x.id);if(!ids.length)return [];
+ const rr=await supabase.from("daily_goals").select("*").eq("user_id",user.id).in("day_id",ids).eq("planned",true);return rr.data||[];
+}
+function nsAccomplishment(row,maxLevel){
+ maxLevel=Math.max(1,Number(maxLevel)||1);let pos=row.milestone_position_snapshot;
+ if(pos!==null&&pos!==undefined&&pos!=="")return Math.max(0,Math.min(100,Number(pos)/maxLevel*100));
+ const sc=scoreRow(row);return sc!==null&&sc>=80?100:0;
+}
+function nsAggregate(rows,maxByGoal,category){
+ const rs=category?rows.filter(r=>r.category===category):rows;if(!rs.length)return null;
+ const vals=rs.map(r=>nsAccomplishment(r,maxByGoal[String(r.goal_id)]||1));return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+}
+async function renderSummary2(){
+ const host=document.getElementById("summary2Content");if(!host||!user)return;
+ showLoading("Calcul de la nouvelle synthèse…");
+ try{
+  const aEl=document.getElementById("nsDateA"),bEl=document.getElementById("nsDateB");if(!bEl.value)bEl.value=currentDay;if(!aEl.value)aEl.value=nsShiftDays(currentDay,-7);
+  const ra=nsWeekRange(aEl.value),rb=nsWeekRange(bEl.value);
+  const [rowsA,rowsB]=await Promise.all([nsLoadPeriod(ra),nsLoadPeriod(rb)]);
+  const allGoalIds=[...new Set([...rowsA,...rowsB].map(r=>r.goal_id).filter(Boolean).map(String))];
+  const maxByGoal={};allGoalIds.forEach(id=>maxByGoal[id]=1);
+  if(allGoalIds.length){const mr=await supabase.from("goal_milestones").select("goal_id,position").in("goal_id",allGoalIds);(mr.data||[]).forEach(m=>maxByGoal[String(m.goal_id)]=Math.max(maxByGoal[String(m.goal_id)]||1,Number(m.position)||1))}
+  const cats=CATS.filter(c=>rowsA.some(r=>r.category===c.key)||rowsB.some(r=>r.category===c.key));
+  const va=cats.map(c=>nsAggregate(rowsA,maxByGoal,c.key)??0),vb=cats.map(c=>nsAggregate(rowsB,maxByGoal,c.key)??0);
+  const ga=nsAggregate(rowsA,maxByGoal),gb=nsAggregate(rowsB,maxByGoal);
+  const catCards=cats.map((c,i)=>`<div class="ns-kpi"><span>${c.icon} ${nsEsc(c.title)}</span><strong>${va[i]}% → ${vb[i]}%</strong><small>${vb[i]-va[i]>=0?"+":""}${vb[i]-va[i]} pts</small></div>`).join("");
+  let html=`<div class="card ns-radar-card"><div class="head"><div><h2>Équilibre entre les domaines</h2><div class="small">${nsPrettyRange(ra)} comparé à ${nsPrettyRange(rb)}</div></div></div>${cats.length>=3?nsRadarSVG(cats.map(c=>c.title),va,vb):'<div class="ns-empty">Pas encore assez de catégories renseignées pour dessiner l’araignée.</div>'}<div class="ns-legend"><span class="ns-a">Période A · ${nsPrettyRange(ra)}</span><span class="ns-b">Période B · ${nsPrettyRange(rb)}</span></div><div class="ns-kpis"><div class="ns-kpi"><span>Accomplissement global A</span><strong>${ga??0}%</strong></div><div class="ns-kpi"><span>Accomplissement global B</span><strong>${gb??0}%</strong></div>${catCards}</div><div class="ns-note">Convention : N0 = 0 %. Pour un objectif à N niveaux, Nk = k/N. Les objectifs sans paliers restent lus comme 0 % ou 100 % afin de conserver leur sens historique.</div></div>`;
+  const goalMap={};[...rowsA,...rowsB].forEach(r=>{if(r.goal_id)goalMap[String(r.goal_id)]={id:String(r.goal_id),name:r.goal_name||"Objectif",category:r.category}});
+  for(const c of cats){
+   const gl=Object.values(goalMap).filter(g=>g.category===c.key);if(!gl.length)continue;
+   const one=(rows,gid)=>{const z=rows.filter(r=>String(r.goal_id)===gid);if(!z.length)return 0;return Math.round(z.map(r=>nsAccomplishment(r,maxByGoal[gid]||1)).reduce((a,b)=>a+b,0)/z.length)};
+   const aa=gl.map(g=>one(rowsA,g.id)),bb=gl.map(g=>one(rowsB,g.id));
+   html+=`<div class="card ns-radar-card"><div class="head"><div><h2>${c.icon} ${nsEsc(c.title)}</h2><div class="small">Accomplissement par objectif</div></div></div>${gl.length>=3?nsRadarSVG(gl.map(g=>g.name),aa,bb):`<div class="ns-empty">${gl.length} objectif${gl.length>1?"s":""} sur cette catégorie : l’araignée apparaîtra à partir de 3.</div>`}<div class="ns-kpis">${gl.map((g,i)=>`<div class="ns-kpi"><span>${nsEsc(g.name)}</span><strong>${aa[i]}% → ${bb[i]}%</strong><small>${bb[i]-aa[i]>=0?"+":""}${bb[i]-aa[i]} pts</small></div>`).join("")}</div></div>`;
+  }
+  if(!rowsA.length&&!rowsB.length)html='<div class="card"><div class="ns-empty">Aucune donnée quotidienne sur les deux périodes choisies.</div></div>';
+  host.innerHTML=html;
+ }finally{hideLoading()}
+}
+
+function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="summary2")renderSummary2();if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily();if((id==="evening"||id==="objectives")&&isChildProfile()){loadAllowanceDayState().then(()=>{renderObjectives();renderEvening()})}}
 let explicitLoginRequested=false;
 document.getElementById("loginBtn").addEventListener("click",async()=>{
  explicitLoginRequested=true;
@@ -5105,6 +5182,7 @@ document.getElementById("saveProfileBtn").addEventListener("click",saveAppProfil
 document.getElementById("editProfileBtn").addEventListener("click",()=>setProfileEdit(true));
 document.getElementById("cancelEditProfileBtn").addEventListener("click",()=>{setProfileEdit(false);renderProfileRead()});
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setPanel(b.dataset.panel)));
+document.getElementById("nsRefresh")?.addEventListener("click",renderSummary2);
 document.querySelectorAll(".period").forEach(b=>b.addEventListener("click",()=>renderSummary(b.dataset.period)));
 document.getElementById("profileWeekday").addEventListener("click",()=>setBerakhotProfile("weekday"));
 document.getElementById("profileShabbat").addEventListener("click",()=>setBerakhotProfile("shabbat"));
