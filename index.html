@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.9.3.1 — prototype Nouvelle Synthèse : araignées et taux d’accomplissement -->
+<!-- Avoda Hachem — Version V5.9.3.2 — Nouvelle Synthèse : périodes libres comparables, araignées et taux d’accomplissement -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3434,11 +3434,12 @@ body.v5816-app-open .topbar{
   </section>
 
   <section id="summary2" class="panel summary-redesign">
-    <div class="hero"><strong>Nouvelle synthèse · Accomplissement & équilibre</strong><br>Compare deux semaines à partir de deux dates de référence. N0 = 0 %, le dernier niveau = 100 %.</div>
+    <div class="hero"><strong>Nouvelle synthèse · Accomplissement & équilibre</strong><br>Définis deux périodes de même durée pour comparer leur équilibre. N0 = 0 %, le dernier niveau = 100 %.</div>
     <div class="card ns-controls">
       <div class="form-grid">
-        <label><span>Période A · semaine contenant</span><input id="nsDateA" type="date"></label>
-        <label><span>Période B · semaine contenant</span><input id="nsDateB" type="date"></label>
+        <label><span>Date de début · période A</span><input id="nsDateA" type="date"></label>
+        <label><span>Date de début · période B</span><input id="nsDateB" type="date"></label>
+        <label><span>Nombre de jours</span><input id="nsDays" type="number" min="1" max="365" step="1" value="7"></label>
       </div>
       <button id="nsRefresh" class="btn" type="button">Comparer</button>
     </div>
@@ -5100,7 +5101,7 @@ async function renderFamily(){
 }
 
 function nsISO(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function nsWeekRange(anchor){const [y,m,d]=anchor.split("-").map(Number),x=new Date(y,m-1,d),dow=(x.getDay()+6)%7,a=new Date(x);a.setDate(x.getDate()-dow);const b=new Date(a);b.setDate(a.getDate()+6);return [nsISO(a),nsISO(b)]}
+function nsPeriodRange(start,days){const n=Math.max(1,Math.min(365,Number(days)||7)),a=start,b=nsShiftDays(start,n-1);return [a,b]}
 function nsShiftDays(iso,n){const [y,m,d]=iso.split("-").map(Number),x=new Date(y,m-1,d);x.setDate(x.getDate()+n);return nsISO(x)}
 function nsPrettyRange(r){return `${r[0].slice(8,10)}/${r[0].slice(5,7)} → ${r[1].slice(8,10)}/${r[1].slice(5,7)}`}
 function nsEsc(v){return escapeHtml(String(v??""))}
@@ -5128,8 +5129,13 @@ async function renderSummary2(){
  const host=document.getElementById("summary2Content");if(!host||!user)return;
  showLoading("Calcul de la nouvelle synthèse…");
  try{
-  const aEl=document.getElementById("nsDateA"),bEl=document.getElementById("nsDateB");if(!bEl.value)bEl.value=currentDay;if(!aEl.value)aEl.value=nsShiftDays(currentDay,-7);
-  const ra=nsWeekRange(aEl.value),rb=nsWeekRange(bEl.value);
+  const aEl=document.getElementById("nsDateA"),bEl=document.getElementById("nsDateB"),dEl=document.getElementById("nsDays");
+  if(!bEl.value)bEl.value=currentDay;
+  if(!aEl.value)aEl.value=nsShiftDays(currentDay,-7);
+  if(!dEl.value)dEl.value="7";
+  const nDays=Math.max(1,Math.min(365,Number(dEl.value)||7));
+  dEl.value=String(nDays);
+  const ra=nsPeriodRange(aEl.value,nDays),rb=nsPeriodRange(bEl.value,nDays);
   const [rowsA,rowsB]=await Promise.all([nsLoadPeriod(ra),nsLoadPeriod(rb)]);
   const allGoalIds=[...new Set([...rowsA,...rowsB].map(r=>r.goal_id).filter(Boolean).map(String))];
   const maxByGoal={};allGoalIds.forEach(id=>maxByGoal[id]=1);
