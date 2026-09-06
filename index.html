@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.9.3.2 — Nouvelle Synthèse : périodes libres comparables, araignées et taux d’accomplissement -->
+<!-- Avoda Hachem — Version V5.9.3.3 — Nouvelle Synthèse par onglets + objectifs alimentés par Temps / 100 Berakhot -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3125,6 +3125,18 @@ body.v5816-app-open .topbar{
 /* V5.9.2 — un seul champ par palier dans Famille ; l'argent de poche par palier sera branché plus tard. */
 .milestone-line.family,.milestone-line.family.qualitative{grid-template-columns:1fr!important}
 </style>
+
+<style id="v5933-style">
+.ns-inner-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:0 0 8px}
+.ns-inner-tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:800;white-space:nowrap;cursor:pointer}
+.ns-inner-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.ns-source-box{grid-column:1/-1;border:1px dashed var(--line);border-radius:14px;padding:12px;background:#faf8f4}
+.ns-source-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.ns-source-grid.three{grid-template-columns:1.3fr .8fr 1fr}
+.ns-source-help{font-size:12px;color:var(--muted);margin-top:6px}
+@media(max-width:620px){.ns-source-grid,.ns-source-grid.three{grid-template-columns:1fr}}
+</style>
+
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -3693,7 +3705,7 @@ async function syncCurrentDayGoalDefinitions(){
  if(currentDay!==todayISO()||!dayRow)return;
  for(const item of dailyGoals.filter(x=>x.planned&&x.goal_id)){
   const g=goals.find(z=>z.id===item.goal_id); if(!g)continue;
-  const patch={goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null};
+  const patch={goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null,data_source:g.data_source||"manual"};
   if(g.goal_type!=="precise")patch.actual_value=null;
   await supabase.from("daily_goals").update(patch).eq("id",item.id);
  }
@@ -3742,7 +3754,7 @@ async function copyPreviousDayGoals(){
    return {
     user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,
     target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id??null,
-    time_operator:g.time_operator??null,time_target_minutes:g.time_target_minutes??null
+    time_operator:g.time_operator??null,time_target_minutes:g.time_target_minutes??null,data_source:g.data_source||"manual"
    };
   }).filter(Boolean);
   if(copies.length){
@@ -3956,7 +3968,7 @@ async function ensureParentAssignedGoalsForDay(){
  let changed=false;
  for(const g of assigned){
   const existing=dailyGoals.find(x=>String(x.goal_id)===String(g.id));
-  const payload={planned:true,goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null};
+  const payload={planned:true,goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null,data_source:g.data_source||"manual"};
   if(existing&&!existing.planned){const u=await supabase.from("daily_goals").update(payload).eq("user_id",user.id).eq("id",existing.id);if(!u.error)changed=true}
   else if(!existing){const ins=await supabase.from("daily_goals").insert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,...payload});if(!ins.error)changed=true}
  }
@@ -4000,8 +4012,8 @@ function makeGoalRow(g,selected){
   : [g.target_value,...(g.milestones||[]).map(m=>m.target_value)].filter(v=>v!==null&&v!==undefined&&v!=="");
  const meta=g.goal_type==="global"
   ? (levels.length?`Niveaux : ${levels.join(" / ")}`:"Qualitatif")
-  : (levels.length>1?`Niveaux : ${levels.join(" / ")}${g.unit?` · ${g.unit}`:""}`:`${g.target_value??"—"} ${g.unit||""}`.trim());
- const timeMeta=g.time_category_id?` • ⏱️ lié au temps`:"";
+  : (levels.length>1?`Niveaux : ${levels.join(" / ")}${g.unit?` · ${g.unit}`:""}`:`${g.target_value??"—"} ${g.unit||""}`.trim()); const sourceMeta=sourceLabel(g);
+ const timeMeta=sourceLabel(g)?` • ${sourceLabel(g)}`:"";
  const isBerakhot=(g.name||"").toLowerCase().includes("berakh");
  row.innerHTML=`<div class="goal-line"><input type="checkbox" ${selected?"checked":""}><div class="goal-main"><div class="goal-name">${g.name}</div><div class="meta">${meta}${timeMeta}</div><label class="priority"><input class="priorityCheck" type="checkbox" ${g.priority!==false?"checked":""}> Prioritaire</label><div class="manage">${isBerakhot?'<button type="button" data-act="counter">💯 Compteur</button>':""}<button type="button" data-act="edit">Modifier</button><button type="button" data-act="disable">Désactiver</button></div></div><span class="tag">${g.goal_type==="global"?"qualitatif":"quantitatif"}</span></div>`;
  return row;
@@ -4030,24 +4042,22 @@ function editForm(g,card,row){
  ${milestoneBuilderHtml(false)}
  <button class="btn milestone-final-action" type="submit">Enregistrer les modifications</button>
  <button class="btn secondary" type="button" data-cancel>Annuler</button>
- <div class="note" style="grid-column:1/-1"><strong>⏱️ Alimentation par le suivi du temps (facultatif)</strong><div class="small">Ex. Temps d’écran ≤ 2 h ou Torah ≥ 1 h. La donnée réelle vient alors de l’onglet Temps.</div></div>
- <select class="time-link-cat">${timeOpts}</select>
- <select class="time-link-op"><option value="lte" ${g.time_operator==="lte"?"selected":""}>≤ maximum</option><option value="gte" ${g.time_operator==="gte"?"selected":""}>≥ minimum</option></select>
- <input class="time-link-hours" type="number" min="0" max="24" step="0.25" value="${g.time_target_minutes!=null?Number(g.time_target_minutes)/60:""}" placeholder="Seuil en heures">`;
+ ${metricSourceEditorHtml(g)}`;
  const sync=()=>{const q=f.elements.type.value==="global",base=f.elements.target,unit=f.elements.unit;base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
  f.elements.type.addEventListener('change',()=>{sync();const list=f.querySelector('[data-milestone-list]');if(list)list.innerHTML='';});sync();
- bindMilestoneBuilder(f,{family:false});preloadMilestoneBuilder(f,g);
+ bindMetricSourceEditor(f);bindMilestoneBuilder(f,{family:false});preloadMilestoneBuilder(f,g);
  f.querySelector('[data-cancel]').onclick=()=>f.remove();
  f.addEventListener("submit",async e=>{e.preventDefault();
   const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),unitRaw=f.elements.unit.value.trim();if(!name)return;
   if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}
   const target=type==="global"?null:Number(targetRaw);if(type==="precise"&&!Number.isFinite(target)){alert("Valeur du niveau 1 non valide.");return}
   const milestones=readMilestones(f);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}
-  const tc=f.querySelector(".time-link-cat").value,op=f.querySelector(".time-link-op").value,hrs=f.querySelector(".time-link-hours").value;
-  const patch={name,goal_type:type,target_value:target,unit:type==="global"?null:(unitRaw||null),base_level_label:type==="global"?targetRaw:null,time_category_id:tc?Number(tc):null,time_operator:tc?op:null,time_target_minutes:tc&&hrs!==""?Math.round(Number(hrs)*60):null};
+  const sourceCfg=readMetricSource(f);
+  if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}
+  const patch={name,goal_type:type,target_value:target,unit:type==="global"?null:(unitRaw||null),base_level_label:type==="global"?targetRaw:null,data_source:sourceCfg.data_source,time_category_id:sourceCfg.time_category_id,time_operator:sourceCfg.time_operator,time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null};
   const u=await supabase.from("goals").update(patch).eq("id",g.id).eq("user_id",user.id);if(u.error){alert(u.error.message);return}
   const mr=await replaceOwnGoalMilestones(g.id,milestones);if(mr.error){alert("Objectif modifié, mais niveaux non enregistrés : "+mr.error.message);return}
-  await supabase.from("daily_goals").update({time_category_id:patch.time_category_id,time_operator:patch.time_operator,time_target_minutes:patch.time_target_minutes}).eq("day_id",dayRow.id).eq("goal_id",g.id);
+  await supabase.from("daily_goals").update({data_source:patch.data_source,time_category_id:patch.time_category_id,time_operator:patch.time_operator,time_target_minutes:patch.time_target_minutes}).eq("day_id",dayRow.id).eq("goal_id",g.id);
   await refreshGoals();await loadDay();
  });row.after(f);
 }
@@ -4323,6 +4333,69 @@ async function saveParentGoalMilestones(goalId,milestones){
  return await supabase.rpc('parent_add_goal_milestones',{p_goal_id:Number(goalId),p_milestones:milestones});
 }
 
+
+function metricSourceOf(g){return g?.data_source||((g?.time_category_id&&g?.time_operator)?"time":"manual")}
+function sourceLabel(g){
+ const src=metricSourceOf(g);
+ if(src==="berakhot")return "📿 alimenté par 100 Berakhot";
+ if(src==="time")return "⏱️ alimenté par le suivi du temps";
+ return "";
+}
+function metricSourceEditorHtml(g={}){
+ const src=metricSourceOf(g), opts=timeCategories.map(c=>`<option value="${c.id}" ${String(g.time_category_id||"")===String(c.id)?"selected":""}>${escapeHtml(c.name)}</option>`).join("");
+ return `<div class="ns-source-box">
+  <strong>Donnée alimentant l’objectif</strong>
+  <div class="ns-source-grid">
+   <select data-metric-source>
+    <option value="manual" ${src==="manual"?"selected":""}>Saisie manuelle</option>
+    <option value="time" ${src==="time"?"selected":""}>Suivi du temps</option>
+    <option value="berakhot" ${src==="berakhot"?"selected":""}>Compteur 100 Berakhot</option>
+   </select>
+   <div class="small">Les paliers restent ceux de l’objectif.</div>
+  </div>
+  <div data-source-time style="${src==="time"?"":"display:none"}">
+   <div class="ns-source-grid three">
+    <select data-source-time-cat><option value="">Choisir une catégorie de temps</option>${opts}</select>
+    <select data-source-time-op>
+     <option value="gte" ${g.time_operator==="gte"?"selected":""}>≥ supérieur / minimum</option>
+     <option value="lte" ${g.time_operator==="lte"?"selected":""}>≤ inférieur / maximum</option>
+    </select>
+    <div class="small">Les valeurs des niveaux sont saisies en heures.</div>
+   </div>
+  </div>
+  <div data-source-berakhot style="${src==="berakhot"?"":"display:none"}" class="ns-source-help">Le résultat réel sera le nombre total détaillé saisi dans l’onglet 100 Berakhot.</div>
+ </div>`;
+}
+function bindMetricSourceEditor(form){
+ const sel=form.querySelector("[data-metric-source]");if(!sel)return;
+ const sync=()=>{
+  const src=sel.value, t=form.querySelector("[data-source-time]"), b=form.querySelector("[data-source-berakhot]");
+  if(t)t.style.display=src==="time"?"":"none";
+  if(b)b.style.display=src==="berakhot"?"":"none";
+  if(src!=="manual"){
+   const type=form.querySelector("[data-goal-type]");if(type){type.value="precise";type.dispatchEvent(new Event("change"))}
+   const unit=form.querySelector("[data-goal-unit]");
+   if(unit)unit.value=src==="time"?"h":"berakhot";
+  }
+ };
+ sel.addEventListener("change",sync);sync();
+}
+function readMetricSource(form){
+ const src=form.querySelector("[data-metric-source]")?.value||"manual";
+ const tc=form.querySelector("[data-source-time-cat]")?.value||"";
+ const op=form.querySelector("[data-source-time-op]")?.value||"gte";
+ return {data_source:src,time_category_id:src==="time"&&tc?Number(tc):null,time_operator:src==="time"?op:null};
+}
+function sourceReached(levels,actual,operator){
+ const ordered=[...levels].sort((a,b)=>Number(a.position)-Number(b.position));
+ let reached=null;
+ for(const lv of ordered){
+  const ok=operator==="lte"?actual<=Number(lv.value):actual>=Number(lv.value);
+  if(ok)reached=lv;
+ }
+ return reached;
+}
+
 function renderObjectives(){
  const host=document.getElementById("objectiveCategories");host.innerHTML="";
  renderV5822DailySummary();
@@ -4347,9 +4420,9 @@ function renderObjectives(){
     if(e.target.checked){
      const existing=dailyGoals.find(x=>String(x.goal_id)===String(g.id));
      if(existing){
-      await supabase.from("daily_goals").update({planned:true,goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null}).eq("user_id",user.id).eq("id",existing.id);
+      await supabase.from("daily_goals").update({planned:true,goal_name:g.name,category:g.category,goal_type:g.goal_type,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null,data_source:g.data_source||"manual"}).eq("user_id",user.id).eq("id",existing.id);
      }else{
-      await supabase.from("daily_goals").insert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null});
+      await supabase.from("daily_goals").insert({user_id:user.id,day_id:dayRow.id,goal_id:g.id,goal_name:g.name,category:g.category,goal_type:g.goal_type,planned:true,target_value:g.target_value,unit:g.unit,priority:g.priority!==false,time_category_id:g.time_category_id||null,time_operator:g.time_operator||null,time_target_minutes:g.time_target_minutes??null,data_source:g.data_source||"manual"});
      }
     }else{
      // On conserve la ligne historique et ses résultats éventuels ; seule la planification de N change.
@@ -4381,18 +4454,20 @@ function renderObjectives(){
   });
   if(!past){
    const form=document.createElement("form");form.className="add goal-add-form";
-   form.innerHTML=`<input placeholder="${isChildProfile()?"Nouvel objectif personnel":"Nouvel objectif"}"><select data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"><input data-goal-unit placeholder="Unité">${milestoneBuilderHtml(false)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button>`;
+   form.innerHTML=`<input placeholder="${isChildProfile()?"Nouvel objectif personnel":"Nouvel objectif"}"><select data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"><input data-goal-unit placeholder="Unité">${metricSourceEditorHtml({})}${milestoneBuilderHtml(false)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button>`;
    const syncBase=()=>{const q=form.querySelector('[data-goal-type]').value==="global",base=form.querySelector('[data-base-level]'),unit=form.querySelector('[data-goal-unit]');base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
    form.querySelector('[data-goal-type]').addEventListener('change',syncBase);syncBase();
-   bindMilestoneBuilder(form);
+   bindMetricSourceEditor(form);bindMilestoneBuilder(form);
    form.addEventListener("submit",async e=>{e.preventDefault();const name=form.children[0].value.trim(),type=form.querySelector('[data-goal-type]').value,baseRaw=form.querySelector('[data-base-level]').value.trim(),unit=form.querySelector('[data-goal-unit]').value.trim();if(!name)return;
     if(!baseRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}
     const target=type==="global"?null:Number(baseRaw),baseLabel=type==="global"?baseRaw:null;
+    const sourceCfg=readMetricSource(form);
+    if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}
     const milestones=readMilestones(form);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}
-    const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:target,unit:type==="global"?null:(unit||null),base_level_label:baseLabel,objective_key:makeObjectiveKey(name),priority:true,goal_origin:"personal",objective_horizon:"daily"}).select().single();
+    const ins=await supabase.from("goals").insert({user_id:user.id,category:cat.key,name,goal_type:type,target_value:target,unit:type==="global"?null:(unit||null),base_level_label:baseLabel,objective_key:makeObjectiveKey(name),priority:true,goal_origin:"personal",objective_horizon:"daily",data_source:sourceCfg.data_source,time_category_id:sourceCfg.time_category_id,time_operator:sourceCfg.time_operator,time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null}).select().single();
     if(ins.error){alert(ins.error.message);return}
     if(ins.data&&milestones.length){const mr=await saveOwnGoalMilestones(ins.data.id,milestones);if(mr.error){alert("Objectif créé, mais paliers non enregistrés : "+mr.error.message);return}}
-    if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null},{onConflict:"user_id,day_id,goal_id"});
+    if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null,data_source:ins.data.data_source||"manual"},{onConflict:"user_id,day_id,goal_id"});
     await refreshGoals();await loadDay();
    }); card.appendChild(form);
   }
@@ -4440,14 +4515,19 @@ function renderEvening(){
   const card=document.createElement("div");card.className=`category cat-${cat.key}`;card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><h2>${cat.title}</h2></div></div>`;
   list.forEach(item=>{
    const row=document.createElement("div");row.className="goal";
-   if(isBerakhotGoal(item)){
-    const total=berakhotTotal();
-    row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">Cible : 100 berakhot</div><div class="auto-result">💯 Réalisé automatiquement : <strong>${total} / 100</strong><br><span class="small">Le résultat vient du compteur 100 Berakhot.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
-   } else if(item.time_category_id&&item.time_operator){
-    const cat=timeCategories.find(c=>String(c.id)===String(item.time_category_id));
-    const mins=timeEntries.filter(e=>String(e.category_id)===String(item.time_category_id)).reduce((s,e)=>s+Number(e.minutes||0),0);
-    const target=Number(item.time_target_minutes||0),ok=item.time_operator==="lte"?mins<=target:mins>=target;
-    row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">⏱️ ${escapeHtml(cat?.name||"Temps")} ${item.time_operator==="lte"?"≤":"≥"} ${fmtMinutes(target)}</div><div class="auto-result">${ok?"✅":"⚠️"} Réalisé automatiquement : <strong>${fmtMinutes(mins)}</strong><br><span class="small">Le résultat vient de l’onglet Temps.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
+   if(item.data_source==="berakhot"||isBerakhotGoal(item)){
+    const total=berakhotTotal(),def=goals.find(g=>String(g.id)===String(item.goal_id));
+    const levels=[{position:1,value:Number(item.target_value||0),id:null},...(def?.milestones||[]).map(m=>({position:Number(m.position),value:Number(m.target_value),id:m.id}))].filter(x=>Number.isFinite(x.value)).sort((a,b)=>a.position-b.position);
+    const r=sourceReached(levels,total,"gte"), max=levels.length?levels[levels.length-1].position:1;
+    row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">📿 Niveaux : ${levels.map(x=>x.value).join(" / ")} berakhot</div><div class="auto-result">${r?"✅":"⚠️"} Réalisé automatiquement : <strong>${total} berakhot</strong><br><span class="small">${r?`Niveau ${r.position} atteint`:"N0 · non atteint"} · résultat issu du détail saisi dans 100 Berakhot.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
+    const result=r?"done":"missed"; if(Number(item.actual_value)!==Number(total)||Number(item.milestone_position_snapshot??-1)!==Number(r?.position??0)) supabase.from("daily_goals").update({actual_value:total,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"N0",milestone_value_snapshot:r?.value??null}).eq("id",item.id);
+   } else if((item.data_source==="time"||item.time_category_id)&&item.time_operator){
+    const cat=timeCategories.find(c=>String(c.id)===String(item.time_category_id)),def=goals.find(g=>String(g.id)===String(item.goal_id));
+    const mins=timeEntries.filter(e=>String(e.category_id)===String(item.time_category_id)).reduce((s,e)=>s+Number(e.minutes||0),0), hours=mins/60;
+    const levels=[{position:1,value:Number(item.target_value||0),id:null},...(def?.milestones||[]).map(m=>({position:Number(m.position),value:Number(m.target_value),id:m.id}))].filter(x=>Number.isFinite(x.value)).sort((a,b)=>a.position-b.position);
+    const r=sourceReached(levels,hours,item.time_operator);
+    row.innerHTML=`<div class="goal-name"><strong>${item.goal_name}</strong></div><div class="meta">⏱️ ${escapeHtml(cat?.name||"Temps")} · ${item.time_operator==="lte"?"≤ inférieur / maximum":"≥ supérieur / minimum"} · niveaux ${levels.map(x=>x.value+" h").join(" / ")}</div><div class="auto-result">${r?"✅":"⚠️"} Réalisé automatiquement : <strong>${fmtMinutes(mins)}</strong><br><span class="small">${r?`Niveau ${r.position} atteint`:"N0 · non atteint"} · résultat issu de l’onglet Temps.</span></div><textarea placeholder="Commentaire facultatif…">${item.comment||""}</textarea>`;
+    const result=r?"done":"missed"; if(Number(item.actual_value)!==Number(hours)||Number(item.milestone_position_snapshot??-1)!==Number(r?.position??0)) supabase.from("daily_goals").update({actual_value:hours,result,milestone_reached_id:r?.id||null,milestone_position_snapshot:r?.position||0,milestone_label_snapshot:r?`Niveau ${r.position}`:"N0",milestone_value_snapshot:r?.value??null}).eq("id",item.id);
    } else if(item.goal_type==="global"){
     const def=goals.find(g=>String(g.id)===String(item.goal_id));
     const configured=[def?.base_level_label,...(def?.milestones||[]).map(m=>m.label)].filter(Boolean);
@@ -4834,16 +4914,17 @@ async function renderFamilyChildGoals(child){
  const host=document.getElementById("familyChildGoals");if(!host)return;
  if(!child){host.innerHTML="";return}
  host.innerHTML='<div class="child-goals-panel"><div class="family-empty">Chargement…</div></div>';
- const [gr,ar,sr,mr,br]=await Promise.all([
+ const [gr,ar,sr,mr,br,xsr]=await Promise.all([
   supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_allowance",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_spontaneous_allowance",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_goal_milestones",{p_child_user_id:child.user_id}),
-  supabase.rpc("parent_get_child_goal_base_levels",{p_child_user_id:child.user_id})
+  supabase.rpc("parent_get_child_goal_base_levels",{p_child_user_id:child.user_id}),
+  supabase.rpc("parent_get_child_goal_sources",{p_child_user_id:child.user_id})
  ]);
  if(gr.error){host.innerHTML=`<div class="child-goals-panel"><div class="msg">Objectifs indisponibles : ${escapeHtml(gr.error.message)}</div></div>`;return}
- const childGoals=gr.data||[],finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},childMilestones=mr.error?[]:(mr.data||[]),childBases=br.error?[]:(br.data||[]);
- childGoals.forEach(g=>{g.milestones=childMilestones.filter(m=>String(m.goal_id)===String(g.id)).sort((a,b)=>Number(a.position)-Number(b.position));g.base_level_label=childBases.find(b=>String(b.goal_id)===String(g.id))?.base_level_label||null;});
+ const childGoals=gr.data||[],finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},childMilestones=mr.error?[]:(mr.data||[]),childBases=br.error?[]:(br.data||[]),childSources=xsr?.error?[]:(xsr?.data||[]);
+ childGoals.forEach(g=>{g.milestones=childMilestones.filter(m=>String(m.goal_id)===String(g.id)).sort((a,b)=>Number(a.position)-Number(b.position));g.base_level_label=childBases.find(b=>String(b.goal_id)===String(g.id))?.base_level_label||null;const sx=childSources.find(x=>String(x.goal_id)===String(g.id));if(sx)Object.assign(g,sx);});
  const categoryOptions=CATS.map(c=>`<option value="${c.key}">${escapeHtml(c.title)}</option>`).join("");
  host.innerHTML=`<div class="child-goals-panel">
   <div class="child-goals-head"><div><h2>${escapeHtml(child.first_name||"Enfant")}</h2><div class="small">Gestion familiale</div></div><button class="btn ghost" type="button" data-close-child-goals>Fermer</button></div>
@@ -4854,7 +4935,7 @@ async function renderFamilyChildGoals(child){
   <div data-family-activity-panel="goals">
     <div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu. Le montant est fixé uniquement par un parent.</div>
     <div data-child-goal-list></div>
-    <form class="child-goal-form" data-child-goal-form><input name="name" placeholder="Nouvel objectif" required><select name="category">${categoryOptions}</select><select name="type" data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input name="target" data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"><input name="unit" data-goal-unit placeholder="Unité">${milestoneBuilderHtml(true)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button></form>
+    <form class="child-goal-form" data-child-goal-form><input name="name" placeholder="Nouvel objectif" required><select name="category">${categoryOptions}</select><select name="type" data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input name="target" data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"><input name="unit" data-goal-unit placeholder="Unité">${metricSourceEditorHtml({})}${milestoneBuilderHtml(true)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button></form>
   </div>
   <div class="allowance-box" data-family-activity-panel="allowance" data-allowance-box style="display:none"></div>
  </div>`;
@@ -4865,7 +4946,7 @@ async function renderFamilyChildGoals(child){
    const remunerable=isParentAssignedGoal(g)||isSystemGoal(g);
    const origin=isSystemGoal(g)?"Système obligatoire":(isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — non rémunérable");
    const money=remunerable?`<label class="small">Argent de poche <input class="money-input" data-money type="number" min="0" step="0.10" value="${Number(g.allowance_amount||0)}"> €</label>`:"";
-   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)} · ${origin}</div>${money}</div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
+   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${sourceMeta?` · ${escapeHtml(sourceMeta)}`:""} · ${origin}</div>${money}</div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
   }).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
   list.querySelectorAll('[data-money]').forEach(inp=>inp.addEventListener('change',async()=>{
    const row=inp.closest('[data-goal-id]'),amount=Math.max(0,Number(inp.value||0));
@@ -4877,11 +4958,11 @@ async function renderFamilyChildGoals(child){
    row.querySelector('[data-edit]').addEventListener('click',()=>{
     row.querySelector('.child-goal-edit')?.remove();const f=document.createElement('form');f.className='child-goal-edit';
     const qualitative=g.goal_type==="global";
-    f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required><select name="category">${CATS.map(c=>`<option value="${c.key}" ${c.key===g.category?"selected":""}>${escapeHtml(c.title)}</option>`).join("")}</select><select name="type" data-goal-type><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select><input name="target" data-base-level ${qualitative?'type="text"':'type="number" min="0" step="any"'} value="${escapeHtml(qualitative?(g.base_level_label||''):(g.target_value??''))}" placeholder="${qualitative?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte'}"><input name="unit" data-goal-unit value="${escapeHtml(g.unit||'')}" placeholder="Unité" ${qualitative?'style="display:none"':''}>${milestoneBuilderHtml(false)}<div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div>`;
+    f.innerHTML=`<input name="name" value="${escapeHtml(g.name)}" placeholder="Nom" required><select name="category">${CATS.map(c=>`<option value="${c.key}" ${c.key===g.category?"selected":""}>${escapeHtml(c.title)}</option>`).join("")}</select><select name="type" data-goal-type><option value="precise" ${g.goal_type==="precise"?"selected":""}>Quantitatif</option><option value="global" ${g.goal_type==="global"?"selected":""}>Qualitatif</option></select><input name="target" data-base-level ${qualitative?'type="text"':'type="number" min="0" step="any"'} value="${escapeHtml(qualitative?(g.base_level_label||''):(g.target_value??''))}" placeholder="${qualitative?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte'}"><input name="unit" data-goal-unit value="${escapeHtml(g.unit||'')}" placeholder="Unité" ${qualitative?'style="display:none"':''}>${metricSourceEditorHtml(g)}${milestoneBuilderHtml(false)}<div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div>`;
     const sync=()=>{const q=f.elements.type.value==="global",base=f.elements.target,unit=f.elements.unit;base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
     f.elements.type.addEventListener('change',()=>{sync();const list=f.querySelector('[data-milestone-list]');if(list)list.innerHTML='';});sync();
-    bindMilestoneBuilder(f,{family:false});preloadMilestoneBuilder(f,g);f.querySelector("[data-cancel]").onclick=()=>f.remove();
-    f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),target=type==="global"?null:Number(targetRaw);if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}if(type==="precise"&&!Number.isFinite(target)){alert("Valeur du niveau 1 non valide.");return}const milestones=readMilestones(f);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:f.elements.category.value,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(f.elements.unit.value.trim()||null),p_priority:g.priority!==false});if(u.error){alert(u.error.message);return}const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:id,p_label:type==="global"?targetRaw:null});if(br.error){alert("Objectif modifié, mais niveau 1 non enregistré : "+br.error.message);return}const mr=await replaceParentGoalMilestones(id,milestones);if(mr.error){alert("Objectif modifié, mais niveaux non enregistrés : "+mr.error.message);return}await renderFamilyChildGoals(child)};
+    bindMetricSourceEditor(f);bindMilestoneBuilder(f,{family:false});preloadMilestoneBuilder(f,g);f.querySelector("[data-cancel]").onclick=()=>f.remove();
+    f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),target=type==="global"?null:Number(targetRaw);if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}if(type==="precise"&&!Number.isFinite(target)){alert("Valeur du niveau 1 non valide.");return}const milestones=readMilestones(f);if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:f.elements.category.value,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(f.elements.unit.value.trim()||null),p_priority:g.priority!==false});if(u.error){alert(u.error.message);return}const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:id,p_label:type==="global"?targetRaw:null});if(br.error){alert("Objectif modifié, mais niveau 1 non enregistré : "+br.error.message);return}const mr=await replaceParentGoalMilestones(id,milestones);if(mr.error){alert("Objectif modifié, mais niveaux non enregistrés : "+mr.error.message);return}const sourceCfg=readMetricSource(f);if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}const sr2=await supabase.rpc("parent_set_goal_source",{p_goal_id:id,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null});if(sr2.error){alert("Objectif modifié, mais source non enregistrée : "+sr2.error.message);return}await renderFamilyChildGoals(child)};
     row.appendChild(f);
    });
    row.querySelector('[data-priority]').onclick=async()=>{const u=await supabase.rpc("parent_update_child_goal",{p_goal_id:id,p_category:g.category,p_name:g.name,p_goal_type:g.goal_type,p_target_value:g.target_value,p_unit:g.unit,p_priority:g.priority===false});if(u.error)alert(u.error.message);else await renderFamilyChildGoals(child)};
@@ -4916,8 +4997,8 @@ async function renderFamilyChildGoals(child){
  const form=host.querySelector('[data-child-goal-form]');
  const syncFamilyBase=()=>{const q=form.elements.type.value==="global",base=form.elements.target,unit=form.elements.unit;base.type=q?"text":"number";base.placeholder=q?"Niveau 1 — libellé":"Niveau 1 — valeur atteinte";unit.style.display=q?"none":"";if(q)unit.value="";};
  form.elements.type.addEventListener('change',syncFamilyBase);syncFamilyBase();
- bindMilestoneBuilder(form,{family:true});
- form.onsubmit=async e=>{e.preventDefault();const name=form.elements.name.value.trim(),category=form.elements.category.value,type=form.elements.type.value,targetRaw=form.elements.target.value.trim(),unitRaw=form.elements.unit.value.trim();if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}const target=type==="global"?null:Number(targetRaw),baseLabel=type==="global"?targetRaw:null,milestones=readMilestones(form,{family:true});if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const c=await supabase.rpc("parent_create_child_goal",{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(unitRaw||null),p_priority:true});if(c.error){alert(c.error.message);return}let goalId=Number(c.data?.id??c.data);if(milestones.length&&!goalId){const rr=await supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id});if(!rr.error){const matches=(rr.data||[]).filter(x=>x.name===name&&x.category===category);goalId=matches.length?Math.max(...matches.map(x=>Number(x.id)||0)):0}}if(goalId&&type==="global"){const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:goalId,p_label:baseLabel});if(br.error){alert("Objectif créé, mais niveau 1 non enregistré : "+br.error.message);return}}if(milestones.length&&goalId){const mr=await saveParentGoalMilestones(goalId,milestones);if(mr.error){alert("Objectif créé, mais paliers non enregistrés : "+mr.error.message);return}}await renderFamilyChildGoals(child)};
+ bindMetricSourceEditor(form);bindMilestoneBuilder(form,{family:true});
+ form.onsubmit=async e=>{e.preventDefault();const name=form.elements.name.value.trim(),category=form.elements.category.value,type=form.elements.type.value,targetRaw=form.elements.target.value.trim(),unitRaw=form.elements.unit.value.trim();if(!name)return;if(!targetRaw){alert(type==="precise"?"Renseigne la valeur du niveau 1.":"Renseigne le libellé du niveau 1.");return}const target=type==="global"?null:Number(targetRaw),baseLabel=type==="global"?targetRaw:null,sourceCfg=readMetricSource(form),milestones=readMilestones(form,{family:true});if(sourceCfg.data_source==="time"&&!sourceCfg.time_category_id){alert("Choisis une catégorie dans le suivi du temps.");return}if(milestones.some(x=>type==="precise"?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label)){alert(type==="precise"?"Complète chaque valeur de niveau.":"Complète chaque libellé de niveau.");return}const c=await supabase.rpc("parent_create_child_goal",{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==="global"?null:(unitRaw||null),p_priority:true});if(c.error){alert(c.error.message);return}let goalId=Number(c.data?.id??c.data);if(!goalId){const rr=await supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id});if(!rr.error){const matches=(rr.data||[]).filter(x=>x.name===name&&x.category===category);goalId=matches.length?Math.max(...matches.map(x=>Number(x.id)||0)):0}}if(goalId&&type==="global"){const br=await supabase.rpc("parent_set_goal_base_level_label",{p_goal_id:goalId,p_label:baseLabel});if(br.error){alert("Objectif créé, mais niveau 1 non enregistré : "+br.error.message);return}}if(milestones.length&&goalId){const mr=await saveParentGoalMilestones(goalId,milestones);if(mr.error){alert("Objectif créé, mais paliers non enregistrés : "+mr.error.message);return}}if(goalId){const sr2=await supabase.rpc("parent_set_goal_source",{p_goal_id:goalId,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==="time"?Math.round(Number(target)*60):null});if(sr2.error){alert("Objectif créé, mais source non enregistrée : "+sr2.error.message);return}}await renderFamilyChildGoals(child)};
 }
 
 async function renderChildAllowanceSelf(){
@@ -5144,16 +5225,21 @@ async function renderSummary2(){
   const va=cats.map(c=>nsAggregate(rowsA,maxByGoal,c.key)??0),vb=cats.map(c=>nsAggregate(rowsB,maxByGoal,c.key)??0);
   const ga=nsAggregate(rowsA,maxByGoal),gb=nsAggregate(rowsB,maxByGoal);
   const catCards=cats.map((c,i)=>`<div class="ns-kpi"><span>${c.icon} ${nsEsc(c.title)}</span><strong>${va[i]}% → ${vb[i]}%</strong><small>${vb[i]-va[i]>=0?"+":""}${vb[i]-va[i]} pts</small></div>`).join("");
-  let html=`<div class="card ns-radar-card"><div class="head"><div><h2>Équilibre entre les domaines</h2><div class="small">${nsPrettyRange(ra)} comparé à ${nsPrettyRange(rb)}</div></div></div>${cats.length>=3?nsRadarSVG(cats.map(c=>c.title),va,vb):'<div class="ns-empty">Pas encore assez de catégories renseignées pour dessiner l’araignée.</div>'}<div class="ns-legend"><span class="ns-a">Période A · ${nsPrettyRange(ra)}</span><span class="ns-b">Période B · ${nsPrettyRange(rb)}</span></div><div class="ns-kpis"><div class="ns-kpi"><span>Accomplissement global A</span><strong>${ga??0}%</strong></div><div class="ns-kpi"><span>Accomplissement global B</span><strong>${gb??0}%</strong></div>${catCards}</div><div class="ns-note">Convention : N0 = 0 %. Pour un objectif à N niveaux, Nk = k/N. Les objectifs sans paliers restent lus comme 0 % ou 100 % afin de conserver leur sens historique.</div></div>`;
+  let html=`<div class="card ns-radar-card" data-ns-panel="global"><div class="head"><div><h2>Équilibre entre les domaines</h2><div class="small">${nsPrettyRange(ra)} comparé à ${nsPrettyRange(rb)}</div></div></div>${cats.length>=3?nsRadarSVG(cats.map(c=>c.title),va,vb):'<div class="ns-empty">Pas encore assez de catégories renseignées pour dessiner l’araignée.</div>'}<div class="ns-legend"><span class="ns-a">Période A · ${nsPrettyRange(ra)}</span><span class="ns-b">Période B · ${nsPrettyRange(rb)}</span></div><div class="ns-kpis"><div class="ns-kpi"><span>Accomplissement global A</span><strong>${ga??0}%</strong></div><div class="ns-kpi"><span>Accomplissement global B</span><strong>${gb??0}%</strong></div>${catCards}</div><div class="ns-note">Convention : N0 = 0 %. Pour un objectif à N niveaux, Nk = k/N. Les objectifs sans paliers restent lus comme 0 % ou 100 % afin de conserver leur sens historique.</div></div>`;
   const goalMap={};[...rowsA,...rowsB].forEach(r=>{if(r.goal_id)goalMap[String(r.goal_id)]={id:String(r.goal_id),name:r.goal_name||"Objectif",category:r.category}});
   for(const c of cats){
    const gl=Object.values(goalMap).filter(g=>g.category===c.key);if(!gl.length)continue;
    const one=(rows,gid)=>{const z=rows.filter(r=>String(r.goal_id)===gid);if(!z.length)return 0;return Math.round(z.map(r=>nsAccomplishment(r,maxByGoal[gid]||1)).reduce((a,b)=>a+b,0)/z.length)};
    const aa=gl.map(g=>one(rowsA,g.id)),bb=gl.map(g=>one(rowsB,g.id));
-   html+=`<div class="card ns-radar-card"><div class="head"><div><h2>${c.icon} ${nsEsc(c.title)}</h2><div class="small">Accomplissement par objectif</div></div></div>${gl.length>=3?nsRadarSVG(gl.map(g=>g.name),aa,bb):`<div class="ns-empty">${gl.length} objectif${gl.length>1?"s":""} sur cette catégorie : l’araignée apparaîtra à partir de 3.</div>`}<div class="ns-kpis">${gl.map((g,i)=>`<div class="ns-kpi"><span>${nsEsc(g.name)}</span><strong>${aa[i]}% → ${bb[i]}%</strong><small>${bb[i]-aa[i]>=0?"+":""}${bb[i]-aa[i]} pts</small></div>`).join("")}</div></div>`;
+   html+=`<div class="card ns-radar-card" data-ns-panel="${c.key}" style="display:none"><div class="head"><div><h2>${c.icon} ${nsEsc(c.title)}</h2><div class="small">Accomplissement par objectif</div></div></div>${gl.length>=3?nsRadarSVG(gl.map(g=>g.name),aa,bb):`<div class="ns-empty">${gl.length} objectif${gl.length>1?"s":""} sur cette catégorie : l’araignée apparaîtra à partir de 3.</div>`}<div class="ns-kpis">${gl.map((g,i)=>`<div class="ns-kpi"><span>${nsEsc(g.name)}</span><strong>${aa[i]}% → ${bb[i]}%</strong><small>${bb[i]-aa[i]>=0?"+":""}${bb[i]-aa[i]} pts</small></div>`).join("")}</div></div>`;
   }
   if(!rowsA.length&&!rowsB.length)html='<div class="card"><div class="ns-empty">Aucune donnée quotidienne sur les deux périodes choisies.</div></div>';
+  else{
+   const tabs=[{key:"global",label:"Global"},...cats.map(c=>({key:c.key,label:`${c.icon} ${c.title}`}))];
+   html=`<div class="ns-inner-tabs">${tabs.map((t,i)=>`<button type="button" class="ns-inner-tab ${i===0?"active":""}" data-ns-tab="${t.key}">${nsEsc(t.label)}</button>`).join("")}</div>`+html;
+  }
   host.innerHTML=html;
+  host.querySelectorAll("[data-ns-tab]").forEach(btn=>btn.onclick=()=>{host.querySelectorAll("[data-ns-tab]").forEach(x=>x.classList.toggle("active",x===btn));host.querySelectorAll("[data-ns-panel]").forEach(p=>p.style.display=p.dataset.nsPanel===btn.dataset.nsTab?"":"none")});
  }finally{hideLoading()}
 }
 
