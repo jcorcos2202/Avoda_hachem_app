@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V5.9.4 — argent de poche selon le palier réellement atteint -->
+<!-- Avoda Hachem — Version V6.0.0 — objectifs court / long terme, suivi et récompense finale -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3147,6 +3147,10 @@ body.v5816-app-open .topbar{
 @media(max-width:520px){.allowance-levels{grid-template-columns:1fr 1fr}.allowance-level{grid-template-columns:auto 1fr auto}}
 </style>
 
+
+<style id="v600-long-term-style">
+.v600-long-grid{display:grid;gap:12px}.v600-long-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--v574-shadow,0 8px 22px rgba(0,0,0,.06))}.v600-long-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.v600-long-badge{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#eef2f7;color:#34506e}.v600-progress-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.v600-progress-box{padding:10px;border-radius:13px;background:#f7f4ef}.v600-progress-box strong{display:block;font-size:20px;margin-top:2px}.v600-track{height:9px;border-radius:999px;background:#e8e2d9;overflow:hidden;margin-top:7px}.v600-track>span{display:block;height:100%;background:var(--accent);border-radius:999px}.v600-track.theory>span{background:#8a7f70}.v600-delta{margin-top:9px;font-weight:800}.v600-delta.ahead{color:#2f654e}.v600-delta.behind{color:#984b50}.v600-progress-form,.v600-long-create{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.v600-progress-form .btn,.v600-long-create .fullrow{grid-column:1/-1}.v600-long-create{padding:14px;background:#fff;border:1px solid var(--line);border-radius:18px;margin-bottom:14px}.v600-history{margin-top:10px;font-size:12px;color:var(--muted)}.v600-family-title{margin:14px 0 8px;font-weight:850}.v600-reward{margin-top:8px;padding:8px 10px;background:#fff7df;border-radius:11px;font-size:13px}.v600-complete{border-color:#b9d8c6;background:#fbfffc}.v600-long-empty{padding:16px;text-align:center;color:var(--muted)}@media(max-width:650px){.v600-progress-pair,.v600-progress-form,.v600-long-create{grid-template-columns:1fr}.v600-progress-form .btn,.v600-long-create .fullrow{grid-column:1}}
+</style>
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -3217,6 +3221,7 @@ body.v5816-app-open .topbar{
       <button type="button" class="v579-subnav-btn" data-obj-filter="torah">📖 Torah</button>
       <button type="button" class="v579-subnav-btn" data-obj-filter="autres">🤝 Relation aux autres</button>
       <button type="button" class="v579-subnav-btn" data-obj-filter="maison_hachem">🏛️ Maison Hachem</button>
+      <button type="button" class="v579-subnav-btn" data-obj-filter="long_term">🧭 Long terme</button>
     </div>
     <div class="v580-visual-break v579-objective-overview" aria-hidden="true">
       <svg viewBox="0 0 720 150" role="img">
@@ -3247,6 +3252,7 @@ body.v5816-app-open .topbar{
     <button id="copyPrevGoalsBtn" class="btn full copy-prev-btn v579-objective-overview" type="button"><span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs de N-1</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span></button>
     <div id="copyPrevGoalsMsg" class="msg v579-objective-overview"></div>
     <div id="objectiveCategories"></div>
+    <div id="longTermGoals" style="display:none"></div>
     <button id="goEvening" class="btn full">Passer au bilan du soir</button>
   </section>
 
@@ -3540,7 +3546,7 @@ const CATS=[
  {key:"autres",title:"Relation avec son prochain",icon:"🤝"},
  {key:"maison_hachem",title:"Maison Hachem",icon:"🏛️"}
 ];
-let user=null,currentDay=todayISO(),goals=[],dayRow=null,dailyGoals=[],dayEvents=[],eventLibrary=[],berakhotDay=null,berakhotItems=[],todayDefaultGoals=[],timeCategories=[],timeEntries=[],timeRules=[],timeRuleResults=[];
+let user=null,currentDay=todayISO(),goals=[],longGoals=[],dayRow=null,dailyGoals=[],dayEvents=[],eventLibrary=[],berakhotDay=null,berakhotItems=[],todayDefaultGoals=[],timeCategories=[],timeEntries=[],timeRules=[],timeRuleResults=[];
 
 
 const BERAKHOT_FIXED = {
@@ -3644,9 +3650,11 @@ async function refreshGoals(){
   supabase.from("goals").select("*").eq("user_id",user.id).eq("active",true).order("id"),
   supabase.rpc("get_my_goal_milestones")
  ]);
- goals=r.data||[];
+ const allGoals=r.data||[];
+ goals=allGoals.filter(g=>(g.objective_horizon||"daily")!=="long_term");
+ longGoals=allGoals.filter(g=>(g.objective_horizon||"daily")==="long_term");
  const ms=mr.error?[]:(mr.data||[]);
- goals.forEach(g=>g.milestones=ms.filter(m=>String(m.goal_id)===String(g.id)).sort((a,b)=>Number(a.position)-Number(b.position)));
+ allGoals.forEach(g=>g.milestones=ms.filter(m=>String(m.goal_id)===String(g.id)).sort((a,b)=>Number(a.position)-Number(b.position)));
 }
 async function refreshEvents(){
  if(!dayRow){dayEvents=[];eventLibrary=[];return}
@@ -4011,7 +4019,7 @@ async function loadDay(showSpinner=true){
  document.getElementById("dayDescription").value=dayRow.day_description||"";document.getElementById("dayMood").value=dayRow.mood??"";document.getElementById("dayDifficulty").value=dayRow.difficulty??"";document.getElementById("worked").value=dayRow.worked_text||"";document.getElementById("failed").value=dayRow.failed_text||"";document.getElementById("change").value=dayRow.change_text||"";
  dayDraftDirty=false; bindDayDraftAutosave();
  const st=document.getElementById("draftSaveState");if(st)st.textContent="";
- renderObjectives();renderEvening();renderBerakhot();
+ renderObjectives();renderLongTermGoals();renderEvening();renderBerakhot();
  if(document.getElementById("time")?.classList.contains("active")) renderTime();
  }finally{if(showSpinner)hideLoading()}
 }
@@ -4924,16 +4932,17 @@ async function renderFamilyChildGoals(child){
  const host=document.getElementById("familyChildGoals");if(!host)return;
  if(!child){host.innerHTML="";return}
  host.innerHTML='<div class="child-goals-panel"><div class="family-empty">Chargement…</div></div>';
- const [gr,ar,sr,mr,br,xsr]=await Promise.all([
+ const [gr,ar,sr,mr,br,xsr,lar]=await Promise.all([
   supabase.rpc("parent_get_child_goals",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_allowance",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_spontaneous_allowance",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_goal_milestones",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_goal_base_levels",{p_child_user_id:child.user_id}),
-  supabase.rpc("parent_get_child_goal_sources",{p_child_user_id:child.user_id})
+  supabase.rpc("parent_get_child_goal_sources",{p_child_user_id:child.user_id}),
+  supabase.rpc("parent_get_child_long_goal_allowance",{p_child_user_id:child.user_id})
  ]);
  if(gr.error){host.innerHTML=`<div class="child-goals-panel"><div class="msg">Objectifs indisponibles : ${escapeHtml(gr.error.message)}</div></div>`;return}
- const childGoals=gr.data||[],finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},childMilestones=mr.error?[]:(mr.data||[]),childBases=br.error?[]:(br.data||[]),childSources=xsr?.error?[]:(xsr?.data||[]);
+ const childGoals=(gr.data||[]).filter(g=>(g.objective_horizon||"daily")!=="long_term"),finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},childMilestones=mr.error?[]:(mr.data||[]),childBases=br.error?[]:(br.data||[]),childSources=xsr?.error?[]:(xsr?.data||[]),longAllowance=lar?.error?{week_earned:0,total_earned:0,pending_amount:0,pending:[],decisions:[]}:(lar?.data||{});
  childGoals.forEach(g=>{g.milestones=childMilestones.filter(m=>String(m.goal_id)===String(g.id)).sort((a,b)=>Number(a.position)-Number(b.position));g.base_level_label=childBases.find(b=>String(b.goal_id)===String(g.id))?.base_level_label||null;const sx=childSources.find(x=>String(x.goal_id)===String(g.id));if(sx)Object.assign(g,sx);});
  const categoryOptions=CATS.map(c=>`<option value="${c.key}">${escapeHtml(c.title)}</option>`).join("");
  host.innerHTML=`<div class="child-goals-panel">
@@ -4944,7 +4953,7 @@ async function renderFamilyChildGoals(child){
   </div>
   <div data-family-activity-panel="goals">
     <div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu. Le montant est fixé uniquement par un parent.</div>
-    <div data-child-goal-list></div>
+    <div data-child-long-goal-list></div><div class="section-title">Objectifs court terme</div><div data-child-goal-list></div>
     <form class="child-goal-form" data-child-goal-form><input name="name" placeholder="Nouvel objectif" required><select name="category">${categoryOptions}</select><select name="type" data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><input name="target" data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"><input name="unit" data-goal-unit placeholder="Unité"><label class="base-allowance-field"><span>Niveau 1</span><input name="baseAllowance" type="number" min="0" step="0.10" value="0" placeholder="Montant"><span>€</span></label>${metricSourceEditorHtml({})}${milestoneBuilderHtml(true)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button></form>
   </div>
   <div class="allowance-box" data-family-activity-panel="allowance" data-allowance-box style="display:none"></div>
@@ -4986,19 +4995,23 @@ async function renderFamilyChildGoals(child){
   });
  };
  draw();
+ await renderParentChildLongGoals(host,child);
  const box=host.querySelector("[data-allowance-box]"),pending=finance.pending||[],decisions=finance.decisions||[],payments=finance.payments||[];
  const spontPending=spontaneous.pending_events||[],spontDecisions=spontaneous.decisions||[];
- const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0);
- const combinedWeek=Number(finance.week_earned||0)+spontWeek,combinedBalance=Number(finance.balance||0)+spontTotal;
+ const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0),longWeek=Number(longAllowance.week_earned||0),longTotal=Number(longAllowance.total_earned||0);
+ const combinedWeek=Number(finance.week_earned||0)+spontWeek+longWeek,combinedBalance=Number(finance.balance||0)+spontTotal+longTotal,combinedPending=Number(finance.pending_amount||0)+Number(longAllowance.pending_amount||0);
  const signedSpont=x=>(x.event_type==="negative"?"−":"+")+euro(Number(x.amount||0));
- box.innerHTML=`<div class="allowance-title">💶 Argent de poche</div><div class="allowance-kpis"><div class="allowance-kpi"><span class="small">Net cette semaine</span><strong>${euro(combinedWeek)}</strong></div><div class="allowance-kpi"><span class="small">Objectifs en attente</span><strong>${euro(finance.pending_amount)}</strong></div><div class="allowance-kpi"><span class="small">${combinedBalance>=0?"Reste à recevoir":"Avance"}</span><strong>${euro(Math.abs(combinedBalance))}</strong></div></div>
- <div class="small">Événements imprévus : ${spontTotal>=0?"+":"−"}${euro(Math.abs(spontTotal))} au total</div>
+ box.innerHTML=`<div class="allowance-title">💶 Argent de poche</div><div class="allowance-kpis"><div class="allowance-kpi"><span class="small">Net cette semaine</span><strong>${euro(combinedWeek)}</strong></div><div class="allowance-kpi"><span class="small">Objectifs en attente</span><strong>${euro(combinedPending)}</strong></div><div class="allowance-kpi"><span class="small">${combinedBalance>=0?"Reste à recevoir":"Avance"}</span><strong>${euro(Math.abs(combinedBalance))}</strong></div></div>
+ <div class="small">Événements imprévus : ${spontTotal>=0?"+":"−"}${euro(Math.abs(spontTotal))} au total · Objectifs long terme validés : ${euro(longTotal)}</div>
+ <div style="margin-top:14px"><strong>Objectifs long terme à valider</strong><div class="allowance-list">${(longAllowance.pending||[]).length?(longAllowance.pending||[]).map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">Cible atteinte · ${euro(x.amount)}</div><div class="allowance-actions"><button data-lt-approve="${x.goal_id}">Valider</button><button data-lt-refuse="${x.goal_id}">Refuser</button></div></div>`).join(""):'<div class="small">Aucun objectif long terme en attente.</div>'}</div></div>
  <div style="margin-top:14px"><strong>Objectifs à valider</strong><div class="allowance-list">${pending.length?pending.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)}${Number(x.milestone_position||0)>0?` · N${Number(x.milestone_position)}`:""} · ${euro(x.amount)}</div><div class="allowance-actions"><button data-approve="${x.daily_goal_id}">Valider</button><button data-refuse="${x.daily_goal_id}">Refuser</button></div></div>`).join(""):'<div class="small">Aucune réalisation réussie en attente.</div>'}</div></div>
  <div style="margin-top:18px"><strong>✨ Événements imprévus à traiter</strong><div class="allowance-list">${spontPending.length?spontPending.map(x=>`<div class="allowance-row" data-spont-event="${x.event_id}"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ${x.event_type==="negative"?"Perte":"Gain"}</div><div class="allowance-actions"><input data-spont-amount type="number" min="0" step="0.10" placeholder="Montant €" style="max-width:130px"><button data-spont-confirm="${x.event_id}">Confirmer</button></div></div>`).join(""):'<div class="small">Aucun événement imprévu à traiter.</div>'}</div></div>
  <div style="margin-top:14px"><strong>➕ Ajouter un événement</strong><form class="allowance-pay-form" data-spont-manual-form><select name="type"><option value="positive">Gain</option><option value="negative">Perte</option></select><input name="description" placeholder="Description" required><input name="amount" type="number" min="0" step="0.10" placeholder="Montant €" required><input name="day" type="date" value="${todayISO()}" required><button class="btn" type="submit">Confirmer</button></form></div>
  <div style="margin-top:14px"><strong>Décisions sur événements</strong><div class="allowance-list">${spontDecisions.length?spontDecisions.map(x=>`<div class="allowance-row" data-spont-decision="${x.id}"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ${x.event_type==="negative"?"❌ Perte ":"✅ Gain "}${signedSpont(x)}</div><div class="allowance-actions"><button data-spont-correct="${x.id}">Corriger</button><span data-spont-correct-actions="${x.id}" style="display:none;gap:7px"><input data-spont-correct-amount type="number" min="0" step="0.10" value="${Number(x.amount||0)}" style="max-width:120px"><button data-spont-save="${x.id}">Enregistrer</button></span></div></div>`).join(""):'<div class="small">Aucune décision sur événement.</div>'}</div></div>
  <div style="margin-top:14px"><strong>Validations récentes</strong><div class="allowance-list">${decisions.length?decisions.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ${x.status==="approved"?"✅ Validé"+(Number(x.milestone_position||0)>0?` · N${Number(x.milestone_position)}`:"")+" · "+euro(x.amount):"❌ Refusé"+(Number(x.milestone_position||0)>0?` · N${Number(x.milestone_position)}`:"")+" · "+euro(x.amount)}</div><div class="allowance-actions"><button data-correct="${x.daily_goal_id}">Corriger</button><span data-correct-actions="${x.daily_goal_id}" style="display:none;gap:7px"><button data-reapprove="${x.daily_goal_id}">Valider</button><button data-rerefuse="${x.daily_goal_id}">Refuser</button></span></div></div>`).join(""):'<div class="small">Aucune validation récente.</div>'}</div></div>
  <div style="margin-top:14px"><strong>Paiements</strong><form class="allowance-pay-form"><input name="amount" type="number" min="0.01" step="0.01" placeholder="Montant €" required><input name="date" type="date" value="${todayISO()}" required><button class="btn" type="submit">Enregistrer</button></form><div class="allowance-list">${payments.length?payments.map(p=>`<div class="allowance-row">${escapeHtml(p.paid_on)} · <strong>${euro(p.amount)}</strong>${p.note?` · ${escapeHtml(p.note)}`:""}</div>`).join(""):'<div class="small">Aucun paiement enregistré.</div>'}</div></div>`;
+ box.querySelectorAll("[data-lt-approve]").forEach(btn=>btn.onclick=async()=>{const r=await supabase.rpc("parent_validate_long_goal_reward",{p_goal_id:Number(btn.dataset.ltApprove),p_approved:true});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
+ box.querySelectorAll("[data-lt-refuse]").forEach(btn=>btn.onclick=async()=>{const r=await supabase.rpc("parent_validate_long_goal_reward",{p_goal_id:Number(btn.dataset.ltRefuse),p_approved:false});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
  box.querySelectorAll("[data-correct]").forEach(btn=>btn.onclick=()=>{const actions=box.querySelector(`[data-correct-actions="${btn.dataset.correct}"]`);if(!actions)return;actions.style.display=actions.style.display==="none"?"inline-flex":"none"});
  box.querySelectorAll("[data-approve]").forEach(btn=>btn.onclick=async()=>{const r=await supabase.rpc("parent_validate_allowance_v594",{p_daily_goal_id:Number(btn.dataset.approve),p_approved:true});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
  box.querySelectorAll("[data-refuse]").forEach(btn=>btn.onclick=async()=>{const r=await supabase.rpc("parent_validate_allowance_v594",{p_daily_goal_id:Number(btn.dataset.refuse),p_approved:false});if(r.error)alert(r.error.message);else await renderFamilyChildGoals(child)});
@@ -5019,19 +5032,20 @@ async function renderFamilyChildGoals(child){
 
 async function renderChildAllowanceSelf(){
  const host=document.getElementById("familyChildGoals");if(!host||!isChildProfile())return;
- const [r,sr]=await Promise.all([supabase.rpc("get_my_allowance"),supabase.rpc("get_my_spontaneous_allowance")]);
+ const [r,sr,lr]=await Promise.all([supabase.rpc("get_my_allowance"),supabase.rpc("get_my_spontaneous_allowance"),supabase.rpc("get_my_long_goal_allowance")]);
  if(r.error){host.innerHTML="";return}
- const f=r.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},pending=f.pending||[],decisions=f.decisions||[],payments=f.payments||[],spontPending=spontaneous.pending_events||[],spontDecisions=spontaneous.decisions||[];
- const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0),combinedWeek=Number(f.week_earned||0)+spontWeek,combinedBalance=Number(f.balance||0)+spontTotal;
+ const f=r.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},longAllowance=lr?.error?{week_earned:0,total_earned:0,pending_amount:0,pending:[],decisions:[]}:(lr?.data||{}),pending=f.pending||[],decisions=f.decisions||[],payments=f.payments||[],spontPending=spontaneous.pending_events||[],spontDecisions=spontaneous.decisions||[];
+ const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0),longWeek=Number(longAllowance.week_earned||0),longTotal=Number(longAllowance.total_earned||0),combinedWeek=Number(f.week_earned||0)+spontWeek+longWeek,combinedBalance=Number(f.balance||0)+spontTotal+longTotal,combinedPending=Number(f.pending_amount||0)+Number(longAllowance.pending_amount||0);
  const signedSpont=x=>(x.event_type==="negative"?"−":"+")+euro(Number(x.amount||0));
  host.innerHTML=`<div class="allowance-box">
    <div class="allowance-title">💶 Mon argent de poche</div>
    <div class="allowance-kpis">
      <div class="allowance-kpi"><span class="small">Net cette semaine</span><strong>${euro(combinedWeek)}</strong></div>
-     <div class="allowance-kpi"><span class="small">En attente de validation</span><strong>${euro(f.pending_amount)}</strong></div>
+     <div class="allowance-kpi"><span class="small">En attente de validation</span><strong>${euro(combinedPending)}</strong></div>
      <div class="allowance-kpi"><span class="small">${combinedBalance>=0?"Reste à recevoir":"Avance reçue"}</span><strong>${euro(Math.abs(combinedBalance))}</strong></div>
    </div>
-   <div class="small">Gagné au total : ${euro(f.total_earned)} · Reçu : ${euro(f.total_paid)}</div>
+   <div class="small">Gagné au total : ${euro(Number(f.total_earned||0)+longTotal)} · dont long terme ${euro(longTotal)} · Reçu : ${euro(f.total_paid)}</div>
+   <div style="margin-top:14px"><strong>🏁 Objectifs long terme en attente</strong><div class="allowance-list">${(longAllowance.pending||[]).length?(longAllowance.pending||[]).map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">✅ Cible atteinte · ⏳ À valider · ${euro(x.amount)}</div></div>`).join(""):'<div class="small">Aucun objectif long terme en attente.</div>'}</div></div>
    <div style="margin-top:14px"><strong>⏳ En attente de validation</strong><div class="allowance-list">${pending.length?pending.map(x=>`<div class="allowance-row"><strong>${escapeHtml(x.goal_name)}</strong><div class="small">${escapeHtml(x.day)} · ⏳ À valider · ${euro(x.amount)}</div></div>`).join(""):'<div class="small">Aucune réalisation en attente.</div>'}</div></div>
    <div style="margin-top:14px"><strong>✨ Événements imprévus en attente</strong><div class="allowance-list">${spontPending.length?spontPending.map(x=>`<div class="allowance-row"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ⏳ Montant à décider par un parent</div></div>`).join(""):'<div class="small">Aucun événement imprévu en attente.</div>'}</div></div>
    <div style="margin-top:14px"><strong>Décisions sur événements</strong><div class="allowance-list">${spontDecisions.length?spontDecisions.map(x=>`<div class="allowance-row"><strong>${x.event_type==="negative"?"⚠️":"➕"} ${escapeHtml(x.description)}</strong><div class="small">${escapeHtml(x.day)} · ${x.event_type==="negative"?"❌ Perte ":"✅ Gain "}${signedSpont(x)}</div></div>`).join(""):'<div class="small">Aucune décision sur événement.</div>'}</div></div>
@@ -5394,17 +5408,19 @@ showLoginLanding();
   window.applyObjectiveFilter=function(filter){
     filter=filter||"overview";
     var host=document.getElementById("objectiveCategories");
+    var longHost=document.getElementById("longTermGoals");
     var overview=document.querySelectorAll("#objectives .v579-objective-overview");
     overview.forEach(function(el){el.style.display=filter==="overview"?"":"none"});
+    if(longHost)longHost.style.display=filter==="long_term"?"":"none";
     if(host){
       host.querySelectorAll(".category").forEach(function(card){
         if(card.classList.contains("helper-category")){
           card.style.display=filter==="overview"?"":"none";
           return;
         }
-        card.style.display=card.classList.contains("cat-"+filter)?"":"none";
+        card.style.display=(filter!=="long_term"&&card.classList.contains("cat-"+filter))?"":"none";
       });
-      host.style.display=filter==="overview"?"none":"block";
+      host.style.display=(filter==="overview"||filter==="long_term")?"none":"block";
     }
     var go=document.getElementById("goEvening");
     if(go)go.style.display="";
@@ -5442,6 +5458,67 @@ showLoginLanding();
       window.applyEveningFilter("description");
     },500);
   });
+})();
+</script>
+
+
+<script id="v600-long-goals">
+(function(){
+ const pct=(v,t)=>t>0?Math.max(0,Math.min(100,Math.round((Number(v||0)/Number(t))*100))):0;
+ const theoryPct=(a,b)=>{if(!a||!b)return 0;const s=new Date(a+'T00:00:00'),e=new Date(b+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);const total=e-s;if(total<=0)return n>=e?100:0;return Math.max(0,Math.min(100,Math.round(((n-s)/total)*100)))};
+ const fmtDate=x=>x?new Date(x+'T00:00:00').toLocaleDateString('fr-FR'):'';
+ const targetOf=g=>Number(g.long_target_value ?? (g.goal_type==='global'?100:g.target_value) ?? 0);
+ const unitOf=g=>g.goal_type==='global'?'%':(g.unit||'');
+ async function ownProgressMap(){
+  if(!user||!longGoals.length)return {};
+  const ids=longGoals.map(g=>g.id);const r=await supabase.from('goal_progress').select('*').eq('user_id',user.id).in('goal_id',ids).order('recorded_on',{ascending:false}).order('id',{ascending:false});
+  const map={};(r.data||[]).forEach(x=>{const k=String(x.goal_id);if(!map[k])map[k]=[];map[k].push(x)});return map;
+ }
+ window.renderLongTermGoals=async function(){
+  const host=document.getElementById('longTermGoals');if(!host||!user)return;
+  const hist=await ownProgressMap();
+  const cards=longGoals.map(g=>{
+   const arr=hist[String(g.id)]||[],last=arr[0],val=Number(last?.progress_value||0),target=targetOf(g),real=pct(val,target),theory=theoryPct(g.long_start_date,g.long_end_date),delta=real-theory,done=target>0&&val>=target;
+   return `<div class="v600-long-card ${done?'v600-complete':''}" data-long-goal="${g.id}"><div class="v600-long-head"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(catMeta(g.category)?.title||g.category)} · ${fmtDate(g.long_start_date)} → ${fmtDate(g.long_end_date)}</div></div><span class="v600-long-badge">Long terme</span></div><div class="v600-progress-pair"><div class="v600-progress-box"><span class="small">Avancement réalisé</span><strong>${real}%</strong><div class="small">${Number(val).toLocaleString('fr-FR')} / ${Number(target).toLocaleString('fr-FR')} ${escapeHtml(unitOf(g))}</div><div class="v600-track"><span style="width:${real}%"></span></div></div><div class="v600-progress-box"><span class="small">Avancement théorique (temps)</span><strong>${theory}%</strong><div class="small">selon la période définie</div><div class="v600-track theory"><span style="width:${theory}%"></span></div></div></div><div class="v600-delta ${delta>=0?'ahead':'behind'}">${delta>=0?'▲ En avance de ':'▼ En retard de '}${Math.abs(delta)} point${Math.abs(delta)>1?'s':''}</div>${done?'<div class="v600-reward">✅ Cible atteinte.</div>':''}<form class="v600-progress-form" data-own-long-progress="${g.id}"><input name="value" type="number" min="0" step="any" value="${val}" placeholder="Valeur actuelle" required><input name="note" placeholder="Commentaire (facultatif)"><button class="btn" type="submit">Mettre à jour le suivi</button></form><div class="v600-history">${arr.slice(0,4).map(x=>`${fmtDate(x.recorded_on)} : ${Number(x.progress_value).toLocaleString('fr-FR')} ${escapeHtml(unitOf(g))}${x.note?' — '+escapeHtml(x.note):''}`).join('<br>')||'Aucun suivi enregistré.'}</div></div>`;
+  }).join('');
+  host.innerHTML=`<div class="hero"><strong>🧭 Objectifs long terme</strong><br>La progression réelle est comparée automatiquement au temps écoulé entre la date de début et la date de fin.</div>${cards||'<div class="v600-long-empty">Aucun objectif long terme actif. Crée-le depuis une catégorie en choisissant « Long terme ».</div>'}`;
+  host.querySelectorAll('[data-own-long-progress]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();const id=Number(f.dataset.ownLongProgress),value=Number(f.elements.value.value),note=f.elements.note.value.trim();const r=await supabase.rpc('record_my_long_goal_progress',{p_goal_id:id,p_progress_value:value,p_recorded_on:todayISO(),p_note:note||null});if(r.error)alert(r.error.message);else await renderLongTermGoals()});
+ };
+
+ // Ajoute le choix Court / Long aux formulaires personnels existants, sans toucher au flux court terme.
+ const decorateOwnForms=()=>document.querySelectorAll('.goal-add-form').forEach(form=>{
+  if(form.dataset.v600Decorated)return;form.dataset.v600Decorated='1';
+  const type=form.querySelector('[data-goal-type]');if(!type)return;
+  const horizon=document.createElement('select');horizon.setAttribute('data-goal-horizon','');horizon.innerHTML='<option value="daily">Court terme</option><option value="long_term">Long terme</option>';type.after(horizon);
+  const long=document.createElement('div');long.className='v600-long-fields';long.style.cssText='display:none;grid-column:1/-1;grid-template-columns:1fr 1fr;gap:8px';long.innerHTML=`<input data-long-start type="date" value="${todayISO()}"><input data-long-end type="date" placeholder="Date de fin">`;horizon.after(long);
+  const sync=()=>{const isLong=horizon.value==='long_term';long.style.display=isLong?'grid':'none';const mb=form.querySelector('.milestone-builder');if(mb)mb.style.display=isLong?'none':'';const src=form.querySelector('[data-metric-source-editor]');if(src)src.style.display=isLong?'none':'';const base=form.querySelector('[data-base-level]');if(base&&isLong){if(type.value==='global'){base.style.display='none'}else{base.style.display='';base.placeholder='Cible finale'}}else if(base){base.style.display='';base.placeholder=type.value==='global'?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte'}};
+  horizon.onchange=sync;type.addEventListener('change',sync);sync();
+ });
+ const mo=new MutationObserver(()=>decorateOwnForms());mo.observe(document.body,{subtree:true,childList:true});setTimeout(decorateOwnForms,0);
+ document.addEventListener('submit',async function(e){
+  const form=e.target.closest?.('.goal-add-form');if(!form)return;const horizon=form.querySelector('[data-goal-horizon]');if(!horizon||horizon.value!=='long_term')return;
+  e.preventDefault();e.stopImmediatePropagation();
+  const card=form.closest('.category'),cat=(CATS.find(c=>card?.classList.contains('cat-'+c.key))||{}).key;if(!cat){alert('Catégorie introuvable');return}
+  const name=form.querySelector('input')?.value.trim(),type=form.querySelector('[data-goal-type]').value,base=form.querySelector('[data-base-level]'),unit=form.querySelector('[data-goal-unit]')?.value.trim()||null,start=form.querySelector('[data-long-start]').value,end=form.querySelector('[data-long-end]').value;
+  if(!name||!start||!end){alert('Nom, date de début et date de fin sont obligatoires.');return}if(end<start){alert('La date de fin doit être postérieure à la date de début.');return}
+  const target=type==='global'?100:Number(base?.value);if(!Number.isFinite(target)||target<=0){alert('Renseigne une cible finale valide.');return}
+  const ins=await supabase.from('goals').insert({user_id:user.id,category:cat,name,goal_type:type,target_value:type==='precise'?target:null,unit:type==='global'?'%':unit,base_level_label:type==='global'?'Progression':null,objective_key:makeObjectiveKey(name),priority:true,goal_origin:'personal',objective_horizon:'long_term',long_start_date:start,long_end_date:end,long_target_value:target,long_reward_amount:0,data_source:'manual'}).select().single();
+  if(ins.error){alert(ins.error.message);return}await refreshGoals();await renderLongTermGoals();window.applyObjectiveFilter?.('long_term');
+ },true);
+
+ window.renderParentChildLongGoals=async function(host,child){
+  const slot=host.querySelector('[data-child-long-goal-list]');if(!slot)return;const r=await supabase.rpc('parent_get_child_long_goals',{p_child_user_id:child.user_id});if(r.error){slot.innerHTML='';return}const items=r.data||[];
+  slot.innerHTML=`<div class="v600-family-title">🧭 Objectifs long terme</div>${items.length?items.map(g=>{const target=Number(g.long_target_value||100),val=Number(g.progress_value||0),real=pct(val,target),theory=theoryPct(g.long_start_date,g.long_end_date),delta=real-theory,done=target>0&&val>=target;return `<div class="v600-long-card ${done?'v600-complete':''}" data-family-long="${g.id}"><div class="v600-long-head"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${fmtDate(g.long_start_date)} → ${fmtDate(g.long_end_date)} · cible ${target.toLocaleString('fr-FR')} ${escapeHtml(g.goal_type==='global'?'%':(g.unit||''))}</div></div><span class="v600-long-badge">${real}%</span></div><div class="v600-progress-pair"><div class="v600-progress-box"><span class="small">Réalisé</span><strong>${real}%</strong><div class="v600-track"><span style="width:${real}%"></span></div></div><div class="v600-progress-box"><span class="small">Théorique</span><strong>${theory}%</strong><div class="v600-track theory"><span style="width:${theory}%"></span></div></div></div><div class="v600-delta ${delta>=0?'ahead':'behind'}">${delta>=0?'▲ En avance de ':'▼ En retard de '}${Math.abs(delta)} pt</div>${Number(g.long_reward_amount||0)>0?`<div class="v600-reward">💶 Récompense finale : ${euro(g.long_reward_amount)}${g.reward_status?` · ${g.reward_status==='approved'?'✅ validée':'❌ refusée'}`:(done?' · ⏳ à valider':'')}</div>`:''}<form class="v600-progress-form" data-parent-long-progress="${g.id}"><input name="value" type="number" min="0" step="any" value="${val}" required><input name="note" placeholder="Commentaire"><button class="btn" type="submit">Mettre à jour</button></form>${done&&Number(g.long_reward_amount||0)>0&&!g.reward_status?`<div class="allowance-actions"><button data-long-approve="${g.id}">Valider ${euro(g.long_reward_amount)}</button><button data-long-refuse="${g.id}">Refuser</button></div>`:''}</div>`}).join(''):'<div class="small">Aucun objectif long terme actif.</div>'}`;
+  slot.querySelectorAll('[data-parent-long-progress]').forEach(f=>f.onsubmit=async e=>{e.preventDefault();const rr=await supabase.rpc('parent_record_child_long_goal_progress',{p_goal_id:Number(f.dataset.parentLongProgress),p_progress_value:Number(f.elements.value.value),p_recorded_on:todayISO(),p_note:f.elements.note.value.trim()||null});if(rr.error)alert(rr.error.message);else await renderFamilyChildGoals(child)});
+  slot.querySelectorAll('[data-long-approve]').forEach(b=>b.onclick=async()=>{const rr=await supabase.rpc('parent_validate_long_goal_reward',{p_goal_id:Number(b.dataset.longApprove),p_approved:true});if(rr.error)alert(rr.error.message);else await renderFamilyChildGoals(child)});
+  slot.querySelectorAll('[data-long-refuse]').forEach(b=>b.onclick=async()=>{const rr=await supabase.rpc('parent_validate_long_goal_reward',{p_goal_id:Number(b.dataset.longRefuse),p_approved:false});if(rr.error)alert(rr.error.message);else await renderFamilyChildGoals(child)});
+ };
+
+ // Ajoute le choix Court / Long au formulaire parent. Le flux court terme existant reste intact.
+ const decorateFamilyForm=()=>{const form=document.querySelector('[data-child-goal-form]');if(!form||form.dataset.v600Decorated)return;form.dataset.v600Decorated='1';const type=form.elements.type;const horizon=document.createElement('select');horizon.name='horizon';horizon.innerHTML='<option value="daily">Court terme</option><option value="long_term">Long terme</option>';type.after(horizon);const long=document.createElement('div');long.style.cssText='display:none;grid-column:1/-1;grid-template-columns:1fr 1fr 1fr;gap:8px';long.innerHTML=`<input name="longStart" type="date" value="${todayISO()}"><input name="longEnd" type="date"><input name="longReward" type="number" min="0" step="0.10" value="0" placeholder="Récompense finale €">`;horizon.after(long);const sync=()=>{const on=horizon.value==='long_term';long.style.display=on?'grid':'none';form.querySelector('.milestone-builder')?.style.setProperty('display',on?'none':'');const ba=form.querySelector('.base-allowance-field');if(ba)ba.style.display=on?'none':'';const src=form.querySelector('[data-metric-source-editor]');if(src)src.style.display=on?'none':'';const base=form.elements.target;if(on&&type.value==='global')base.style.display='none';else{base.style.display='';if(on)base.placeholder='Cible finale'}};horizon.onchange=sync;type.addEventListener('change',sync);sync();};
+ new MutationObserver(()=>decorateFamilyForm()).observe(document.body,{subtree:true,childList:true});setTimeout(decorateFamilyForm,0);
+ document.addEventListener('submit',async function(e){const form=e.target.closest?.('[data-child-goal-form]');if(!form||form.elements.horizon?.value!=='long_term')return;e.preventDefault();e.stopImmediatePropagation();const child=window.v580CurrentFamilyChild;if(!child){alert('Enfant non sélectionné');return}const name=form.elements.name.value.trim(),category=form.elements.category.value,type=form.elements.type.value,start=form.elements.longStart.value,end=form.elements.longEnd.value,reward=Math.max(0,Number(form.elements.longReward.value||0));if(!name||!start||!end){alert('Nom et dates obligatoires.');return}if(end<start){alert('Dates invalides.');return}const target=type==='global'?100:Number(form.elements.target.value);if(!Number.isFinite(target)||target<=0){alert('Cible finale invalide.');return}const c=await supabase.rpc('parent_create_child_goal',{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:type==='precise'?target:null,p_unit:type==='global'?'%':(form.elements.unit.value.trim()||null),p_priority:true});if(c.error){alert(c.error.message);return}let id=Number(c.data?.id??c.data);if(!id){const rr=await supabase.rpc('parent_get_child_goals',{p_child_user_id:child.user_id});if(!rr.error){const m=(rr.data||[]).filter(x=>x.name===name&&x.category===category);id=m.length?Math.max(...m.map(x=>Number(x.id)||0)):0}}if(!id){alert('Objectif créé mais identifiant introuvable.');return}const cfg=await supabase.rpc('parent_configure_child_long_goal',{p_goal_id:id,p_start_date:start,p_end_date:end,p_target_value:target,p_reward_amount:reward});if(cfg.error){alert('Objectif créé, configuration long terme non enregistrée : '+cfg.error.message);return}await renderFamilyChildGoals(child)},true);
+
 })();
 </script>
 
