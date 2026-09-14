@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.0.7 — étape 1 : objectifs courts et longs gérés ensemble par catégorie -->
+<!-- Avoda Hachem — Version V6.0.8 — étape 1 : badges Court/Long + formulaire Famille mobile -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3156,9 +3156,20 @@ body.v5816-app-open .topbar{
 </style>
 
 
-<style id="v607-unified-goals">
+<style id="v608-unified-goals">
 .v607-long-goal .goal-line>input[type="checkbox"]{opacity:.45}
-.v607-long-goal .goal-name::after{content:"  • long terme";font-size:.78em;font-weight:700;opacity:.65}
+.goal-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start;margin-left:auto}
+.goal-badges .tag{white-space:nowrap}
+.goal-badges .horizon-tag{background:#f2f5f7;color:#536779;border:1px solid #dde4e9}
+.goal-badges .horizon-tag.long{background:#f3edfb;color:#7951c7;border-color:#e0d4f4}
+.child-goal-badges{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
+@media(max-width:700px){
+ .child-goal-form .v603-field{grid-column:1/-1!important;grid-template-columns:100px minmax(0,1fr)!important}
+ .child-goal-form .v603-field input{width:100%!important;min-width:0!important}
+ .child-goal-form [data-base-level]{min-width:0!important;width:100%!important}
+ .child-goal-top{gap:8px}
+ .child-goal-badges{max-width:48%;gap:4px}
+}
 </style>
 </head>
 <body>
@@ -4042,7 +4053,8 @@ function makeGoalRow(g,selected){
   : (levels.length>1?`Niveaux : ${levels.join(" / ")}${g.unit?` · ${g.unit}`:""}`:`${g.target_value??"—"} ${g.unit||""}`.trim()); const sourceMeta=sourceLabel(g);
  const timeMeta=sourceLabel(g)?` • ${sourceLabel(g)}`:"";
  const isBerakhot=(g.name||"").toLowerCase().includes("berakh");
- row.innerHTML=`<div class="goal-line"><input type="checkbox" ${selected?"checked":""}><div class="goal-main"><div class="goal-name">${g.name}</div><div class="meta">${meta}${timeMeta}</div><label class="priority"><input class="priorityCheck" type="checkbox" ${g.priority!==false?"checked":""}> Prioritaire</label><div class="manage">${isBerakhot?'<button type="button" data-act="counter">💯 Compteur</button>':""}<button type="button" data-act="edit">Modifier</button><button type="button" data-act="disable">Désactiver</button></div></div><span class="tag">${g.goal_type==="global"?"qualitatif":"quantitatif"}</span></div>`;
+ const horizon=(g.objective_horizon||"daily")==="long_term"?"long_term":"daily";
+ row.innerHTML=`<div class="goal-line"><input type="checkbox" ${selected?"checked":""}><div class="goal-main"><div class="goal-name">${g.name}</div><div class="meta">${meta}${timeMeta}</div><label class="priority"><input class="priorityCheck" type="checkbox" ${g.priority!==false?"checked":""}> Prioritaire</label><div class="manage">${isBerakhot?'<button type="button" data-act="counter">💯 Compteur</button>':""}<button type="button" data-act="edit">Modifier</button><button type="button" data-act="disable">Désactiver</button></div></div><div class="goal-badges"><span class="tag">${g.goal_type==="global"?"qualitatif":"quantitatif"}</span><span class="tag horizon-tag ${horizon==="long_term"?"long":""}">${horizon==="long_term"?"long terme":"court terme"}</span></div></div>`;
  return row;
 }
 function addPastGoalForm(g,card,row){
@@ -5025,7 +5037,7 @@ async function renderFamilyChildGoals(child){
    const origin=isSystemGoal(g)?"Système obligatoire":(isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — non rémunérable"),horizonLabel=(g.objective_horizon||"daily")==="long_term"?"Long terme":"Court terme";
    const sourceMeta=sourceLabel(g);
    const money=remunerable?`<div class="allowance-levels"><label class="allowance-level"><span class="allowance-level-label">Niveau 1</span><input class="money-input" data-money-base type="number" min="0" step="0.10" value="${Number(g.allowance_amount||0)}"><span>€</span></label>${(g.milestones||[]).sort((a,b)=>Number(a.position)-Number(b.position)).map(m=>`<label class="allowance-level"><span class="allowance-level-label">Niveau ${Number(m.position)}</span><input class="money-input" data-money-milestone="${Number(m.position)}" type="number" min="0" step="0.10" value="${Number(m.allowance_amount||0)}"><span>€</span></label>`).join("")}</div>`:"";
-   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${sourceMeta?` · ${escapeHtml(sourceMeta)}`:""} · ${horizonLabel} · ${origin}</div>${money}</div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
+   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${sourceMeta?` · ${escapeHtml(sourceMeta)}`:""} · ${origin}</div>${money}</div><div class="child-goal-badges"><span class="tag">${g.goal_type==="global"?"qualitatif":"quantitatif"}</span><span class="tag horizon-tag ${(g.objective_horizon||"daily")==="long_term"?"long":""}">${horizonLabel.toLowerCase()}</span></div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
   }).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
   list.querySelectorAll('[data-money-base]').forEach(inp=>inp.addEventListener('change',async()=>{
    const row=inp.closest('[data-goal-id]'),amount=Math.max(0,Number(inp.value||0));
