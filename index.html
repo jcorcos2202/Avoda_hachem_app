@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.0.8 — étape 1 : badges Court/Long + formulaire Famille mobile -->
+<!-- Avoda Hachem — Version V6.0.9 — étape 1 : badges fiabilisés + Famille mobile + long parental actif -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3170,6 +3170,16 @@ body.v5816-app-open .topbar{
  .child-goal-top{gap:8px}
  .child-goal-badges{max-width:48%;gap:4px}
 }
+
+/* V6.0.9 — sur mobile les badges passent sous le titre afin de préserver toute la largeur des montants. */
+@media(max-width:700px){
+  .child-goal-top{display:block}
+  .child-goal-top>div:first-child{min-width:0;width:100%}
+  .child-goal-badges{max-width:none!important;width:100%;margin:7px 0 0!important;justify-content:flex-start!important;gap:6px!important}
+  .allowance-levels{width:100%;box-sizing:border-box}
+  .allowance-level{min-width:0}
+  .allowance-level .money-input{width:88px!important;min-width:88px!important}
+}
 </style>
 </head>
 <body>
@@ -4489,8 +4499,8 @@ function renderObjectives(){
   const catGoals=[...goals,...longGoals].filter(g=>g.category===cat.key), selectedCount=catGoals.filter(g=>(g.objective_horizon||"daily")!=="long_term"&&dailyGoals.some(x=>x.planned&&x.goal_id===g.id)).length;
   const card=document.createElement("div");card.className=`category cat-${cat.key}`;card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
   catGoals.forEach(g=>{
-   const isLongGoal=(g.objective_horizon||"daily")==="long_term",selected=!isLongGoal&&dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
-   if(isLongGoal){const meta=row.querySelector(".meta");if(meta)meta.insertAdjacentHTML("beforeend",' • <strong>Long terme</strong>');const tag=row.querySelector(".tag");if(tag)tag.textContent="long terme";row.classList.add("v607-long-goal");}
+   const isLongGoal=(g.objective_horizon||"daily")==="long_term",assignedLong=isLongGoal&&isMandatoryChildGoal(g),selected=assignedLong||(!isLongGoal&&dailyGoals.some(x=>x.planned&&x.goal_id===g.id)),row=makeGoalRow(g,selected);
+   if(isLongGoal){row.classList.add("v607-long-goal");}
    const assigned=isMandatoryChildGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta){const money=g.allowance_eligible&&Number(g.allowance_amount||0)>0?` • <strong>💰 ${euro(g.allowance_amount)}</strong>`:"";meta.insertAdjacentHTML("beforeend",(isSystemGoal(g)?' • <strong>Système obligatoire</strong>':(assigned?' • <strong>Assigné par un parent</strong>':' • Personnel'))+money)}}
    const cb=row.querySelector(".goal-line > input");
    // La sélection d’objectifs appartient uniquement à la date sélectionnée N.
