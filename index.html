@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.0.6 — étape 1 : création Court/Long unifiée et fiabilisée -->
+<!-- Avoda Hachem — Version V6.0.7 — étape 1 : objectifs courts et longs gérés ensemble par catégorie -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3155,6 +3155,11 @@ body.v5816-app-open .topbar{
 .v601-horizon{min-width:140px}.v601-base-date{width:100%}.v603-field{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;width:100%}.v603-field>span{font-size:13px;color:var(--muted);font-weight:800}.v603-start-field{display:grid}.long-only{display:none!important}.long-mode .long-only{display:grid!important}.v603-level-field{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;width:100%;margin-top:8px}.v603-level-field>span{font-size:13px;color:var(--muted);font-weight:800}.v601-date-wrap{display:none;gap:6px;align-items:center}.v601-date-wrap span{font-size:12px;color:var(--muted);font-weight:700}.v601-long-summary{padding:10px 12px;background:#f7f4ef;border-radius:12px;margin-top:9px}.v601-long-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.v601-long-edit{display:grid;grid-template-columns:1.4fr .9fr .9fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.v601-long-edit .milestone-builder,.v601-long-edit .edit-buttons,.v601-long-edit [data-metric-source-editor]{grid-column:1/-1}.v601-level-date{width:100%}@media(max-width:700px){.v601-long-edit{grid-template-columns:1fr}}
 </style>
 
+
+<style id="v607-unified-goals">
+.v607-long-goal .goal-line>input[type="checkbox"]{opacity:.45}
+.v607-long-goal .goal-name::after{content:"  • long terme";font-size:.78em;font-weight:700;opacity:.65}
+</style>
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay" aria-hidden="true"><div class="loading-box" role="status" aria-live="polite"><span class="loading-hourglass" aria-hidden="true">⌛</span><span id="loadingText" class="loading-text">Chargement…</span></div></div>
@@ -4469,16 +4474,18 @@ function renderObjectives(){
  if(isChildProfile()){const note=document.createElement("div");note.className="child-readonly-note";note.textContent="🎯 Tu peux créer et gérer tes objectifs personnels. Les objectifs assignés par tes parents sont obligatoires : ils sont automatiquement prévus et tu ne peux ni les retirer ni les modifier.";host.appendChild(note)}
  const past=isPastDay();
  CATS.forEach(cat=>{
-  const catGoals=goals.filter(g=>g.category===cat.key), selectedCount=catGoals.filter(g=>dailyGoals.some(x=>x.planned&&x.goal_id===g.id)).length;
+  const catGoals=[...goals,...longGoals].filter(g=>g.category===cat.key), selectedCount=catGoals.filter(g=>(g.objective_horizon||"daily")!=="long_term"&&dailyGoals.some(x=>x.planned&&x.goal_id===g.id)).length;
   const card=document.createElement("div");card.className=`category cat-${cat.key}`;card.innerHTML=`<div class="head"><div class="head-left"><div class="icon">${cat.icon}</div><div><h2>${cat.title}</h2><div class="cat-count">${selectedCount} objectif${selectedCount>1?"s":""} enregistré${selectedCount>1?"s":""} • ${catGoals.length} disponible${catGoals.length>1?"s":""}</div></div></div></div>`;
   catGoals.forEach(g=>{
-   const selected=dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
+   const isLongGoal=(g.objective_horizon||"daily")==="long_term",selected=!isLongGoal&&dailyGoals.some(x=>x.planned&&x.goal_id===g.id),row=makeGoalRow(g,selected);
+   if(isLongGoal){const meta=row.querySelector(".meta");if(meta)meta.insertAdjacentHTML("beforeend",' • <strong>Long terme</strong>');const tag=row.querySelector(".tag");if(tag)tag.textContent="long terme";row.classList.add("v607-long-goal");}
    const assigned=isMandatoryChildGoal(g);if(isChildProfile()){const meta=row.querySelector(".meta");if(meta){const money=g.allowance_eligible&&Number(g.allowance_amount||0)>0?` • <strong>💰 ${euro(g.allowance_amount)}</strong>`:"";meta.insertAdjacentHTML("beforeend",(isSystemGoal(g)?' • <strong>Système obligatoire</strong>':(assigned?' • <strong>Assigné par un parent</strong>':' • Personnel'))+money)}}
    const cb=row.querySelector(".goal-line > input");
    // La sélection d’objectifs appartient uniquement à la date sélectionnée N.
    // Même sur une date passée, elle reste modifiable : aucune copie N-1 -> N ne crée de gel.
-   cb.disabled=assigned;
-   if(!assigned)cb.addEventListener("change",async e=>{
+   cb.disabled=assigned||isLongGoal;
+   if(isLongGoal){cb.title="Objectif long terme : il sera suivi séparément";}
+   if(!assigned&&!isLongGoal)cb.addEventListener("change",async e=>{
     if(e.target.checked){
      const existing=dailyGoals.find(x=>String(x.goal_id)===String(g.id));
      if(existing){
@@ -4503,11 +4510,11 @@ function renderObjectives(){
     const manage=row.querySelector(".manage");if(manage)manage.innerHTML="";
     const pc=row.querySelector(".priorityCheck");if(pc)pc.disabled=true;
    }else{
-    row.querySelector(".priorityCheck").addEventListener("change",async e=>{await supabase.from("goals").update({priority:e.target.checked}).eq("id",g.id);await supabase.from("daily_goals").update({priority:e.target.checked}).eq("day_id",dayRow.id).eq("goal_id",g.id);await refreshGoals();await loadDay()});
+    row.querySelector(".priorityCheck").addEventListener("change",async e=>{await supabase.from("goals").update({priority:e.target.checked}).eq("id",g.id);if(!isLongGoal)await supabase.from("daily_goals").update({priority:e.target.checked}).eq("day_id",dayRow.id).eq("goal_id",g.id);await refreshGoals();await loadDay()});
     row.querySelector('[data-act="edit"]').addEventListener("click",()=>editForm(g,card,row));
     row.querySelector('[data-act="disable"]').addEventListener("click",async()=>{
      await supabase.from("goals").update({active:false}).eq("id",g.id);
-     if(dayRow)await supabase.from("daily_goals").update({planned:false}).eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
+     if(dayRow&&!isLongGoal)await supabase.from("daily_goals").update({planned:false}).eq("day_id",dayRow.id).eq("goal_id",g.id).eq("planned",true);
      await refreshGoals();await loadDay();
     });
    }
@@ -4535,7 +4542,7 @@ function renderObjectives(){
     const ins=await supabase.from("goals").insert(payload).select().single();
     if(ins.error){alert(ins.error.message);return}
     if(ins.data&&milestones.length){const mr=await saveOwnGoalMilestones(ins.data.id,milestones);if(mr.error){alert("Objectif créé, mais paliers non enregistrés : "+mr.error.message);return}}
-    if(isLong){const dr=await saveOwnMilestoneDatesV601(ins.data.id,milestones);if(dr.error){alert("Objectif créé, mais dates des niveaux non enregistrées : "+dr.error.message);return}await refreshGoals();await renderLongTermGoals();window.applyObjectiveFilter?.('long_term');return}
+    if(isLong){const dr=await saveOwnMilestoneDatesV601(ins.data.id,milestones);if(dr.error){alert("Objectif créé, mais dates des niveaux non enregistrées : "+dr.error.message);return}await refreshGoals();await loadDay();return}
     if(ins.data) await supabase.from("daily_goals").upsert({user_id:user.id,day_id:dayRow.id,goal_id:ins.data.id,goal_name:name,category:cat.key,goal_type:type,planned:true,target_value:ins.data.target_value,unit:ins.data.unit,priority:ins.data.priority!==false,time_category_id:ins.data.time_category_id||null,time_operator:ins.data.time_operator||null,time_target_minutes:ins.data.time_target_minutes??null,data_source:ins.data.data_source||"manual"},{onConflict:"user_id,day_id,goal_id"});
     await refreshGoals();await loadDay();
    }); card.appendChild(form);
@@ -4994,7 +5001,7 @@ async function renderFamilyChildGoals(child){
   supabase.rpc("parent_get_child_goal_horizons_v601",{p_child_user_id:child.user_id})
  ]);
  if(gr.error){host.innerHTML=`<div class="child-goals-panel"><div class="msg">Objectifs indisponibles : ${escapeHtml(gr.error.message)}</div></div>`;return}
- const horizonRows=hr?.error?[]:(hr?.data||[]),childGoals=(gr.data||[]).map(g=>Object.assign({},g,horizonRows.find(h=>String(h.id)===String(g.id))||{})).filter(g=>(g.objective_horizon||"daily")!=="long_term"),finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},childMilestones=mr.error?[]:(mr.data||[]),childBases=br.error?[]:(br.data||[]),childSources=xsr?.error?[]:(xsr?.data||[]),longAllowance=lar?.error?{week_earned:0,total_earned:0,pending_amount:0,pending:[],decisions:[]}:(lar?.data||{});
+ const horizonRows=hr?.error?[]:(hr?.data||[]),childGoals=(gr.data||[]).map(g=>Object.assign({},g,horizonRows.find(h=>String(h.id)===String(g.id))||{})),finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},childMilestones=mr.error?[]:(mr.data||[]),childBases=br.error?[]:(br.data||[]),childSources=xsr?.error?[]:(xsr?.data||[]),longAllowance=lar?.error?{week_earned:0,total_earned:0,pending_amount:0,pending:[],decisions:[]}:(lar?.data||{});
  childGoals.forEach(g=>{g.milestones=childMilestones.filter(m=>String(m.goal_id)===String(g.id)).sort((a,b)=>Number(a.position)-Number(b.position));g.base_level_label=childBases.find(b=>String(b.goal_id)===String(g.id))?.base_level_label||null;const sx=childSources.find(x=>String(x.goal_id)===String(g.id));if(sx)Object.assign(g,sx);});
  const categoryOptions=CATS.map(c=>`<option value="${c.key}">${escapeHtml(c.title)}</option>`).join("");
  host.innerHTML=`<div class="child-goals-panel">
@@ -5005,7 +5012,7 @@ async function renderFamilyChildGoals(child){
   </div>
   <div data-family-activity-panel="goals">
     <div class="child-goal-lock">🔒 Un objectif assigné par un parent est automatiquement prévu. Le montant est fixé uniquement par un parent.</div>
-    <div data-child-long-goal-list></div><div class="section-title">Objectifs court terme</div><div data-child-goal-list></div>
+    <div class="section-title">Objectifs</div><div data-child-goal-list></div>
     <form class="child-goal-form" data-child-goal-form><input name="name" placeholder="Nouvel objectif" required><select name="category">${categoryOptions}</select><select name="type" data-goal-type><option value="precise">Quantitatif</option><option value="global">Qualitatif</option></select><select name="horizon" data-goal-horizon class="v601-horizon"><option value="daily">Court terme</option><option value="long_term">Long terme</option></select><label class="v603-field v603-start-field long-only"><span>Date de début</span><input type="date" data-long-start-date value="${todayISO()}" aria-label="Date de début"></label><label class="v603-field"><span>Objectif</span><input name="target" data-base-level type="number" min="0" step="any" placeholder="Niveau 1 — valeur atteinte"></label><label class="v603-field long-only"><span>Date cible</span><input data-base-target-date type="date" aria-label="Date cible du niveau 1"></label><input name="unit" data-goal-unit placeholder="Unité"><label class="base-allowance-field"><span>Niveau 1</span><input name="baseAllowance" type="number" min="0" step="0.10" value="0" placeholder="Montant"><span>€</span></label>${metricSourceEditorHtml({})}${milestoneBuilderHtml(true)}<button class="btn milestone-final-action" type="submit">Créer l’objectif</button></form>
   </div>
   <div class="allowance-box" data-family-activity-panel="allowance" data-allowance-box style="display:none"></div>
@@ -5015,10 +5022,10 @@ async function renderFamilyChildGoals(child){
   list.innerHTML=childGoals.length?childGoals.map(g=>{
    const cat=catMeta(g.category)?.title||g.category,levels=g.goal_type==="global"?[g.base_level_label,...(g.milestones||[]).map(m=>m.label)].filter(Boolean):[g.target_value,...(g.milestones||[]).map(m=>m.target_value)].filter(v=>v!==null&&v!==undefined&&v!==""),meta=g.goal_type==="global"?(levels.length?`Niveaux : ${levels.join(" / ")}`:"Qualitatif"):(levels.length>1?`Niveaux : ${levels.join(" / ")}${g.unit?` · ${g.unit}`:""}`:`${g.target_value??"—"} ${g.unit||""}`.trim());
    const remunerable=isParentAssignedGoal(g)||isSystemGoal(g);
-   const origin=isSystemGoal(g)?"Système obligatoire":(isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — non rémunérable");
+   const origin=isSystemGoal(g)?"Système obligatoire":(isParentAssignedGoal(g)?"Assigné par un parent":"Personnel — non rémunérable"),horizonLabel=(g.objective_horizon||"daily")==="long_term"?"Long terme":"Court terme";
    const sourceMeta=sourceLabel(g);
    const money=remunerable?`<div class="allowance-levels"><label class="allowance-level"><span class="allowance-level-label">Niveau 1</span><input class="money-input" data-money-base type="number" min="0" step="0.10" value="${Number(g.allowance_amount||0)}"><span>€</span></label>${(g.milestones||[]).sort((a,b)=>Number(a.position)-Number(b.position)).map(m=>`<label class="allowance-level"><span class="allowance-level-label">Niveau ${Number(m.position)}</span><input class="money-input" data-money-milestone="${Number(m.position)}" type="number" min="0" step="0.10" value="${Number(m.allowance_amount||0)}"><span>€</span></label>`).join("")}</div>`:"";
-   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${sourceMeta?` · ${escapeHtml(sourceMeta)}`:""} · ${origin}</div>${money}</div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
+   return `<div class="child-goal-row" data-goal-id="${g.id}"><div class="child-goal-top"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(cat)} · ${escapeHtml(meta)}${sourceMeta?` · ${escapeHtml(sourceMeta)}`:""} · ${horizonLabel} · ${origin}</div>${money}</div></div>${isParentAssignedGoal(g)?`<div class="child-goal-actions"><button type="button" data-edit>Modifier</button><button type="button" data-priority>${g.priority!==false?"Retirer priorité":"Rendre prioritaire"}</button><button type="button" data-disable>Désactiver</button></div>`:""}</div>`
   }).join(""):'<div class="family-empty">Aucun objectif actif.</div>';
   list.querySelectorAll('[data-money-base]').forEach(inp=>inp.addEventListener('change',async()=>{
    const row=inp.closest('[data-goal-id]'),amount=Math.max(0,Number(inp.value||0));
@@ -5047,7 +5054,7 @@ async function renderFamilyChildGoals(child){
   });
  };
  draw();
- await renderParentChildLongGoals(host,child);
+
  const box=host.querySelector("[data-allowance-box]"),pending=finance.pending||[],decisions=finance.decisions||[],payments=finance.payments||[];
  const spontPending=spontaneous.pending_events||[],spontDecisions=spontaneous.decisions||[];
  const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0),longWeek=Number(longAllowance.week_earned||0),longTotal=Number(longAllowance.total_earned||0);
