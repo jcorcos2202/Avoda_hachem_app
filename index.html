@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.1.3 — admin long terme par thème + suivi cumulatif adulte fiabilisé -->
+<!-- Avoda Hachem — Version V6.1.4 — admin long terme par thème + suivi cumulatif adulte fiabilisé -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.1.3</title>
+<title>Avoda Hachem V6.1.4</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -5725,6 +5725,70 @@ showLoginLanding();
 })();
 </script>
 
+
+
+<style id="v614-longterm-fix-style">
+.v614-horizon-lock{pointer-events:none;opacity:.82;background:#f1eee8!important;color:#5f6770!important;font-weight:750}
+.v614-horizon-note{font-size:11px;color:var(--muted);margin-top:-2px;grid-column:auto}
+</style>
+<script id="v614-longterm-fix">
+(function(){
+ function lockHorizon(form,forced){
+  if(!form)return;
+  const h=form.querySelector('[data-goal-horizon]');if(!h)return;
+  if(forced)h.value=forced;
+  h.classList.add('v614-horizon-lock');h.setAttribute('aria-readonly','true');h.tabIndex=-1;
+  // On garde le select actif pour que le code existant puisse lire sa valeur, mais l'utilisateur ne peut plus la changer.
+  h.addEventListener('mousedown',e=>e.preventDefault());h.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});h.addEventListener('keydown',e=>e.preventDefault());
+  if(!h.dataset.v614Locked){h.dataset.v614Locked='1';h.title=forced==='long_term'?'Long terme — défini par cet onglet':'Court terme — défini par cet onglet'}
+ }
+ function syncCreationHorizons(){
+  const active=document.querySelector('#objectivesSubnav .v579-subnav-btn.active')?.dataset.objFilter;
+  document.querySelectorAll('#objectiveCategories .goal-add-form').forEach(f=>lockHorizon(f,active==='long_term'?'long_term':'daily'));
+  document.querySelectorAll('#objectiveCategories .edit-form').forEach(f=>lockHorizon(f,(f.querySelector('[data-goal-horizon]')?.value||'daily')));
+ }
+ const oldApply=window.applyObjectiveFilter;
+ if(oldApply)window.applyObjectiveFilter=function(filter){const r=oldApply.apply(this,arguments);setTimeout(syncCreationHorizons,0);return r};
+ const oldRenderObjectives=window.renderObjectives;
+ if(oldRenderObjectives)window.renderObjectives=function(){const r=oldRenderObjectives.apply(this,arguments);setTimeout(syncCreationHorizons,0);return r};
+ new MutationObserver(()=>setTimeout(syncCreationHorizons,0)).observe(document.getElementById('objectiveCategories')||document.body,{childList:true,subtree:true});
+ setTimeout(syncCreationHorizons,100);
+
+ const fmt=v=>Number(v||0).toLocaleString('fr-FR',{maximumFractionDigits:2});
+ const levels=g=>[{position:1,label:g.goal_type==='global'?(g.base_level_label||'Niveau 1'):g.target_value,target:g.target_value},...((g.milestones||[]).map(m=>({position:Number(m.position),label:g.goal_type==='global'?m.label:m.target_value,target:m.target_value})))] .sort((a,b)=>a.position-b.position);
+ function reached(g,p){if(g.goal_type==='global')return Number(p.current_level||0);const total=Number(p.total_progress||0);let r=0;levels(g).forEach(x=>{const t=Number(x.target);if(Number.isFinite(t)&&total>=t)r=Math.max(r,Number(x.position))});return r}
+ function card(g,p){
+  const ls=levels(g),r=reached(g,p),next=ls.find(x=>Number(x.position)>r),last=ls[ls.length-1],theme=catMeta(g.category)?.title||g.category;
+  if(g.goal_type==='global'){
+   const current=Number(p.current_level||0),opts=['<option value="0">Pas encore atteint</option>',...ls.map(x=>`<option value="${x.position}" ${current===Number(x.position)?'selected':''}>N${x.position} — ${escapeHtml(String(x.label||''))}</option>`)].join('');
+   return `<div class="v613-track ${!next?'v613-done':''}" data-v614-goal="${g.id}" data-v614-type="global"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(theme)}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div><div class="v613-kpis"><div class="v613-kpi"><span>Niveau actuel</span><strong>${r?'N'+r:'Aucun'}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?escapeHtml(String(next.label||'')):'Objectif final atteint'}</strong></div></div><div class="v613-entry"><label>Niveau atteint<select data-v614-level>${opts}</select></label><button type="button" class="btn" data-v614-save>Enregistrer</button></div></div>`;
+  }
+  const total=Number(p.total_progress||0),target=next?Number(next.target):Number(last?.target||0),pct=target>0?Math.max(0,Math.min(100,total/target*100)):0,unit=g.unit||'';
+  return `<div class="v613-track ${!next?'v613-done':''}" data-v614-goal="${g.id}" data-v614-type="precise"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(theme)}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div><div class="v613-kpis"><div class="v613-kpi"><span>Cumul à date</span><strong>${fmt(total)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?fmt(next.target)+' '+escapeHtml(unit):'Objectif final atteint'}</strong></div></div><div class="v613-bar"><div style="width:${pct}%"></div></div><div class="v613-progress-note">${next?`${fmt(total)} / ${fmt(next.target)} ${escapeHtml(unit)}`:`${fmt(total)} ${escapeHtml(unit)} — dernier palier atteint`}</div><div class="v613-entry"><label>Réalisé aujourd’hui<input data-v614-value type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label><button type="button" class="btn" data-v614-save>Ajouter</button></div></div>`;
+ }
+ async function renderV614(){
+  const host=document.getElementById('longTrackingContent');if(!host)return;
+  host.innerHTML='<div class="small">Chargement du suivi…</div>';
+  if(!user){host.innerHTML='<div class="small">Connexion en cours…</div>';return}
+  const [gr,pr]=await Promise.all([supabase.rpc('get_my_long_goals_v601'),supabase.rpc('get_my_long_goal_progress_v610')]);
+  if(gr.error||pr.error){const e=gr.error||pr.error;host.innerHTML=`<div class="msg">Suivi long terme indisponible : ${escapeHtml(e.message)}</div>`;return}
+  const items=Array.isArray(gr.data)?gr.data:[],ps=Array.isArray(pr.data)?pr.data:[];
+  items.forEach(g=>g.milestones=Array.isArray(g.milestones)?g.milestones:[]);
+  host.innerHTML=items.length?items.map(g=>card(g,ps.find(p=>String(p.goal_id)===String(g.id))||{})).join(''):'<div class="card"><div class="general small">Aucun objectif long terme actif.</div></div>';
+  host.querySelectorAll('[data-v614-save]').forEach(btn=>btn.onclick=async()=>{
+   const c=btn.closest('[data-v614-goal]'),id=Number(c.dataset.v614Goal);btn.disabled=true;let r;
+   if(c.dataset.v614Type==='global')r=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(c.querySelector('[data-v614-level]').value),p_recorded_on:todayISO()});
+   else{const v=Number(c.querySelector('[data-v614-value]').value);if(!Number.isFinite(v)||v<=0){btn.disabled=false;return alert('Saisis une progression supérieure à 0.')}r=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()})}
+   if(r.error){btn.disabled=false;return alert(r.error.message)}await renderV614();
+  });
+ }
+ window.renderLongTermGoals=renderV614;
+ // Double branchement volontaire : le suivi se recharge même si le système d'onglets est modifié par une couche UI antérieure.
+ document.addEventListener('click',e=>{if(e.target.closest?.('[data-panel="longTracking"]'))setTimeout(renderV614,30)},true);
+ const panel=document.getElementById('longTracking');if(panel)new MutationObserver(()=>{if(panel.classList.contains('active'))renderV614()}).observe(panel,{attributes:true,attributeFilter:['class']});
+ setTimeout(()=>{if(panel?.classList.contains('active'))renderV614()},500);
+})();
+</script>
 </body>
 </html>
 <style id="v612-navigation-style">
