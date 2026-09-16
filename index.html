@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.2.2 — suivi long terme branché dans le moteur principal sur le même objet goals -->
+<!-- Avoda Hachem — Version V6.2.3 — suivi long terme : dates renforcées + réalisé du jour modifiable sans doublon -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.2.2</title>
+<title>Avoda Hachem V6.2.3</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -3240,7 +3240,7 @@ body.v5816-app-open .topbar{
 
   <div class="v574-header">
     <div class="v574-appname">Avoda Hachem ✨</div>
-    <div class="v617-version"><span class="v618-version-badge">Version 6.2.2</span></div>
+    <div class="v617-version"><span class="v618-version-badge">Version 6.2.3</span></div>
     <div class="v574-tagline">Grandir chaque jour, un objectif après l’autre.</div>
     <div class="v574-values">
       <span class="torah">📖 Torah</span>
@@ -5407,7 +5407,7 @@ async function renderSummary2(){
 }
 
 
-// V6.2.2 — Vue de suivi du MEME objet goals.
+// V6.2.3 — Vue de suivi du MEME objet goals : dates + valeur du jour éditable.
 // Cette fonction vit dans le moteur principal de l'application : aucun moteur d'objectif parallèle.
 async function renderLongTrackingV622(){
  const host=document.getElementById("longTrackingContent");
@@ -5433,6 +5433,10 @@ async function renderLongTrackingV622(){
  const progressFor=(g,ps)=>ps.find(x=>String(x.goal_id)===String(g.id))||{goal_id:g.id,total_progress:0,current_level:0,today_value:0};
  const reached=(g,p)=>{if(g.goal_type==="global")return Number(p.current_level||0);let r=0,total=Number(p.total_progress||0);levels(g).forEach(l=>{const t=Number(l.target);if(Number.isFinite(t)&&total>=t)r=Math.max(r,Number(l.position))});return r};
  const n=v=>Number(v||0).toLocaleString("fr-FR",{maximumFractionDigits:2});
+ const inputNum=v=>{const x=Number(v||0);return Number.isFinite(x)?String(x):"0"};
+ const fmtDate=v=>{if(!v)return "Non définie";const d=new Date(String(v)+"T12:00:00");return Number.isNaN(d.getTime())?String(v):d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"})};
+ const finalDate=g=>{const ds=[g.long_end_date,...((g.milestones||[]).map(m=>m.target_date))].filter(Boolean).map(String).sort();return ds.length?ds[ds.length-1]:null};
+ const dateStrip=(g,next)=>`<div class="v623-dates"><div><span>Début</span><strong>${escapeHtml(fmtDate(g.long_start_date))}</strong></div><div><span>Fin prévue</span><strong>${escapeHtml(fmtDate(finalDate(g)))}</strong></div>${next?.target_date?`<div class="v623-next-date"><span>Échéance N${next.position}</span><strong>${escapeHtml(fmtDate(next.target_date))}</strong></div>`:""}</div>`;
  let ps=[];
 
  function paint(note){
@@ -5440,17 +5444,17 @@ async function renderLongTrackingV622(){
    const p=progressFor(g,ps),ls=levels(g),r=reached(g,p),next=ls.find(l=>Number(l.position)>r),unit=g.unit||"";
    if(g.goal_type==="global"){
     const opts=['<option value="0">Pas encore atteint</option>',...ls.map(l=>`<option value="${l.position}" ${Number(p.current_level||0)===Number(l.position)?'selected':''}>N${l.position} — ${escapeHtml(String(l.label||('Niveau '+l.position)))}</option>`)].join('');
-    return `<div class="v613-track" data-v622-goal="${g.id}" data-v622-type="global"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(catMeta(g.category)?.title||g.category||'')}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div><div class="v613-kpis"><div class="v613-kpi"><span>Niveau actuel</span><strong>${r?'N'+r:'Aucun'}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?escapeHtml(String(next.label||'')):'Objectif final atteint'}</strong></div></div><div class="v613-entry"><label>Niveau atteint<select data-v622-level>${opts}</select></label><button type="button" class="btn" data-v622-save>Enregistrer</button></div></div>`;
+    return `<div class="v613-track" data-v622-goal="${g.id}" data-v622-type="global"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(catMeta(g.category)?.title||g.category||'')}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div>${dateStrip(g,next)}<div class="v613-kpis"><div class="v613-kpi"><span>Niveau actuel</span><strong>${r?'N'+r:'Aucun'}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?escapeHtml(String(next.label||'')):'Objectif final atteint'}</strong></div></div><div class="v613-entry"><label>Niveau atteint<select data-v622-level>${opts}</select></label><button type="button" class="btn" data-v622-save>Enregistrer</button></div></div>`;
    }
    const total=Number(p.total_progress||0),target=next?Number(next.target):Number(ls.at(-1)?.target||0),pct=target>0?Math.max(0,Math.min(100,total/target*100)):0;
-   return `<div class="v613-track" data-v622-goal="${g.id}" data-v622-type="precise"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(catMeta(g.category)?.title||g.category||'')}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div><div class="v613-kpis"><div class="v613-kpi"><span>Cumul à date</span><strong>${n(total)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?n(next.target)+' '+escapeHtml(unit):'Objectif final atteint'}</strong></div></div><div class="v613-bar"><div style="width:${pct}%"></div></div><div class="v613-progress-note">${next?`${n(total)} / ${n(next.target)} ${escapeHtml(unit)}`:`${n(total)} ${escapeHtml(unit)} — dernier palier atteint`}</div><div class="v613-entry"><label>Réalisé aujourd’hui<input data-v622-value type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label><button type="button" class="btn" data-v622-save>Ajouter</button></div></div>`;
+   return `<div class="v613-track" data-v622-goal="${g.id}" data-v622-type="precise"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(catMeta(g.category)?.title||g.category||'')}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div>${dateStrip(g,next)}<div class="v613-kpis"><div class="v613-kpi"><span>Cumul à date</span><strong>${n(total)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?n(next.target)+' '+escapeHtml(unit):'Objectif final atteint'}</strong></div></div><div class="v613-bar"><div style="width:${pct}%"></div></div><div class="v613-progress-note">${next?`${n(total)} / ${n(next.target)} ${escapeHtml(unit)}`:`${n(total)} ${escapeHtml(unit)} — dernier palier atteint`}</div><div class="v613-entry"><label>Réalisé aujourd’hui<input data-v622-value type="number" min="0" step="any" inputmode="decimal" value="${escapeHtml(inputNum(p.today_value))}"></label><button type="button" class="btn" data-v622-save>Enregistrer</button></div><div class="v623-today-note">La valeur affichée est celle d’aujourd’hui. La modifier remplace la saisie du jour ; elle ne s’ajoute pas une deuxième fois.</div></div>`;
   }).join('')+(note?`<div class="msg" style="margin-top:10px">${escapeHtml(note)}</div>`:'');
 
   host.querySelectorAll('[data-v622-save]').forEach(btn=>btn.onclick=async()=>{
    const card=btn.closest('[data-v622-goal]'),id=Number(card.dataset.v622Goal);btn.disabled=true;
    let res;
    if(card.dataset.v622Type==='global')res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v622-level]').value),p_recorded_on:todayISO()});
-   else{const v=Number(card.querySelector('[data-v622-value]').value);if(!Number.isFinite(v)||v<=0){btn.disabled=false;return alert('Saisis une progression supérieure à 0.')}res=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()});}
+   else{const v=Number(card.querySelector('[data-v622-value]').value);if(!Number.isFinite(v)||v<0){btn.disabled=false;return alert('Saisis une progression positive ou 0.')}res=await supabase.rpc('set_my_long_goal_day_value_v623',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()});}
    if(res.error){btn.disabled=false;return alert(res.error.message)}
    await renderLongTrackingV622();
   });
@@ -5936,5 +5940,13 @@ showLoginLanding();
  setTimeout(()=>{decorateAdmin();},300);
 })();
 </script>
+
+<style id="v623-long-tracking-details-style">
+.v623-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0 4px;padding:10px;border:1px solid #e7dfd5;border-radius:14px;background:#fbf8f3}
+.v623-dates>div{min-width:0}.v623-dates span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}.v623-dates strong{display:block;font-size:14px;font-weight:850;color:#27313a}
+.v623-dates .v623-next-date{grid-column:1/-1;padding-top:8px;border-top:1px solid #e7dfd5}.v623-dates .v623-next-date strong{color:#0d5f4a}
+.v623-today-note{font-size:11px;color:var(--muted);line-height:1.4;margin-top:7px}
+@media(max-width:520px){.v623-dates{grid-template-columns:1fr 1fr}}
+</style>
 </body>
 </html>
