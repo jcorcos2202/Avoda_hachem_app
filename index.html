@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.2.4 — suivi long terme : cumul veille + valeur du jour + 4 onglets -->
+<!-- Avoda Hachem — Version V6.2.5 — correction date locale du suivi long terme -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.2.4</title>
+<title>Avoda Hachem V6.2.5</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -3240,7 +3240,7 @@ body.v5816-app-open .topbar{
 
   <div class="v574-header">
     <div class="v574-appname">Avoda Hachem ✨</div>
-    <div class="v617-version"><span class="v618-version-badge">Version 6.2.4</span></div>
+    <div class="v617-version"><span class="v618-version-badge">Version 6.2.5</span></div>
     <div class="v574-tagline">Grandir chaque jour, un objectif après l’autre.</div>
     <div class="v574-values">
       <span class="torah">📖 Torah</span>
@@ -5407,7 +5407,7 @@ async function renderSummary2(){
 }
 
 
-// V6.2.4 — Vue de suivi du MEME objet goals.
+// V6.2.5 — Vue de suivi du MEME objet goals ; journée calculée selon la date locale envoyée par le client.
 // L'onglet Long terme est uniquement une vue : mêmes goals, filtrés par catégorie.
 // Quantitatif : cumul veille (figé) + valeur du jour (modifiable) = cumul actuel.
 let longTrackingThemeV624=null;
@@ -5480,7 +5480,7 @@ async function renderLongTrackingV624(){
  }
 
  paint(mr.error?'Paliers non chargés : '+mr.error.message:'');
- const pr=await supabase.rpc('get_my_long_goal_progress_v610');
+ const pr=await supabase.rpc('get_my_long_goal_progress_v625',{p_recorded_on:todayISO()});
  if(pr.error){paint('Progression non chargée : '+pr.error.message);return}
  ps=Array.isArray(pr.data)?pr.data:[];
  paint();
@@ -5941,7 +5941,7 @@ showLoginLanding();
   paint();
 
   // Seule la progression est spécifique au suivi ; l’objet objectif reste le même.
-  const pr=await supabase.rpc('get_my_long_goal_progress_v610');
+  const pr=await supabase.rpc('get_my_long_goal_progress_v625',{p_recorded_on:todayISO()});
   if(pr.error){
     const note=document.createElement('div');note.className='msg';note.style.marginTop='10px';
     note.textContent='Objectifs chargés, mais progression indisponible : '+pr.error.message;
@@ -5966,7 +5966,7 @@ showLoginLanding();
 .v623-today-note{font-size:11px;color:var(--muted);line-height:1.4;margin-top:7px}
 @media(max-width:520px){.v623-dates{grid-template-columns:1fr 1fr}}
 
-/* V6.2.4 — suivi long terme par domaine + lecture stock/flux */
+/* V6.2.5 — suivi long terme par domaine + stock/flux selon date locale */
 .v624-track-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
 .v624-track-tab{min-height:42px;padding:9px 10px;border:1px solid var(--line);border-radius:13px;background:#fff;color:#43515e;font-weight:800;font-size:12px;cursor:pointer}
 .v624-track-tab.active{background:#173c5d;color:#fff;border-color:#173c5d;box-shadow:0 5px 12px rgba(23,60,93,.15)}
