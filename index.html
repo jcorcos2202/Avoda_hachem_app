@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.1.5 — correction blocage chargement suivi long terme adulte -->
+<!-- Avoda Hachem — Version V6.1.6 — suivi long terme adulte découplé des RPC de lecture bloquantes -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.1.5</title>
+<title>Avoda Hachem V6.1.6</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -5951,24 +5951,52 @@ showLoginLanding();
  }
  async function renderTracking(){
   const host=document.getElementById('longTrackingContent');if(!host)return;
-  host.innerHTML='<div class="small">Chargement du suivi…</div>';
   if(!user){host.innerHTML='<div class="small">Connexion en cours…</div>';return}
-  // V6.1.5 : ne plus appeler refreshGoals() ici. Cette fonction déclenche elle-même les rendus
-  // et créait une boucle de rendu laissant l'écran bloqué sur « Chargement du suivi… ».
-  const [gr,pr]=await Promise.all([
-    supabase.rpc('get_my_long_goals_v601'),
-    supabase.rpc('get_my_long_goal_progress_v610')
-  ]);
-  if(gr.error||pr.error){const err=gr.error||pr.error;host.innerHTML=`<div class="msg">Suivi long terme indisponible : ${escapeHtml(err.message)}</div>`;return}
-  const items=(Array.isArray(gr.data)?gr.data:[]).filter(g=>g.active!==false),ps=Array.isArray(pr.data)?pr.data:[];
-  host.innerHTML=items.length?items.map(g=>trackingCard(g,ps.find(p=>String(p.goal_id)===String(g.id))||{})).join(''):'<div class="card"><div class="general small">Aucun objectif long terme actif.</div></div>';
-  host.querySelectorAll('[data-v613-save]').forEach(btn=>btn.onclick=async()=>{
-   const card=btn.closest('[data-v613-goal]'),id=Number(card.dataset.v613Goal);btn.disabled=true;
-   let res;
-   if(card.dataset.v613Type==='global')res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v613-level]').value),p_recorded_on:todayISO()});
-   else{const v=Number(card.querySelector('[data-v613-value]').value);if(!Number.isFinite(v)||v<=0){btn.disabled=false;return alert('Saisis une progression supérieure à 0.')}res=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()})}
-   if(res.error){btn.disabled=false;return alert(res.error.message)}await renderTracking();
+
+  // V6.1.6 : les objectifs sont déjà chargés par refreshGoals().
+  // Le suivi ne dépend donc plus de get_my_long_goals_v601 pour s'afficher.
+  // On affiche immédiatement les cartes, puis on hydrate le cumul depuis goal_progress.
+  const items=(Array.isArray(longGoals)?longGoals:[]).filter(g=>g&&g.active!==false&&(g.objective_horizon||'daily')==='long_term');
+  if(!items.length){host.innerHTML='<div class="card"><div class="general small">Aucun objectif long terme actif.</div></div>';return}
+
+  let ps=items.map(g=>({goal_id:g.id,total_progress:0,current_level:0,today_value:g.goal_type==='precise'?0:null}));
+  const paint=()=>{
+   host.innerHTML=items.map(g=>trackingCard(g,ps.find(p=>String(p.goal_id)===String(g.id))||{})).join('');
+   host.querySelectorAll('[data-v613-save]').forEach(btn=>btn.onclick=async()=>{
+    const card=btn.closest('[data-v613-goal]'),id=Number(card.dataset.v613Goal);btn.disabled=true;
+    let res;
+    if(card.dataset.v613Type==='global')res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v613-level]').value),p_recorded_on:todayISO()});
+    else{const v=Number(card.querySelector('[data-v613-value]').value);if(!Number.isFinite(v)||v<=0){btn.disabled=false;return alert('Saisis une progression supérieure à 0.')}res=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()})}
+    if(res.error){btn.disabled=false;return alert(res.error.message)}await renderTracking();
+   });
+  };
+  paint();
+
+  // Lecture directe et bornée à l'utilisateur connecté : évite qu'une RPC de synthèse bloque tout l'écran.
+  const ids=items.map(g=>Number(g.id)).filter(Number.isFinite);
+  if(!ids.length)return;
+  const rr=await supabase.from('goal_progress')
+    .select('goal_id,recorded_on,progress_value,entry_kind')
+    .eq('user_id',user.id)
+    .in('goal_id',ids);
+  if(rr.error){
+    const note=document.createElement('div');note.className='small';note.style.marginTop='10px';
+    note.textContent='Cumul non chargé : '+rr.error.message;
+    host.appendChild(note);return;
+  }
+  const rows=Array.isArray(rr.data)?rr.data:[];
+  ps=items.map(g=>{
+    const mine=rows.filter(r=>String(r.goal_id)===String(g.id));
+    if(g.goal_type==='global'){
+      const levels=mine.filter(r=>r.entry_kind==='level').map(r=>Number(r.progress_value||0)).filter(Number.isFinite);
+      return {goal_id:g.id,total_progress:0,current_level:levels.length?Math.max(...levels):0,today_value:null};
+    }
+    const inc=mine.filter(r=>r.entry_kind==='increment');
+    const total=inc.reduce((a,r)=>a+(Number(r.progress_value)||0),0);
+    const today=inc.filter(r=>String(r.recorded_on)===todayISO()).reduce((a,r)=>a+(Number(r.progress_value)||0),0);
+    return {goal_id:g.id,total_progress:total,current_level:0,today_value:today};
   });
+  paint();
  }
  window.renderLongTermGoals=renderTracking;
  document.addEventListener('click',e=>{const tab=e.target.closest?.('.tab[data-panel="longTracking"]');if(tab)setTimeout(renderTracking,0)});
