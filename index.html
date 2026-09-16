@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.0.11 — étape 1 : édition long terme avec dates + sélection réactivée -->
+<!-- Avoda Hachem — Version V6.1.1 — suivi long terme + prolongement permanent + argent de poche cumulatif -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -5639,6 +5639,83 @@ showLoginLanding();
   const form=e.target.closest?.('[data-child-goal-form]');if(!form)return;return;
   e.preventDefault();e.stopImmediatePropagation();if(!validateLongGoalDates(form))return;const child=window.v580CurrentFamilyChild;if(!child)return alert('Enfant non sélectionné');const name=form.elements.name.value.trim(),category=form.elements.category.value,type=form.elements.type.value,targetRaw=form.elements.target.value.trim(),unitRaw=form.elements.unit.value.trim();if(!name||!targetRaw)return alert('Complète le nom et le niveau 1.');const target=type==='global'?null:Number(targetRaw);if(type==='precise'&&!Number.isFinite(target))return alert('Valeur du niveau 1 non valide.');const baseLabel=type==='global'?targetRaw:null,baseAllowance=Math.max(0,Number(form.elements.baseAllowance?.value||0)),ms=readMilestones(form,{family:true}),sourceCfg=readMetricSource(form);if(ms.some(x=>type==='precise'?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label))return alert('Complète chaque niveau.');if(sourceCfg.data_source==='time'&&!sourceCfg.time_category_id)return alert('Choisis une catégorie dans le suivi du temps.');const c=await supabase.rpc('parent_create_child_goal',{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==='global'?null:(unitRaw||null),p_priority:true});if(c.error)return alert(c.error.message);let id=Number(c.data?.id??c.data);if(!id){const rr=await supabase.rpc('parent_get_child_goals',{p_child_user_id:child.user_id});if(!rr.error){const m=(rr.data||[]).filter(x=>x.name===name&&x.category===category);id=m.length?Math.max(...m.map(x=>Number(x.id)||0)):0}}if(!id)return alert('Objectif créé mais identifiant introuvable.');if(type==='global'){const br=await supabase.rpc('parent_set_goal_base_level_label',{p_goal_id:id,p_label:baseLabel});if(br.error)return alert('Niveau 1 non enregistré : '+br.error.message)}const abr=await supabase.rpc('parent_set_goal_allowance',{p_goal_id:id,p_amount:baseAllowance});if(abr.error)return alert('Montant N1 non enregistré : '+abr.error.message);if(ms.length){const mr=await saveParentGoalMilestones(id,ms);if(mr.error)return alert('Niveaux non enregistrés : '+mr.error.message);for(const x of ms){const ar=await supabase.rpc('parent_set_goal_milestone_allowance',{p_goal_id:id,p_position:Number(x.position),p_amount:Number(x.allowance_amount||0)});if(ar.error)return alert(`Montant N${x.position} non enregistré : `+ar.error.message)}}const sr=await supabase.rpc('parent_set_goal_source',{p_goal_id:id,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==='time'?Math.round(Number(target)*60):null});if(sr.error)return alert('Source non enregistrée : '+sr.error.message);const cfg=await supabase.rpc('parent_set_child_goal_horizon_v601',{p_goal_id:id,p_horizon:'long_term',p_end_date:form.querySelector('[data-base-target-date]').value});if(cfg.error)return alert('Temporalité long terme non enregistrée : '+cfg.error.message);const sd=await supabase.rpc('parent_set_child_goal_start_date_v603',{p_goal_id:id,p_start_date:form.querySelector('[data-long-start-date]').value});if(sd.error)return alert('Date de début non enregistrée : '+sd.error.message);const dr=await saveParentMilestoneDatesV601(id,ms);if(dr.error)return alert('Dates des niveaux non enregistrées : '+dr.error.message);await renderFamilyChildGoals(child);
  },true);
+})();
+</script>
+
+
+<style id="v610-long-tracking-style">
+.v610-track{margin:12px 0;padding:14px;border:1px solid #e2dbd2;border-radius:16px;background:#fff}
+.v610-track-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.v610-cumul{font-size:18px;font-weight:800;margin-top:5px}.v610-next{font-size:12px;color:var(--muted);margin-top:3px}.v610-entry{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:12px}.v610-entry label{display:grid;gap:5px;flex:1 1 160px}.v610-entry input,.v610-entry select{width:100%}.v610-entry button{min-height:44px}.v610-reached{font-size:12px;font-weight:800;padding:5px 8px;border-radius:999px;background:#eef7ea;white-space:nowrap}
+@media(max-width:520px){.v610-entry{display:grid;grid-template-columns:1fr}.v610-entry button{width:100%}}
+</style>
+<script id="v610-long-tracking">
+(function(){
+ const oldRender=window.renderLongTermGoals;
+ const fmtNum=n=>Number(n||0).toLocaleString('fr-FR',{maximumFractionDigits:2});
+ function levels(g){return [{position:1,label:g.goal_type==='global'?(g.base_level_label||'Niveau 1'):g.target_value,target:g.target_value},...(g.milestones||[]).map(m=>({position:Number(m.position),label:g.goal_type==='global'?m.label:m.target_value,target:m.target_value}))].sort((a,b)=>a.position-b.position)}
+ function reachedFor(g,p){if(g.goal_type==='global')return Number(p.current_level||0);let r=0,t=Number(p.total_progress||0);levels(g).forEach(x=>{if(Number.isFinite(Number(x.target))&&t>=Number(x.target))r=x.position});return r}
+ function trackingHtml(g,p){const ls=levels(g),reached=reachedFor(g,p),next=ls.find(x=>x.position>reached),unit=g.unit||'';
+   if(g.goal_type==='global'){
+    const opts=['<option value="0">Pas encore atteint</option>',...ls.map(x=>`<option value="${x.position}" ${Number(p.current_level||0)===x.position?'selected':''}>N${x.position} — ${escapeHtml(String(x.label||''))}</option>`)].join('');
+    return `<div class="v610-track" data-v610-goal="${g.id}" data-v610-type="global"><div class="v610-track-head"><div><strong>${escapeHtml(g.name)}</strong><div class="v610-cumul">Niveau actuel : ${reached?`N${reached}`:'aucun'}</div><div class="v610-next">${next?`Prochain palier : N${next.position} — ${escapeHtml(String(next.label||''))}`:'Objectif final atteint'}</div></div>${reached?`<span class="v610-reached">N${reached} atteint</span>`:''}</div><div class="v610-entry"><label><span>Niveau atteint aujourd’hui</span><select data-v610-level>${opts}</select></label><button class="btn" type="button" data-v610-save>Enregistrer</button></div></div>`;
+   }
+   return `<div class="v610-track" data-v610-goal="${g.id}" data-v610-type="precise"><div class="v610-track-head"><div><strong>${escapeHtml(g.name)}</strong><div class="v610-cumul">Cumul à date : ${fmtNum(p.total_progress)} ${escapeHtml(unit)}</div><div class="v610-next">${next?`Prochain palier : N${next.position} — ${fmtNum(next.target)} ${escapeHtml(unit)}`:'Objectif final atteint'}</div></div>${reached?`<span class="v610-reached">N${reached} atteint</span>`:''}</div><div class="v610-entry"><label><span>Réalisé aujourd’hui</span><input data-v610-value type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label><button class="btn" type="button" data-v610-save>Ajouter</button></div></div>`;
+ }
+ async function inject(){const host=document.getElementById('longTermGoals');if(!host||!user)return;const [gr,pr]=await Promise.all([supabase.rpc('get_my_long_goals_v601'),supabase.rpc('get_my_long_goal_progress_v610')]);if(gr.error||pr.error){host.insertAdjacentHTML('afterbegin',`<div class="msg">Suivi V6.1 indisponible : ${escapeHtml((gr.error||pr.error).message)}. Vérifie que le SQL V6.1.0 a été exécuté.</div>`);return}const gs=Array.isArray(gr.data)?gr.data:[],ps=Array.isArray(pr.data)?pr.data:[];const wrap=document.createElement('div');wrap.innerHTML=`<div class="hero"><strong>📈 Suivi long terme</strong><br><span class="small">Saisis seulement ce qui a été réalisé aujourd’hui. Le cumul est recalculé automatiquement.</span></div>${gs.map(g=>trackingHtml(g,ps.find(p=>String(p.goal_id)===String(g.id))||{})).join('')}`;host.prepend(wrap);wrap.querySelectorAll('[data-v610-save]').forEach(btn=>btn.onclick=async()=>{const card=btn.closest('[data-v610-goal]'),id=Number(card.dataset.v610Goal);btn.disabled=true;let r;if(card.dataset.v610Type==='global'){r=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v610-level]').value),p_recorded_on:todayISO()})}else{const inp=card.querySelector('[data-v610-value]'),v=Number(inp.value);if(!Number.isFinite(v)||v<0){btn.disabled=false;return alert('Valeur invalide.')}r=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()})}if(r.error){btn.disabled=false;return alert(r.error.message)}await window.renderLongTermGoals()})}
+ window.renderLongTermGoals=async function(){if(oldRender)await oldRender();await inject()};
+ // Adapte la validation parentale existante aux paliers V6.1.
+ const oldFamily=window.renderFamilyChildGoals;
+ if(oldFamily){window.renderFamilyChildGoals=async function(child){await oldFamily(child);const box=document.querySelector('[data-allowance-box]');if(!box)return;box.querySelectorAll('[data-lt-approve],[data-lt-refuse]').forEach(btn=>{const clone=btn.cloneNode(true);btn.replaceWith(clone);clone.onclick=async()=>{const goalId=Number(clone.dataset.ltApprove||clone.dataset.ltRefuse),row=clone.closest('.allowance-row'),txt=row?.textContent||'',m=txt.match(/N(\d+)/),pos=m?Number(m[1]):1;const r=await supabase.rpc('parent_validate_long_goal_milestone_v610',{p_goal_id:goalId,p_milestone_position:pos,p_approved:!!clone.dataset.ltApprove});if(r.error)alert(r.error.message);else await window.renderFamilyChildGoals(child)}})}}
+ setTimeout(()=>{if(document.getElementById('longTermGoals')&&user)window.renderLongTermGoals?.()},800);
+})();
+</script>
+
+
+<style id="v611-prolong-style">
+.v611-prolong{margin-top:10px;padding:12px;border:1px dashed #cfc4b7;border-radius:14px;background:#faf8f5}.v611-prolong-note{font-size:12px;color:var(--muted);line-height:1.4;margin:6px 0 10px}.v611-prolong-grid{display:grid;grid-template-columns:minmax(110px,1fr) minmax(145px,1fr);gap:8px}.v611-prolong-grid label{display:grid;gap:4px}.v611-prolong-grid input{width:100%}.v611-prolong-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.v611-done{font-weight:800;color:#476b39}
+@media(max-width:520px){.v611-prolong-grid{grid-template-columns:1fr}.v611-prolong-actions .btn{width:100%}}
+</style>
+<script id="v611-prolong">
+(function(){
+ const money=n=>Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2});
+ const allLevels=g=>[{position:1,target:g.target_value,label:g.base_level_label,allowance_amount:Number(g.allowance_amount||0),target_date:g.long_end_date||null},...(g.milestones||[])].sort((a,b)=>Number(a.position)-Number(b.position));
+ const reached=(g,p)=>{if(g.goal_type==='global')return Number(p?.current_level||0);let r=0,total=Number(p?.total_progress||0);allLevels(g).forEach(x=>{if(Number.isFinite(Number(x.target))&&total>=Number(x.target))r=Number(x.position)});return r};
+ function prolongForm(g,family){
+   const ls=allLevels(g),last=ls[ls.length-1],next=Number(last.position)+1,lastMoney=Number(last.allowance_amount||0),isQ=g.goal_type==='global';
+   return `<div class="v611-prolong" data-v611-prolong-form>
+    <strong>➕ Prolonger avec N${next}</strong>
+    ${family?`<div class="v611-prolong-note">Les récompenses sont <strong>cumulatives</strong>. Le dernier palier vaut ${money(lastMoney)} €. Le montant du nouveau palier doit donc être au moins égal à ${money(lastMoney)} €. Exemple : ${money(lastMoney+30)} € signifie +30 € supplémentaires.</div>`:`<div class="v611-prolong-note">Le nouvel objectif prolonge le cumul existant : l'historique et le réalisé à date sont conservés.</div>`}
+    <div class="v611-prolong-grid">
+      <label><span>Objectif N${next}</span><input data-v611-target ${isQ?'type="text"':'type="number" min="0" step="any"'} placeholder="${isQ?'Libellé du niveau':'Nouvelle cible'}"></label>
+      <label><span>Date cible</span><input data-v611-date type="date"></label>
+      ${family?`<label><span>Récompense cumulée</span><input data-v611-money type="number" min="${lastMoney}" step="0.10" value="${lastMoney}"></label>`:''}
+    </div>
+    <div class="v611-prolong-actions"><button class="btn" type="button" data-v611-confirm>Ajouter N${next}</button><button class="btn ghost" type="button" data-v611-cancel>Annuler</button></div>
+   </div>`;
+ }
+ async function saveOwn(g,box){
+   const ls=allLevels(g),next=Number(ls[ls.length-1].position)+1,targetRaw=box.querySelector('[data-v611-target]').value.trim(),date=box.querySelector('[data-v611-date]').value;
+   if(!targetRaw||!date)return alert('Renseigne le nouvel objectif et sa date cible.');
+   const ms=[...(g.milestones||[]).map(x=>({...x})),{position:next,label:g.goal_type==='global'?targetRaw:null,target_value:g.goal_type==='precise'?Number(targetRaw):null,target_date:date}];
+   if(g.goal_type==='precise'&&!Number.isFinite(Number(targetRaw)))return alert('Nouvelle cible invalide.');
+   const r=await replaceOwnGoalMilestones(g.id,ms);if(r.error)return alert('Nouveau palier non enregistré : '+r.error.message);
+   const d=await saveOwnMilestoneDatesV601(g.id,ms);if(d.error)return alert('Date du nouveau palier non enregistrée : '+d.error.message);
+   await refreshGoals();await window.renderLongTermGoals();
+ }
+ async function saveChild(g,child,box){
+   const ls=allLevels(g),last=ls[ls.length-1],next=Number(last.position)+1,targetRaw=box.querySelector('[data-v611-target]').value.trim(),date=box.querySelector('[data-v611-date]').value,m=Number(box.querySelector('[data-v611-money]').value);
+   if(!targetRaw||!date)return alert('Renseigne le nouvel objectif et sa date cible.');if(!Number.isFinite(m)||m<Number(last.allowance_amount||0))return alert(`La récompense cumulée doit être au moins égale à ${money(last.allowance_amount||0)} €.`);
+   const add=[{position:next,label:g.goal_type==='global'?targetRaw:null,target_value:g.goal_type==='precise'?Number(targetRaw):null,allowance_amount:m,target_date:date}];if(g.goal_type==='precise'&&!Number.isFinite(Number(targetRaw)))return alert('Nouvelle cible invalide.');
+   const r=await saveParentGoalMilestones(g.id,add);if(r.error)return alert('Nouveau palier non enregistré : '+r.error.message);
+   const a=await supabase.rpc('parent_set_goal_milestone_allowance',{p_goal_id:Number(g.id),p_position:next,p_amount:m});if(a.error)return alert('Récompense non enregistrée : '+a.error.message);
+   const all=[...(g.milestones||[]).map(x=>({...x})),...add];const d=await saveParentMilestoneDatesV601(g.id,all);if(d.error)return alert('Date du nouveau palier non enregistrée : '+d.error.message);
+   await window.renderFamilyChildGoals(child);
+ }
+ // Après le rendu du suivi personnel, propose le prolongement seulement lorsque le dernier palier est atteint.
+ const prev=window.renderLongTermGoals;
+ if(prev)window.renderLongTermGoals=async function(){await prev();const [gr,pr]=await Promise.all([supabase.rpc('get_my_long_goals_v601'),supabase.rpc('get_my_long_goal_progress_v610')]);if(gr.error||pr.error)return;const gs=Array.isArray(gr.data)?gr.data:[],ps=Array.isArray(pr.data)?pr.data:[];for(const g of gs){const p=ps.find(x=>String(x.goal_id)===String(g.id))||{},ls=allLevels(g);if(!ls.length||reached(g,p)<Number(ls[ls.length-1].position))continue;const card=document.querySelector(`[data-v610-goal="${g.id}"]`);if(!card||card.querySelector('[data-v611-prolong-btn]'))continue;const holder=document.createElement('div');holder.innerHTML=`<div class="v611-done">✓ Dernier palier atteint — objectif conservé en mémoire</div><button class="btn ghost" type="button" data-v611-prolong-btn>Prolonger l’objectif</button><div data-v611-slot></div>`;card.appendChild(holder);holder.querySelector('[data-v611-prolong-btn]').onclick=()=>{const slot=holder.querySelector('[data-v611-slot]');slot.innerHTML=prolongForm(g,false);slot.querySelector('[data-v611-cancel]').onclick=()=>slot.innerHTML='';slot.querySelector('[data-v611-confirm]').onclick=()=>saveOwn(g,slot.querySelector('[data-v611-prolong-form]'))};}}
+ // En gestion Famille, affiche l'état atteint et permet au parent de prolonger l'objectif enfant.
+ window.renderParentChildLongGoals=async function(host,child){const slot=host.querySelector('[data-child-long-goal-list]');if(!slot)return;const [r,p]=await Promise.all([supabase.rpc('parent_get_child_long_goals_v601',{p_child_user_id:child.user_id}),supabase.rpc('parent_get_child_long_goal_progress_v611',{p_child_user_id:child.user_id})]);if(r.error){slot.innerHTML=`<div class="small">Objectifs long terme indisponibles : ${escapeHtml(r.error.message)}</div>`;return}const items=Array.isArray(r.data)?r.data:[],ps=p.error?[]:(Array.isArray(p.data)?p.data:[]);slot.innerHTML=`<div class="v600-family-title">🧭 Objectifs long terme</div>${items.length?items.map(g=>{const pp=ps.find(x=>String(x.goal_id)===String(g.id))||{},ls=allLevels(g),done=ls.length&&reached(g,pp)>=Number(ls[ls.length-1].position);return `<div class="v600-long-card" data-v611-family-long="${g.id}"><div class="v600-long-head"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(catMeta(g.category)?.title||g.category)}</div></div><span class="v600-long-badge">${done?'Atteint':'En cours'}</span></div><div class="v601-long-summary">${levelSummary(g)}</div>${done?`<div class="v611-done">✓ Dernier palier atteint — objectif conservé</div><button class="btn ghost" type="button" data-v611-family-prolong>Prolonger</button><div data-v611-family-slot></div>`:''}</div>`}).join(''):'<div class="small">Aucun objectif long terme actif.</div>'}`;slot.querySelectorAll('[data-v611-family-long]').forEach(card=>{const g=items.find(x=>String(x.id)===String(card.dataset.v611FamilyLong)),b=card.querySelector('[data-v611-family-prolong]');if(!g||!b)return;b.onclick=()=>{const s=card.querySelector('[data-v611-family-slot]');s.innerHTML=prolongForm(g,true);s.querySelector('[data-v611-cancel]').onclick=()=>s.innerHTML='';s.querySelector('[data-v611-confirm]').onclick=()=>saveChild(g,child,s.querySelector('[data-v611-prolong-form]'))}})};
 })();
 </script>
 
