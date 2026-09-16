@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.1.9 — correction structure HTML + suivi long terme actif + horizon visible verrouillé -->
+<!-- Avoda Hachem — Version V6.2.1 — architecture objectifs unifiée : long terme = même objet, affichage filtré -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.1.6</title>
+<title>Avoda Hachem V6.2.1</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -3240,7 +3240,7 @@ body.v5816-app-open .topbar{
 
   <div class="v574-header">
     <div class="v574-appname">Avoda Hachem ✨</div>
-    <div class="v617-version"><span class="v618-version-badge">Version 6.1.9</span></div>
+    <div class="v617-version"><span class="v618-version-badge">Version 6.2.1</span></div>
     <div class="v574-tagline">Grandir chaque jour, un objectif après l’autre.</div>
     <div class="v574-values">
       <span class="torah">📖 Torah</span>
@@ -3309,7 +3309,6 @@ body.v5816-app-open .topbar{
     <button id="copyPrevGoalsBtn" class="btn full copy-prev-btn v579-objective-overview" type="button"><span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs de N-1</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span></button>
     <div id="copyPrevGoalsMsg" class="msg v579-objective-overview"></div>
     <div id="objectiveCategories"></div>
-    <div id="longTermGoals" style="display:none"></div>
     <button id="goEvening" class="btn full">Passer au bilan du soir</button>
   </section>
 
@@ -4088,7 +4087,7 @@ async function loadDay(showSpinner=true){
  document.getElementById("dayDescription").value=dayRow.day_description||"";document.getElementById("dayMood").value=dayRow.mood??"";document.getElementById("dayDifficulty").value=dayRow.difficulty??"";document.getElementById("worked").value=dayRow.worked_text||"";document.getElementById("failed").value=dayRow.failed_text||"";document.getElementById("change").value=dayRow.change_text||"";
  dayDraftDirty=false; bindDayDraftAutosave();
  const st=document.getElementById("draftSaveState");if(st)st.textContent="";
- renderObjectives();renderLongTermGoals();renderEvening();renderBerakhot();
+ renderObjectives();renderEvening();renderBerakhot();
  if(document.getElementById("time")?.classList.contains("active")) renderTime();
  }finally{if(showSpinner)hideLoading()}
 }
@@ -5407,7 +5406,7 @@ async function renderSummary2(){
  }finally{hideLoading()}
 }
 
-function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="summary2")renderSummary2();if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily();if(id==="longTracking")window.renderLongTermGoals?.();if((id==="evening"||id==="objectives")&&isChildProfile()){loadAllowanceDayState().then(()=>{renderObjectives();renderEvening()})}}
+function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="summary2")renderSummary2();if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily();if(id==="longTracking")window.renderLongTrackingV621?.();if((id==="evening"||id==="objectives")&&isChildProfile()){loadAllowanceDayState().then(()=>{renderObjectives();renderEvening()})}}
 let explicitLoginRequested=false;
 document.getElementById("loginBtn").addEventListener("click",async()=>{
  explicitLoginRequested=true;
@@ -5542,10 +5541,8 @@ showLoginLanding();
   window.applyObjectiveFilter=function(filter){
     filter=filter||"overview";
     var host=document.getElementById("objectiveCategories");
-    var longHost=document.getElementById("longTermGoals");
     var overview=document.querySelectorAll("#objectives .v579-objective-overview");
     overview.forEach(function(el){el.style.display=filter==="overview"?"":"none"});
-    if(longHost)longHost.style.display=filter==="long_term"?"":"none";
     if(host){
       host.querySelectorAll(".category").forEach(function(card){
         if(card.classList.contains("helper-category")){
@@ -5596,72 +5593,6 @@ showLoginLanding();
 </script>
 
 
-<script id="v601-long-goals-foundation">
-(function(){
- const fmtDate=x=>x?new Date(x+'T00:00:00').toLocaleDateString('fr-FR'):'';
- const levelSummary=g=>{
-  const first=g.goal_type==='global'?(g.base_level_label||'Niveau 1'):`${g.target_value??'—'} ${g.unit||''}`.trim();
-  const rows=[`N1 : ${escapeHtml(String(first))}${g.long_end_date?` · ${fmtDate(g.long_end_date)}`:''}`];
-  (g.milestones||[]).sort((a,b)=>Number(a.position)-Number(b.position)).forEach(m=>rows.push(`N${Number(m.position)} : ${escapeHtml(String(g.goal_type==='global'?(m.label||''):(m.target_value??'')))}${g.goal_type==='precise'&&g.unit?' '+escapeHtml(g.unit):''}${m.target_date?` · ${fmtDate(m.target_date)}`:''}`));
-  return rows.join('<br>');
- };
- function decorateForm(form,goal=null){
-  if(!form||form.dataset.v601Decorated)return;
-  const type=form.querySelector('[data-goal-type]'),base=form.querySelector('[data-base-level]'),builder=form.querySelector('[data-milestone-builder]');if(!type||!base||!builder)return;
-  form.dataset.v601Decorated='1';
-  const existingHorizon=form.querySelector('[data-goal-horizon]');
-  if(existingHorizon){existingHorizon.addEventListener('change',()=>syncMilestoneDateVisibility(form));type.addEventListener('change',()=>setTimeout(()=>syncMilestoneDateVisibility(form),0));syncMilestoneDateVisibility(form);return;}
-  const horizon=document.createElement('select');horizon.className='v601-horizon';horizon.setAttribute('data-goal-horizon','');horizon.name=horizon.name||'horizon';horizon.innerHTML='<option value="daily">Court terme</option><option value="long_term">Long terme</option>';horizon.value=(goal?.objective_horizon||'daily');type.after(horizon);
-  const startLabel=document.createElement('label');startLabel.className='v603-field v603-start-field';startLabel.innerHTML=`<span>Date de début</span><input type="date" data-long-start-date value="${escapeHtml(goal?.long_start_date||todayISO())}" aria-label="Date de début">`;horizon.after(startLabel);
-  const baseWrap=document.createElement('label');baseWrap.className='v603-field';base.parentNode.insertBefore(baseWrap,base);baseWrap.innerHTML='<span>Objectif</span>';baseWrap.appendChild(base);
-  const dateWrap=document.createElement('label');dateWrap.className='v603-field';dateWrap.innerHTML=`<span>Date cible</span><input type="date" class="v601-base-date" data-base-target-date value="${escapeHtml(goal?.long_end_date||'')}" aria-label="Date cible du niveau 1">`;baseWrap.after(dateWrap);
-  const sync=()=>{syncMilestoneDateVisibility(form);};
-  horizon.addEventListener('change',sync);type.addEventListener('change',()=>setTimeout(sync,0));sync();
- }
- const decorateOwnAdd=()=>document.querySelectorAll('.goal-add-form').forEach(f=>decorateForm(f));
- new MutationObserver(decorateOwnAdd).observe(document.body,{subtree:true,childList:true});setTimeout(decorateOwnAdd,0);
-
- async function hydrateOwnLongGoals(){
-  const r=await supabase.rpc('get_my_long_goals_v601');if(r.error)return longGoals||[];
-  const arr=Array.isArray(r.data)?r.data:[];arr.forEach(g=>{g.milestones=Array.isArray(g.milestones)?g.milestones:[]});return arr;
- }
- window.renderLongTermGoals=async function(){
-  const host=document.getElementById('longTermGoals');if(!host||!user)return;
-  const items=await hydrateOwnLongGoals();
-  host.innerHTML=`<div class="hero"><strong>🧭 Objectifs long terme</strong><br>Première étape V6 : même structure d’objectif, avec une date de fin sur chaque niveau. Le suivi et l’argent de poche seront branchés ensuite.</div>${items.length?items.map(g=>`<div class="v600-long-card" data-v601-own-long="${g.id}"><div class="v600-long-head"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(catMeta(g.category)?.title||g.category)} · Long terme</div></div><span class="v600-long-badge">Long terme</span></div><div class="v601-long-summary">${levelSummary(g)}</div><div class="v601-long-actions"><button type="button" class="btn ghost" data-v601-edit>Modifier</button><button type="button" class="btn ghost" data-v601-disable>Désactiver</button></div><div data-v601-edit-slot></div></div>`).join(''):'<div class="v600-long-empty">Aucun objectif long terme actif.</div>'}`;
-  host.querySelectorAll('[data-v601-own-long]').forEach(card=>{
-   const id=Number(card.dataset.v601OwnLong),g=items.find(x=>Number(x.id)===id);if(!g)return;
-   card.querySelector('[data-v601-disable]').onclick=async()=>{if(!confirm(`Désactiver cet objectif ?\n\n${g.name}`))return;const u=await supabase.from('goals').update({active:false}).eq('id',id).eq('user_id',user.id);if(u.error)alert(u.error.message);else{await refreshGoals();await renderLongTermGoals()}};
-   card.querySelector('[data-v601-edit]').onclick=()=>{
-    const slot=card.querySelector('[data-v601-edit-slot]');if(slot.innerHTML){slot.innerHTML='';return}
-    const q=g.goal_type==='global';slot.innerHTML=`<form class="v601-long-edit long-mode"><input name="name" value="${escapeHtml(g.name)}" required><select name="type" data-goal-type><option value="precise" ${g.goal_type==='precise'?'selected':''}>Quantitatif</option><option value="global" ${q?'selected':''}>Qualitatif</option></select><label class="v603-field v603-start-field long-only" style="display:grid"><span>Date de début</span><input type="date" data-long-start-date value="${escapeHtml(g.long_start_date||todayISO())}"></label><label class="v603-field"><span>Objectif</span><input name="target" data-base-level ${q?'type="text"':'type="number" min="0" step="any"'} value="${escapeHtml(q?(g.base_level_label||''):(g.target_value??''))}"></label><label class="v603-field"><span>Date cible</span><input name="baseDate" data-base-target-date type="date" value="${escapeHtml(g.long_end_date||'')}"></label><input name="unit" data-goal-unit value="${escapeHtml(g.unit||'')}" ${q?'style="display:none"':''}>${metricSourceEditorHtml(g)}${milestoneBuilderHtml(false)}<div class="edit-buttons"><button class="btn ghost" type="button" data-cancel>Annuler</button><button class="btn" type="submit">Enregistrer</button></div></form>`;
-    const f=slot.querySelector('form');const h=document.createElement('select');h.setAttribute('data-goal-horizon','');h.style.display='none';h.innerHTML='<option value="long_term" selected>Long terme</option>';f.appendChild(h);
-    const sync=()=>{const qq=f.elements.type.value==='global';f.elements.target.type=qq?'text':'number';f.elements.target.placeholder=qq?'Niveau 1 — libellé':'Niveau 1 — valeur atteinte';f.elements.unit.style.display=qq?'none':'';if(qq)f.elements.unit.value='';syncMilestoneDateVisibility(f)};f.elements.type.onchange=()=>{sync();f.querySelector('[data-milestone-list]').innerHTML=''};sync();bindMetricSourceEditor(f);bindMilestoneBuilder(f);preloadMilestoneBuilder(f,g);syncMilestoneDateVisibility(f);f.querySelector('[data-cancel]').onclick=()=>slot.innerHTML='';
-    f.onsubmit=async ev=>{ev.preventDefault();const name=f.elements.name.value.trim(),type=f.elements.type.value,targetRaw=f.elements.target.value.trim(),unitRaw=f.elements.unit.value.trim();if(!name||!targetRaw)return alert('Complète le nom et le niveau 1.');if(!validateLongGoalDates(f))return;const target=type==='global'?null:Number(targetRaw);if(type==='precise'&&!Number.isFinite(target))return alert('Valeur du niveau 1 non valide.');const ms=readMilestones(f);if(ms.some(x=>type==='precise'?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label))return alert('Complète chaque niveau.');const sourceCfg=readMetricSource(f);const patch={name,goal_type:type,target_value:target,unit:type==='global'?null:(unitRaw||null),base_level_label:type==='global'?targetRaw:null,objective_horizon:'long_term',long_start_date:f.querySelector('[data-long-start-date]').value,long_end_date:f.querySelector('[data-base-target-date]').value,long_target_value:type==='precise'?target:null,data_source:sourceCfg.data_source,time_category_id:sourceCfg.time_category_id,time_operator:sourceCfg.time_operator,time_target_minutes:sourceCfg.data_source==='time'?Math.round(Number(target)*60):null};const u=await supabase.from('goals').update(patch).eq('id',id).eq('user_id',user.id);if(u.error)return alert(u.error.message);const mr=await replaceOwnGoalMilestones(id,ms);if(mr.error)return alert('Niveaux non enregistrés : '+mr.error.message);const dr=await saveOwnMilestoneDatesV601(id,ms);if(dr.error)return alert('Dates des niveaux non enregistrées : '+dr.error.message);await refreshGoals();await renderLongTermGoals()};
-   };
-  });
- };
-
- document.addEventListener('submit',async function(e){
-  const form=e.target.closest?.('.goal-add-form');if(!form)return;return;
-  e.preventDefault();e.stopImmediatePropagation();if(!validateLongGoalDates(form))return;
-  const card=form.closest('.category'),cat=(CATS.find(c=>card?.classList.contains('cat-'+c.key))||{}).key;if(!cat)return alert('Catégorie introuvable');
-  const name=form.children[0].value.trim(),type=form.querySelector('[data-goal-type]').value,baseRaw=form.querySelector('[data-base-level]').value.trim(),unit=form.querySelector('[data-goal-unit]').value.trim();if(!name||!baseRaw)return alert('Complète le nom et le niveau 1.');const target=type==='global'?null:Number(baseRaw);if(type==='precise'&&!Number.isFinite(target))return alert('Valeur du niveau 1 non valide.');const ms=readMilestones(form);if(ms.some(x=>type==='precise'?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label))return alert('Complète chaque niveau.');const sourceCfg=readMetricSource(form);if(sourceCfg.data_source==='time'&&!sourceCfg.time_category_id)return alert('Choisis une catégorie dans le suivi du temps.');const ins=await supabase.from('goals').insert({user_id:user.id,category:cat,name,goal_type:type,target_value:target,unit:type==='global'?null:(unit||null),base_level_label:type==='global'?baseRaw:null,objective_key:makeObjectiveKey(name),priority:true,goal_origin:'personal',objective_horizon:'long_term',long_start_date:form.querySelector('[data-long-start-date]').value,long_end_date:form.querySelector('[data-base-target-date]').value,long_target_value:type==='precise'?target:null,long_reward_amount:0,data_source:sourceCfg.data_source,time_category_id:sourceCfg.time_category_id,time_operator:sourceCfg.time_operator,time_target_minutes:sourceCfg.data_source==='time'?Math.round(Number(target)*60):null}).select().single();if(ins.error)return alert(ins.error.message);if(ms.length){const mr=await saveOwnGoalMilestones(ins.data.id,ms);if(mr.error)return alert('Objectif créé, mais niveaux non enregistrés : '+mr.error.message)}const dr=await saveOwnMilestoneDatesV601(ins.data.id,ms);if(dr.error)return alert('Objectif créé, mais dates des niveaux non enregistrées : '+dr.error.message);await refreshGoals();await renderLongTermGoals();window.applyObjectiveFilter?.('long_term');
- },true);
-
- window.renderParentChildLongGoals=async function(host,child){
-  const slot=host.querySelector('[data-child-long-goal-list]');if(!slot)return;const r=await supabase.rpc('parent_get_child_long_goals_v601',{p_child_user_id:child.user_id});if(r.error){slot.innerHTML=`<div class="small">Objectifs long terme indisponibles : ${escapeHtml(r.error.message)}</div>`;return}const items=Array.isArray(r.data)?r.data:[];
-  slot.innerHTML=`<div class="v600-family-title">🧭 Objectifs long terme</div>${items.length?items.map(g=>`<div class="v600-long-card" data-v601-family-long="${g.id}"><div class="v600-long-head"><div><strong>${escapeHtml(g.name)}</strong><div class="small">${escapeHtml(catMeta(g.category)?.title||g.category)} · Long terme</div></div><span class="v600-long-badge">Long terme</span></div><div class="v601-long-summary">${levelSummary(g)}</div></div>`).join(''):'<div class="small">Aucun objectif long terme actif.</div>'}`;
- };
-
- const decorateFamily=()=>{const form=document.querySelector('[data-child-goal-form]');if(!form||form.dataset.v601Decorated)return;decorateForm(form);};
- new MutationObserver(decorateFamily).observe(document.body,{subtree:true,childList:true});setTimeout(decorateFamily,0);
- document.addEventListener('submit',async function(e){
-  const form=e.target.closest?.('[data-child-goal-form]');if(!form)return;return;
-  e.preventDefault();e.stopImmediatePropagation();if(!validateLongGoalDates(form))return;const child=window.v580CurrentFamilyChild;if(!child)return alert('Enfant non sélectionné');const name=form.elements.name.value.trim(),category=form.elements.category.value,type=form.elements.type.value,targetRaw=form.elements.target.value.trim(),unitRaw=form.elements.unit.value.trim();if(!name||!targetRaw)return alert('Complète le nom et le niveau 1.');const target=type==='global'?null:Number(targetRaw);if(type==='precise'&&!Number.isFinite(target))return alert('Valeur du niveau 1 non valide.');const baseLabel=type==='global'?targetRaw:null,baseAllowance=Math.max(0,Number(form.elements.baseAllowance?.value||0)),ms=readMilestones(form,{family:true}),sourceCfg=readMetricSource(form);if(ms.some(x=>type==='precise'?(!Number.isFinite(x.target_value)||x.target_value===null):!x.label))return alert('Complète chaque niveau.');if(sourceCfg.data_source==='time'&&!sourceCfg.time_category_id)return alert('Choisis une catégorie dans le suivi du temps.');const c=await supabase.rpc('parent_create_child_goal',{p_child_user_id:child.user_id,p_category:category,p_name:name,p_goal_type:type,p_target_value:target,p_unit:type==='global'?null:(unitRaw||null),p_priority:true});if(c.error)return alert(c.error.message);let id=Number(c.data?.id??c.data);if(!id){const rr=await supabase.rpc('parent_get_child_goals',{p_child_user_id:child.user_id});if(!rr.error){const m=(rr.data||[]).filter(x=>x.name===name&&x.category===category);id=m.length?Math.max(...m.map(x=>Number(x.id)||0)):0}}if(!id)return alert('Objectif créé mais identifiant introuvable.');if(type==='global'){const br=await supabase.rpc('parent_set_goal_base_level_label',{p_goal_id:id,p_label:baseLabel});if(br.error)return alert('Niveau 1 non enregistré : '+br.error.message)}const abr=await supabase.rpc('parent_set_goal_allowance',{p_goal_id:id,p_amount:baseAllowance});if(abr.error)return alert('Montant N1 non enregistré : '+abr.error.message);if(ms.length){const mr=await saveParentGoalMilestones(id,ms);if(mr.error)return alert('Niveaux non enregistrés : '+mr.error.message);for(const x of ms){const ar=await supabase.rpc('parent_set_goal_milestone_allowance',{p_goal_id:id,p_position:Number(x.position),p_amount:Number(x.allowance_amount||0)});if(ar.error)return alert(`Montant N${x.position} non enregistré : `+ar.error.message)}}const sr=await supabase.rpc('parent_set_goal_source',{p_goal_id:id,p_data_source:sourceCfg.data_source,p_time_category_id:sourceCfg.time_category_id,p_time_operator:sourceCfg.time_operator,p_time_target_minutes:sourceCfg.data_source==='time'?Math.round(Number(target)*60):null});if(sr.error)return alert('Source non enregistrée : '+sr.error.message);const cfg=await supabase.rpc('parent_set_child_goal_horizon_v601',{p_goal_id:id,p_horizon:'long_term',p_end_date:form.querySelector('[data-base-target-date]').value});if(cfg.error)return alert('Temporalité long terme non enregistrée : '+cfg.error.message);const sd=await supabase.rpc('parent_set_child_goal_start_date_v603',{p_goal_id:id,p_start_date:form.querySelector('[data-long-start-date]').value});if(sd.error)return alert('Date de début non enregistrée : '+sd.error.message);const dr=await saveParentMilestoneDatesV601(id,ms);if(dr.error)return alert('Dates des niveaux non enregistrées : '+dr.error.message);await renderFamilyChildGoals(child);
- },true);
-})();
-</script>
 
 
 <style id="v610-long-tracking-style">
@@ -5669,27 +5600,6 @@ showLoginLanding();
 .v610-track-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.v610-cumul{font-size:18px;font-weight:800;margin-top:5px}.v610-next{font-size:12px;color:var(--muted);margin-top:3px}.v610-entry{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:12px}.v610-entry label{display:grid;gap:5px;flex:1 1 160px}.v610-entry input,.v610-entry select{width:100%}.v610-entry button{min-height:44px}.v610-reached{font-size:12px;font-weight:800;padding:5px 8px;border-radius:999px;background:#eef7ea;white-space:nowrap}
 @media(max-width:520px){.v610-entry{display:grid;grid-template-columns:1fr}.v610-entry button{width:100%}}
 </style>
-<script id="v610-long-tracking">
-(function(){
- const oldRender=window.renderLongTermGoals;
- const fmtNum=n=>Number(n||0).toLocaleString('fr-FR',{maximumFractionDigits:2});
- function levels(g){return [{position:1,label:g.goal_type==='global'?(g.base_level_label||'Niveau 1'):g.target_value,target:g.target_value},...(g.milestones||[]).map(m=>({position:Number(m.position),label:g.goal_type==='global'?m.label:m.target_value,target:m.target_value}))].sort((a,b)=>a.position-b.position)}
- function reachedFor(g,p){if(g.goal_type==='global')return Number(p.current_level||0);let r=0,t=Number(p.total_progress||0);levels(g).forEach(x=>{if(Number.isFinite(Number(x.target))&&t>=Number(x.target))r=x.position});return r}
- function trackingHtml(g,p){const ls=levels(g),reached=reachedFor(g,p),next=ls.find(x=>x.position>reached),unit=g.unit||'';
-   if(g.goal_type==='global'){
-    const opts=['<option value="0">Pas encore atteint</option>',...ls.map(x=>`<option value="${x.position}" ${Number(p.current_level||0)===x.position?'selected':''}>N${x.position} — ${escapeHtml(String(x.label||''))}</option>`)].join('');
-    return `<div class="v610-track" data-v610-goal="${g.id}" data-v610-type="global"><div class="v610-track-head"><div><strong>${escapeHtml(g.name)}</strong><div class="v610-cumul">Niveau actuel : ${reached?`N${reached}`:'aucun'}</div><div class="v610-next">${next?`Prochain palier : N${next.position} — ${escapeHtml(String(next.label||''))}`:'Objectif final atteint'}</div></div>${reached?`<span class="v610-reached">N${reached} atteint</span>`:''}</div><div class="v610-entry"><label><span>Niveau atteint aujourd’hui</span><select data-v610-level>${opts}</select></label><button class="btn" type="button" data-v610-save>Enregistrer</button></div></div>`;
-   }
-   return `<div class="v610-track" data-v610-goal="${g.id}" data-v610-type="precise"><div class="v610-track-head"><div><strong>${escapeHtml(g.name)}</strong><div class="v610-cumul">Cumul à date : ${fmtNum(p.total_progress)} ${escapeHtml(unit)}</div><div class="v610-next">${next?`Prochain palier : N${next.position} — ${fmtNum(next.target)} ${escapeHtml(unit)}`:'Objectif final atteint'}</div></div>${reached?`<span class="v610-reached">N${reached} atteint</span>`:''}</div><div class="v610-entry"><label><span>Réalisé aujourd’hui</span><input data-v610-value type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label><button class="btn" type="button" data-v610-save>Ajouter</button></div></div>`;
- }
- async function inject(){const host=document.getElementById('longTrackingContent');if(!host||!user)return;host.innerHTML='';const [gr,pr]=await Promise.all([supabase.rpc('get_my_long_goals_v601'),supabase.rpc('get_my_long_goal_progress_v610')]);if(gr.error||pr.error){host.insertAdjacentHTML('afterbegin',`<div class="msg">Suivi V6.1 indisponible : ${escapeHtml((gr.error||pr.error).message)}. Vérifie que le SQL V6.1.0 a été exécuté.</div>`);return}const gs=Array.isArray(gr.data)?gr.data:[],ps=Array.isArray(pr.data)?pr.data:[];const wrap=document.createElement('div');wrap.innerHTML=`<div class="hero"><strong>📈 Suivi long terme</strong><br><span class="small">Saisis seulement ce qui a été réalisé aujourd’hui. Le cumul est recalculé automatiquement.</span></div>${gs.map(g=>trackingHtml(g,ps.find(p=>String(p.goal_id)===String(g.id))||{})).join('')}`;host.prepend(wrap);wrap.querySelectorAll('[data-v610-save]').forEach(btn=>btn.onclick=async()=>{const card=btn.closest('[data-v610-goal]'),id=Number(card.dataset.v610Goal);btn.disabled=true;let r;if(card.dataset.v610Type==='global'){r=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v610-level]').value),p_recorded_on:todayISO()})}else{const inp=card.querySelector('[data-v610-value]'),v=Number(inp.value);if(!Number.isFinite(v)||v<0){btn.disabled=false;return alert('Valeur invalide.')}r=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()})}if(r.error){btn.disabled=false;return alert(r.error.message)}await window.renderLongTermGoals()})}
- window.renderLongTermGoals=async function(){if(oldRender)await oldRender();await inject()};
- // Adapte la validation parentale existante aux paliers V6.1.
- const oldFamily=window.renderFamilyChildGoals;
- if(oldFamily){window.renderFamilyChildGoals=async function(child){await oldFamily(child);const box=document.querySelector('[data-allowance-box]');if(!box)return;box.querySelectorAll('[data-lt-approve],[data-lt-refuse]').forEach(btn=>{const clone=btn.cloneNode(true);btn.replaceWith(clone);clone.onclick=async()=>{const goalId=Number(clone.dataset.ltApprove||clone.dataset.ltRefuse),row=clone.closest('.allowance-row'),txt=row?.textContent||'',m=txt.match(/N(\d+)/),pos=m?Number(m[1]):1;const r=await supabase.rpc('parent_validate_long_goal_milestone_v610',{p_goal_id:goalId,p_milestone_position:pos,p_approved:!!clone.dataset.ltApprove});if(r.error)alert(r.error.message);else await window.renderFamilyChildGoals(child)}})}}
- setTimeout(()=>{if(document.getElementById('longTrackingContent')&&user)window.renderLongTermGoals?.()},800);
-})();
-</script>
 
 
 <style id="v611-prolong-style">
@@ -5746,7 +5656,7 @@ showLoginLanding();
 .v614-horizon-lock{pointer-events:none;opacity:.82;background:#f1eee8!important;color:#5f6770!important;font-weight:750}
 .v614-horizon-note{font-size:11px;color:var(--muted);margin-top:-2px;grid-column:auto}
 </style>
-<!-- V6.1.9: ancien script V6.1.4 de suivi supprimé (course asynchrone / écran Chargement). -->
+<!-- V6.2.1: suppression des anciens moteurs parallèles de création/suivi long terme. -->
 
 <style id="v612-navigation-style">
 /* V6.1.2 — la temporalité est imposée par l'onglet, plus choisie dans le formulaire. */
@@ -5784,9 +5694,7 @@ showLoginLanding();
  window.applyObjectiveFilter=function(filter){
    filter=filter||'overview';
    const host=document.getElementById('objectiveCategories');
-   const longHost=document.getElementById('longTermGoals');
    document.querySelectorAll('#objectives .v579-objective-overview').forEach(el=>el.style.display=filter==='overview'?'':'none');
-   if(longHost)longHost.style.display='none'; // ancien écran mixte conservé techniquement mais non affiché
    if(host){
      host.querySelectorAll('.category').forEach(card=>{
        if(card.classList.contains('helper-category')){card.style.display=filter==='overview'?'':'none';return}
@@ -5848,7 +5756,7 @@ showLoginLanding();
 
 
 <style id="v613-longterm-style">
-/* V6.1.3 — adulte uniquement : administration LT par thème + suivi cumulatif. */
+/* V6.2.1 — administration LT = vue filtrée du moteur objectifs unique ; suivi cumulatif séparé. */
 .v613-theme-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 14px}
 .v613-theme-btn{border:1px solid #d8d1c8;background:#fff;border-radius:13px;min-height:48px;padding:8px 7px;font-weight:750;font-size:12px;color:inherit}
 .v613-theme-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
@@ -5914,15 +5822,22 @@ showLoginLanding();
   const total=Number(p.total_progress||0),target=next?Number(next.target):Number(last?.target||0),pct=target>0?Math.max(0,Math.min(100,total/target*100)):0,unit=g.unit||'';
   return `<div class="v613-track ${!next?'v613-done':''}" data-v613-goal="${g.id}" data-v613-type="precise"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(theme)}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div><div class="v613-kpis"><div class="v613-kpi"><span>Cumul à date</span><strong>${num(total)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?num(next.target)+' '+escapeHtml(unit):'Objectif final atteint'}</strong></div></div><div class="v613-bar"><div style="width:${pct}%"></div></div><div class="v613-progress-note">${next?`${num(total)} / ${num(next.target)} ${escapeHtml(unit)}`:`${num(total)} ${escapeHtml(unit)} — dernier palier atteint`}</div><div class="v613-entry"><label>Réalisé aujourd’hui<input data-v613-value type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label><button type="button" class="btn" data-v613-save>Ajouter</button></div></div>`;
  }
- async function renderTracking(){
-  const host=document.getElementById('longTrackingContent');if(!host)return;
+ async function renderLongTrackingV621(){
+  const host=document.getElementById('longTrackingContent');
+  if(!host)return;
   if(!user){host.innerHTML='<div class="small">Connexion en cours…</div>';return}
 
-  // V6.1.6 : les objectifs sont déjà chargés par refreshGoals().
-  // Le suivi ne dépend donc plus de get_my_long_goals_v601 pour s'afficher.
-  // On affiche immédiatement les cartes, puis on hydrate le cumul depuis goal_progress.
-  const items=(Array.isArray(longGoals)?longGoals:[]).filter(g=>g&&g.active!==false&&(g.objective_horizon||'daily')==='long_term');
-  if(!items.length){host.innerHTML='<div class="card"><div class="general small">Aucun objectif long terme actif.</div></div>';return}
+  // V6.2.1 — architecture unifiée : le suivi ne recharge PAS un autre type d’objectif.
+  // Il affiche exactement les mêmes objets `goals` déjà chargés par refreshGoals(),
+  // simplement filtrés sur objective_horizon = long_term.
+  const items=(Array.isArray(longGoals)?longGoals:[])
+    .filter(g=>g && g.active!==false && (g.objective_horizon||'daily')==='long_term')
+    .sort((a,b)=>Number(a.id)-Number(b.id));
+
+  if(!items.length){
+    host.innerHTML='<div class="card"><div class="small">Aucun objectif long terme actif. Les objectifs affichés ici sont exactement ceux créés dans Objectifs → Long terme.</div></div>';
+    return;
+  }
 
   let ps=items.map(g=>({goal_id:g.id,total_progress:0,current_level:0,today_value:g.goal_type==='precise'?0:null}));
   const paint=()=>{
@@ -5930,49 +5845,37 @@ showLoginLanding();
    host.querySelectorAll('[data-v613-save]').forEach(btn=>btn.onclick=async()=>{
     const card=btn.closest('[data-v613-goal]'),id=Number(card.dataset.v613Goal);btn.disabled=true;
     let res;
-    if(card.dataset.v613Type==='global')res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v613-level]').value),p_recorded_on:todayISO()});
-    else{const v=Number(card.querySelector('[data-v613-value]').value);if(!Number.isFinite(v)||v<=0){btn.disabled=false;return alert('Saisis une progression supérieure à 0.')}res=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()})}
-    if(res.error){btn.disabled=false;return alert(res.error.message)}await renderTracking();
+    if(card.dataset.v613Type==='global'){
+      res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v613-level]').value),p_recorded_on:todayISO()});
+    }else{
+      const v=Number(card.querySelector('[data-v613-value]').value);
+      if(!Number.isFinite(v)||v<=0){btn.disabled=false;return alert('Saisis une progression supérieure à 0.')}
+      res=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()});
+    }
+    if(res.error){btn.disabled=false;return alert(res.error.message)}
+    await window.renderLongTrackingV621();
    });
   };
+
+  // Affiche d’abord les mêmes objectifs que l’écran de création/admin.
   paint();
 
-  // Lecture directe et bornée à l'utilisateur connecté : évite qu'une RPC de synthèse bloque tout l'écran.
-  const ids=items.map(g=>Number(g.id)).filter(Number.isFinite);
-  if(!ids.length)return;
-  const rr=await supabase.from('goal_progress')
-    .select('goal_id,recorded_on,progress_value,entry_kind')
-    .eq('user_id',user.id)
-    .in('goal_id',ids);
-  if(rr.error){
-    const note=document.createElement('div');note.className='small';note.style.marginTop='10px';
-    note.textContent='Cumul non chargé : '+rr.error.message;
+  // Seule la progression est spécifique au suivi ; l’objet objectif reste le même.
+  const pr=await supabase.rpc('get_my_long_goal_progress_v610');
+  if(pr.error){
+    const note=document.createElement('div');note.className='msg';note.style.marginTop='10px';
+    note.textContent='Objectifs chargés, mais progression indisponible : '+pr.error.message;
     host.appendChild(note);return;
   }
-  const rows=Array.isArray(rr.data)?rr.data:[];
-  ps=items.map(g=>{
-    const mine=rows.filter(r=>String(r.goal_id)===String(g.id));
-    if(g.goal_type==='global'){
-      const levels=mine.filter(r=>r.entry_kind==='level').map(r=>Number(r.progress_value||0)).filter(Number.isFinite);
-      return {goal_id:g.id,total_progress:0,current_level:levels.length?Math.max(...levels):0,today_value:null};
-    }
-    const inc=mine.filter(r=>r.entry_kind==='increment');
-    const total=inc.reduce((a,r)=>a+(Number(r.progress_value)||0),0);
-    const today=inc.filter(r=>String(r.recorded_on)===todayISO()).reduce((a,r)=>a+(Number(r.progress_value)||0),0);
-    return {goal_id:g.id,total_progress:total,current_level:0,today_value:today};
-  });
+  ps=Array.isArray(pr.data)?pr.data:[];
   paint();
  }
- window.renderLongTermGoals=async function(){
-  try{return await renderTracking()}
-  catch(err){
-   console.error('V6.1.9 suivi long terme',err);
-   const host=document.getElementById('longTrackingContent');
-   if(host)host.innerHTML=`<div class="msg">Erreur de suivi : ${escapeHtml(err?.message||String(err))}</div>`;
-  }
+ window.renderLongTrackingV621=async function(){
+  try{return await renderLongTrackingV621()}
+  catch(err){console.error('V6.2.1 suivi long terme',err);const host=document.getElementById('longTrackingContent');if(host)host.innerHTML=`<div class="msg">Erreur de suivi : ${escapeHtml(err?.message||String(err))}</div>`}
  };
- document.addEventListener('click',e=>{const tab=e.target.closest?.('.tab[data-panel="longTracking"]');if(tab)setTimeout(()=>window.renderLongTermGoals?.(),0)});
- setTimeout(()=>{decorateAdmin();if(document.getElementById('longTracking')?.classList.contains('active'))window.renderLongTermGoals?.()},300);
+ document.addEventListener('click',e=>{const tab=e.target.closest?.('.tab[data-panel="longTracking"]');if(tab)setTimeout(()=>window.renderLongTrackingV621?.(),0)});
+ setTimeout(()=>{decorateAdmin();if(document.getElementById('longTracking')?.classList.contains('active'))window.renderLongTrackingV621?.()},300);
 })();
 </script>
 </body>
