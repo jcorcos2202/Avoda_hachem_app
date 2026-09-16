@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.1.4 — admin long terme par thème + suivi cumulatif adulte fiabilisé -->
+<!-- Avoda Hachem — Version V6.1.5 — correction blocage chargement suivi long terme adulte -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.1.4</title>
+<title>Avoda Hachem V6.1.5</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -5950,13 +5950,17 @@ showLoginLanding();
   return `<div class="v613-track ${!next?'v613-done':''}" data-v613-goal="${g.id}" data-v613-type="precise"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(theme)}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div><div class="v613-kpis"><div class="v613-kpi"><span>Cumul à date</span><strong>${num(total)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?num(next.target)+' '+escapeHtml(unit):'Objectif final atteint'}</strong></div></div><div class="v613-bar"><div style="width:${pct}%"></div></div><div class="v613-progress-note">${next?`${num(total)} / ${num(next.target)} ${escapeHtml(unit)}`:`${num(total)} ${escapeHtml(unit)} — dernier palier atteint`}</div><div class="v613-entry"><label>Réalisé aujourd’hui<input data-v613-value type="number" min="0" step="any" inputmode="decimal" placeholder="0"></label><button type="button" class="btn" data-v613-save>Ajouter</button></div></div>`;
  }
  async function renderTracking(){
-  const host=document.getElementById('longTrackingContent');if(!host||!user)return;
+  const host=document.getElementById('longTrackingContent');if(!host)return;
   host.innerHTML='<div class="small">Chargement du suivi…</div>';
-  // refreshGoals hydrate les paliers depuis le moteur existant ; le RPC de progression ne fournit que les réalisations.
-  try{await refreshGoals()}catch(e){}
-  const pr=await supabase.rpc('get_my_long_goal_progress_v610');
-  if(pr.error){host.innerHTML=`<div class="msg">Suivi long terme indisponible : ${escapeHtml(pr.error.message)}</div>`;return}
-  const items=(longGoals||[]).filter(g=>g.active!==false),ps=Array.isArray(pr.data)?pr.data:[];
+  if(!user){host.innerHTML='<div class="small">Connexion en cours…</div>';return}
+  // V6.1.5 : ne plus appeler refreshGoals() ici. Cette fonction déclenche elle-même les rendus
+  // et créait une boucle de rendu laissant l'écran bloqué sur « Chargement du suivi… ».
+  const [gr,pr]=await Promise.all([
+    supabase.rpc('get_my_long_goals_v601'),
+    supabase.rpc('get_my_long_goal_progress_v610')
+  ]);
+  if(gr.error||pr.error){const err=gr.error||pr.error;host.innerHTML=`<div class="msg">Suivi long terme indisponible : ${escapeHtml(err.message)}</div>`;return}
+  const items=(Array.isArray(gr.data)?gr.data:[]).filter(g=>g.active!==false),ps=Array.isArray(pr.data)?pr.data:[];
   host.innerHTML=items.length?items.map(g=>trackingCard(g,ps.find(p=>String(p.goal_id)===String(g.id))||{})).join(''):'<div class="card"><div class="general small">Aucun objectif long terme actif.</div></div>';
   host.querySelectorAll('[data-v613-save]').forEach(btn=>btn.onclick=async()=>{
    const card=btn.closest('[data-v613-goal]'),id=Number(card.dataset.v613Goal);btn.disabled=true;
