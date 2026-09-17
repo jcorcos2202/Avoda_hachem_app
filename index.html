@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.2.5 — correction date locale du suivi long terme -->
+<!-- Avoda Hachem — Version V6.2.6 — date de travail unique + suivi long terme daté -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.2.5</title>
+<title>Avoda Hachem V6.2.6</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -127,6 +127,15 @@ textarea{width:100%;min-height:62px;resize:vertical;margin-top:9px}.btn{border:0
 
 
 /* V6.0.10 — le formulaire de modification conserve Court/Long et les dates ; la case de sélection reste utilisable pour les objectifs longs personnels. */
+
+/* V6.2.6 — la date sélectionnée est la date de travail de toute l’application */
+.v626-date-nav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;overflow:visible}
+.v626-date-nav>button{margin:0}
+.v626-selected-date{min-height:44px;border:1px solid #d8d1c8;background:#fff;border-radius:999px;padding:9px 14px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:800;line-height:1.15}
+.v626-return-today{grid-column:1/-1;justify-self:center;min-height:38px!important;padding:7px 14px!important;font-size:.92rem;color:#0d5b8d!important;border-color:#b8d3e4!important;background:#f5fbff!important}
+.v626-return-today[hidden]{display:none!important}
+.v626-workdate-note{margin-top:8px;color:#6f7d88;font-size:.84rem;line-height:1.35}
+@media(max-width:520px){.v626-selected-date{font-size:.98rem}.v626-date-nav{gap:8px}}
 </style>
 
 <style id="v574-friendly-skin">
@@ -3240,7 +3249,7 @@ body.v5816-app-open .topbar{
 
   <div class="v574-header">
     <div class="v574-appname">Avoda Hachem ✨</div>
-    <div class="v617-version"><span class="v618-version-badge">Version 6.2.5</span></div>
+    <div class="v617-version"><span class="v618-version-badge">Version 6.2.6</span></div>
     <div class="v574-tagline">Grandir chaque jour, un objectif après l’autre.</div>
     <div class="v574-values">
       <span class="torah">📖 Torah</span>
@@ -3257,7 +3266,7 @@ body.v5816-app-open .topbar{
       <button id="profileBtn" class="logout" type="button">Mon profil</button><button id="logoutBtn" class="logout" type="button">Déconnexion</button>
     </div>
   </div>
-  <div class="date-nav"><button id="prevDay">‹</button><button id="todayBtn">Aujourd’hui</button><button id="nextDay">›</button></div>
+  <div class="date-nav v626-date-nav"><button id="prevDay" aria-label="Jour précédent">‹</button><div id="selectedDatePill" class="v626-selected-date" aria-live="polite"></div><button id="nextDay" aria-label="Jour suivant">›</button><button id="todayBtn" class="v626-return-today" type="button">↩ Revenir à aujourd’hui</button></div>
   <div class="tabs">
     <button class="tab active" data-panel="objectives">Objectifs</button>
     <button class="tab" data-panel="evening">Bilan du soir</button>
@@ -3654,6 +3663,13 @@ function todayISO(){const d=new Date();return `${d.getFullYear()}-${String(d.get
 function shiftDate(iso,n){const [y,m,d]=iso.split("-").map(Number),x=new Date(y,m-1,d);x.setDate(x.getDate()+n);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`}
 function pretty(iso){const [y,m,d]=iso.split("-").map(Number);return new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date(y,m-1,d)).replace(/^./,c=>c.toUpperCase())}
 function prettyShort(iso){const [y,m,d]=iso.split("-").map(Number);return new Intl.DateTimeFormat("fr-FR",{day:"numeric",month:"long"}).format(new Date(y,m-1,d))}
+function prettyNavDate(iso){const [y,m,d]=iso.split("-").map(Number);const dt=new Date(y,m-1,d);const base=new Intl.DateTimeFormat("fr-FR",{weekday:"short",day:"numeric",month:"short"}).format(dt).replace(/\.$/,"");return base.replace(/^./,c=>c.toUpperCase())}
+function updateSelectedDateUI(){
+ const pill=document.getElementById("selectedDatePill"),back=document.getElementById("todayBtn");
+ const isToday=currentDay===todayISO();
+ if(pill)pill.textContent=isToday?`Aujourd’hui · ${prettyShort(currentDay)}`:prettyNavDate(currentDay);
+ if(back)back.hidden=isToday;
+}
 function catMeta(k){return CATS.find(c=>c.key===k)}function msg(id,t){document.getElementById(id).textContent=t}
 function pct(a,b){return b>0?Math.round(a/b*100):0}
 function isPastDay(){return currentDay<todayISO()}
@@ -4066,6 +4082,7 @@ async function loadDay(showSpinner=true){
  try{
  if(dayDraftDirty) await saveDayDraft();
  document.getElementById("currentDate").textContent=pretty(currentDay);
+ updateSelectedDateUI();
  const copyPrevBtn=document.getElementById("copyPrevGoalsBtn");
  if(copyPrevBtn){const prevLabel=prettyShort(shiftDate(currentDay,-1));copyPrevBtn.innerHTML=`<span aria-hidden="true">↩︎</span><span><span class="copy-main">Reprendre les objectifs du ${prevLabel}</span><span class="copy-sub">Copie ponctuelle depuis la veille</span></span>`;}
  const copyPrevMsg=document.getElementById("copyPrevGoalsMsg");if(copyPrevMsg)copyPrevMsg.textContent="";
@@ -4089,6 +4106,7 @@ async function loadDay(showSpinner=true){
  const st=document.getElementById("draftSaveState");if(st)st.textContent="";
  renderObjectives();renderEvening();renderBerakhot();
  if(document.getElementById("time")?.classList.contains("active")) renderTime();
+ if(document.getElementById("longTracking")?.classList.contains("active")) await renderLongTrackingV624();
  }finally{if(showSpinner)hideLoading()}
 }
 function makeGoalRow(g,selected){
@@ -5407,7 +5425,7 @@ async function renderSummary2(){
 }
 
 
-// V6.2.5 — Vue de suivi du MEME objet goals ; journée calculée selon la date locale envoyée par le client.
+// V6.2.6 — Vue de suivi du MEME objet goals ; toute lecture/saisie utilise currentDay, la date de travail choisie dans l’application.
 // L'onglet Long terme est uniquement une vue : mêmes goals, filtrés par catégorie.
 // Quantitatif : cumul veille (figé) + valeur du jour (modifiable) = cumul actuel.
 let longTrackingThemeV624=null;
@@ -5462,8 +5480,9 @@ async function renderLongTrackingV624(){
     return `<div class="v613-track" data-v622-goal="${g.id}" data-v622-type="global"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(catMeta(g.category)?.title||g.category||'')}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div>${dateStrip(g,next)}<div class="v613-kpis"><div class="v613-kpi"><span>Niveau actuel</span><strong>${r?'N'+r:'Aucun'}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?'N'+next.position:'Terminé'}</strong></div><div class="v613-kpi"><span>Cible</span><strong>${next?escapeHtml(String(next.label||'')):'Objectif final atteint'}</strong></div></div><div class="v613-entry"><label>Niveau atteint<select data-v622-level>${opts}</select></label><button type="button" class="btn" data-v622-save>Enregistrer</button></div></div>`;
    }
    const total=Number(p.total_progress||0),today=Number(p.today_value||0),yesterday=total-today;
+   const prevDayLabel=prettyShort(shiftDate(currentDay,-1)), workDayLabel=prettyShort(currentDay);
    const target=next?Number(next.target):Number(ls.at(-1)?.target||0),pct=target>0?Math.max(0,Math.min(100,total/target*100)):0;
-   return `<div class="v613-track" data-v622-goal="${g.id}" data-v622-type="precise"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(catMeta(g.category)?.title||g.category||'')}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div>${dateStrip(g,next)}<div class="v613-kpis v624-kpis"><div class="v613-kpi"><span>Cumul à la veille</span><strong>${n(yesterday)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Aujourd’hui</span><strong>${n(today)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Cumul actuel</span><strong>${n(total)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?`N${next.position} · ${n(next.target)} ${escapeHtml(unit)}`:'Terminé'}</strong></div></div><div class="v613-bar"><div style="width:${pct}%"></div></div><div class="v613-progress-note">${next?`${n(total)} / ${n(next.target)} ${escapeHtml(unit)} vers N${next.position}`:`${n(total)} ${escapeHtml(unit)} — dernier palier atteint`}</div><div class="v613-entry v624-entry"><label>Réalisé aujourd’hui<input data-v622-value type="number" min="0" step="any" inputmode="decimal" value="${escapeHtml(inputNum(today))}"></label><button type="button" class="btn" data-v622-save>Enregistrer</button></div><div class="v623-today-note">Le cumul de la veille est figé. Cette saisie est uniquement celle d’aujourd’hui et peut être corrigée jusqu’à la fin de la journée.</div></div>`;
+   return `<div class="v613-track" data-v622-goal="${g.id}" data-v622-type="precise"><div class="v613-track-head"><div><div class="v613-track-title">${escapeHtml(g.name)}</div><div class="v613-track-theme">${escapeHtml(catMeta(g.category)?.title||g.category||'')}</div></div>${r?`<span class="v613-reached">N${r} atteint</span>`:''}</div>${dateStrip(g,next)}<div class="v613-kpis v624-kpis"><div class="v613-kpi"><span>Cumul au ${escapeHtml(prevDayLabel)}</span><strong>${n(yesterday)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Réalisé le ${escapeHtml(workDayLabel)}</span><strong>${n(today)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Cumul au ${escapeHtml(workDayLabel)}</span><strong>${n(total)} ${escapeHtml(unit)}</strong></div><div class="v613-kpi"><span>Prochain palier</span><strong>${next?`N${next.position} · ${n(next.target)} ${escapeHtml(unit)}`:'Terminé'}</strong></div></div><div class="v613-bar"><div style="width:${pct}%"></div></div><div class="v613-progress-note">${next?`${n(total)} / ${n(next.target)} ${escapeHtml(unit)} vers N${next.position}`:`${n(total)} ${escapeHtml(unit)} — dernier palier atteint`}</div><div class="v613-entry v624-entry"><label>Réalisé le ${escapeHtml(workDayLabel)}<input data-v622-value type="number" min="0" step="any" inputmode="decimal" value="${escapeHtml(inputNum(today))}"></label><button type="button" class="btn" data-v622-save>Enregistrer</button></div><div class="v623-today-note">La saisie concerne la date sélectionnée dans l’application. Tu peux revenir sur une date passée pour la corriger ; les cumuls suivants seront recalculés.</div></div>`;
   }).join('');
   if(!cards)cards='<div class="card"><div class="small">Aucun objectif long terme dans cette catégorie.</div></div>';
   host.innerHTML=tabsHtml()+cards+(note?`<div class="msg" style="margin-top:10px">${escapeHtml(note)}</div>`:'');
@@ -5472,15 +5491,15 @@ async function renderLongTrackingV624(){
   host.querySelectorAll('[data-v622-save]').forEach(btn=>btn.onclick=async()=>{
    const card=btn.closest('[data-v622-goal]'),id=Number(card.dataset.v622Goal);btn.disabled=true;
    let res;
-   if(card.dataset.v622Type==='global')res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v622-level]').value),p_recorded_on:todayISO()});
-   else{const v=Number(card.querySelector('[data-v622-value]').value);if(!Number.isFinite(v)||v<0){btn.disabled=false;return alert('Saisis une progression positive ou 0.')}res=await supabase.rpc('set_my_long_goal_day_value_v623',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()});}
+   if(card.dataset.v622Type==='global')res=await supabase.rpc('set_my_long_goal_day_level_v626',{p_goal_id:id,p_level:Number(card.querySelector('[data-v622-level]').value),p_recorded_on:currentDay});
+   else{const v=Number(card.querySelector('[data-v622-value]').value);if(!Number.isFinite(v)||v<0){btn.disabled=false;return alert('Saisis une progression positive ou 0.')}res=await supabase.rpc('set_my_long_goal_day_value_v623',{p_goal_id:id,p_value:v,p_recorded_on:currentDay});}
    if(res.error){btn.disabled=false;return alert(res.error.message)}
    await renderLongTrackingV624();
   });
  }
 
  paint(mr.error?'Paliers non chargés : '+mr.error.message:'');
- const pr=await supabase.rpc('get_my_long_goal_progress_v625',{p_recorded_on:todayISO()});
+ const pr=await supabase.rpc('get_my_long_goal_progress_v626',{p_recorded_on:currentDay});
  if(pr.error){paint('Progression non chargée : '+pr.error.message);return}
  ps=Array.isArray(pr.data)?pr.data:[];
  paint();
@@ -5926,11 +5945,11 @@ showLoginLanding();
     const card=btn.closest('[data-v613-goal]'),id=Number(card.dataset.v613Goal);btn.disabled=true;
     let res;
     if(card.dataset.v613Type==='global'){
-      res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v613-level]').value),p_recorded_on:todayISO()});
+      res=await supabase.rpc('record_my_long_goal_level_v610',{p_goal_id:id,p_level:Number(card.querySelector('[data-v613-level]').value),p_recorded_on:currentDay});
     }else{
       const v=Number(card.querySelector('[data-v613-value]').value);
       if(!Number.isFinite(v)||v<=0){btn.disabled=false;return alert('Saisis une progression supérieure à 0.')}
-      res=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:todayISO()});
+      res=await supabase.rpc('record_my_long_goal_increment_v610',{p_goal_id:id,p_value:v,p_recorded_on:currentDay});
     }
     if(res.error){btn.disabled=false;return alert(res.error.message)}
     await renderLongTrackingV622();
@@ -5941,7 +5960,7 @@ showLoginLanding();
   paint();
 
   // Seule la progression est spécifique au suivi ; l’objet objectif reste le même.
-  const pr=await supabase.rpc('get_my_long_goal_progress_v625',{p_recorded_on:todayISO()});
+  const pr=await supabase.rpc('get_my_long_goal_progress_v626',{p_recorded_on:currentDay});
   if(pr.error){
     const note=document.createElement('div');note.className='msg';note.style.marginTop='10px';
     note.textContent='Objectifs chargés, mais progression indisponible : '+pr.error.message;
@@ -5966,7 +5985,7 @@ showLoginLanding();
 .v623-today-note{font-size:11px;color:var(--muted);line-height:1.4;margin-top:7px}
 @media(max-width:520px){.v623-dates{grid-template-columns:1fr 1fr}}
 
-/* V6.2.5 — suivi long terme par domaine + stock/flux selon date locale */
+/* V6.2.6 — suivi long terme par domaine + stock/flux selon date locale */
 .v624-track-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
 .v624-track-tab{min-height:42px;padding:9px 10px;border:1px solid var(--line);border-radius:13px;background:#fff;color:#43515e;font-weight:800;font-size:12px;cursor:pointer}
 .v624-track-tab.active{background:#173c5d;color:#fff;border-color:#173c5d;box-shadow:0 5px 12px rgba(23,60,93,.15)}
