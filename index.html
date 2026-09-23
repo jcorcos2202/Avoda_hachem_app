@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.2.8 — argent de poche long terme relié aux validations cumulatives par palier -->
+<!-- Avoda Hachem — Version V6.2.9 — correction ciblée des validations parent quotidiennes manquantes -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
 <link rel="manifest" href="manifest.webmanifest">
-<title>Avoda Hachem V6.2.6</title>
+<title>Avoda Hachem V6.2.9</title>
 <style>
 :root{--bg:#f5f2ec;--card:#fff;--text:#202428;--muted:#70757a;--line:#e2dcd3;--accent:#24483a;--soft:#ebe6dd;--good:#dce9e2;--warn:#f0e5c7;--bad:#eddcdc}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif}
@@ -5084,6 +5084,10 @@ async function renderFamilyChildGoals(child){
   supabase.rpc("parent_get_child_long_goals_v601",{p_child_user_id:child.user_id}),
   supabase.rpc("parent_get_child_long_goal_progress_v611",{p_child_user_id:child.user_id})
  ]);
+ // V6.2.9 — source complémentaire dédiée aux réussites quotidiennes en attente.
+ // Elle évite qu'une catégorie (notamment service_hachem) disparaisse de la vue parent
+ // tout en conservant parent_get_child_allowance comme source des totaux/historique.
+ const pfr=await supabase.rpc("parent_get_child_pending_allowance_v629",{p_child_user_id:child.user_id});
  if(gr.error){host.innerHTML=`<div class="child-goals-panel"><div class="msg">Objectifs indisponibles : ${escapeHtml(gr.error.message)}</div></div>`;return}
  const horizonRows=hr?.error?[]:(hr?.data||[]),childGoals=(gr.data||[]).map(g=>Object.assign({},g,horizonRows.find(h=>String(h.id)===String(g.id))||{})),finance=ar.data||{},spontaneous=sr.error?{week_net:0,total_net:0,pending_events:[],decisions:[]}:sr.data||{},childMilestones=mr.error?[]:(mr.data||[]),childBases=br.error?[]:(br.data||[]),childSources=xsr?.error?[]:(xsr?.data||[]),longAllowance=lar?.error?{week_earned:0,total_earned:0,pending_amount:0,pending:[],decisions:[]}:(lar?.data||{}),familyLongRows=lgr?.error?[]:(Array.isArray(lgr?.data)?lgr.data:[]),familyLongProgress=pgr?.error?[]:(Array.isArray(pgr?.data)?pgr.data:[]);
  childGoals.forEach(g=>{
@@ -5146,7 +5150,13 @@ async function renderFamilyChildGoals(child){
  draw();
  if(typeof window.v627FinalizeFamilyLongTerm==="function")window.v627FinalizeFamilyLongTerm(host,childGoals,familyLongProgress,child);
 
- const box=host.querySelector("[data-allowance-box]"),pending=finance.pending||[],decisions=finance.decisions||[],payments=finance.payments||[];
+ const box=host.querySelector("[data-allowance-box]");
+ const legacyPending=Array.isArray(finance.pending)?finance.pending:[];
+ const supplementalPending=pfr?.error||!Array.isArray(pfr?.data)?[]:pfr.data;
+ const pending=[...legacyPending];
+ const pendingIds=new Set(pending.map(x=>String(x.daily_goal_id)));
+ supplementalPending.forEach(x=>{if(x?.daily_goal_id!=null&&!pendingIds.has(String(x.daily_goal_id))){pending.push(x);pendingIds.add(String(x.daily_goal_id))}});
+ const decisions=finance.decisions||[],payments=finance.payments||[];
  const spontPending=spontaneous.pending_events||[],spontDecisions=spontaneous.decisions||[];
  const spontWeek=Number(spontaneous.week_net||0),spontTotal=Number(spontaneous.total_net||0),longWeek=Number(longAllowance.week_earned||0),longTotal=Number(longAllowance.total_earned||0);
  const combinedWeek=Number(finance.week_earned||0)+spontWeek+longWeek,combinedBalance=Number(finance.balance||0)+spontTotal+longTotal,combinedPending=Number(finance.pending_amount||0)+Number(longAllowance.pending_amount||0);
