@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<!-- Avoda Hachem — Version V6.4.1 — export Excel Dons & Maasser -->
+<!-- Avoda Hachem — Version V6.4.3 — Dons & Maasser commun aux deux parents -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f5f2ec">
@@ -3315,7 +3315,7 @@ body.v5816-app-open .topbar{
 
   <div class="v574-header">
     <div class="v574-appname">Avoda Hachem ✨</div>
-    <div class="v617-version"><span class="v618-version-badge">Version 6.4.1</span></div>
+    <div class="v617-version"><span class="v618-version-badge">Version 6.4.3</span></div>
     <div class="v574-tagline">Grandir chaque jour, un objectif après l’autre.</div>
     <div class="v574-values">
       <span class="torah">📖 Torah</span>
@@ -3625,7 +3625,7 @@ body.v5816-app-open .topbar{
 
 
   <section id="maasser" class="panel">
-    <div class="hero maasser-hero"><strong>💰 Dons & Maasser</strong><br>Enregistre tes revenus et tes dons. Tu décides pour chaque ligne si elle entre dans le calcul du maasser.</div>
+    <div class="hero maasser-hero"><strong>💰 Dons & Maasser</strong><br>Compte commun aux parents de la famille. Les revenus, dons, justificatifs et synthèses sont partagés entre les deux comptes adultes.</div>
     <div class="card">
       <div class="maasser-toolbar"><label><span>Mois affiché</span><input id="maasserMonth" type="month"></label><button id="maasserRefresh" class="btn" type="button">Actualiser</button></div>
       <div id="maasserSummary" class="maasser-summary"></div>
@@ -3639,7 +3639,7 @@ body.v5816-app-open .topbar{
           <label><span>Type de revenu</span><select id="incomeType" required><option value="salary">Salaire</option><option value="dividends">Dividendes</option><option value="rent">Loyers</option><option value="other">Autre</option></select></label>
           <label><span>Libellé</span><input id="incomeLabel" type="text" maxlength="160" placeholder="Ex. salaire septembre"></label>
           <div class="maasser-checks"><label><input id="incomeMaasser" type="checkbox" checked> Maasser oui</label></div>
-          <button class="btn wide" type="submit">Ajouter le revenu</button>
+          <button id="incomeSubmitBtn" class="btn wide" type="submit">Ajouter le revenu</button><button id="incomeCancelEdit" class="btn secondary wide" type="button" style="display:none">Annuler la modification</button>
         </form><div id="incomeMsg" class="msg"></div>
       </div>
       <div class="card">
@@ -3651,7 +3651,7 @@ body.v5816-app-open .topbar{
           <label class="wide"><span>Commentaire</span><input id="donationNotes" type="text" maxlength="240" placeholder="Facultatif"></label>
           <label class="wide"><span>Photo / justificatif</span><input id="donationReceipt" type="file" accept="image/*,application/pdf"></label>
           <div class="maasser-checks"><label><input id="donationMaasser" type="checkbox" checked> Maasser oui</label><label><input id="donationCerfa" type="checkbox"> CERFA oui</label></div>
-          <button class="btn wide" type="submit">Ajouter le don</button>
+          <button id="donationSubmitBtn" class="btn wide" type="submit">Ajouter le don</button><button id="donationCancelEdit" class="btn secondary wide" type="button" style="display:none">Annuler la modification</button>
         </form><div id="donationMsg" class="msg"></div>
       </div>
     </div>
@@ -5112,10 +5112,11 @@ async function ensureCurrentProfileRole(){
  if(!user){appProfile=null;return}
  const r=await supabase.from("app_family_members").select("id,family_id,user_id,first_name,birth_date,sex,profile_type").eq("user_id",user.id).maybeSingle();
  if(!r.error)appProfile=r.data||null;
- applyV574Theme();
+ applyV574Theme();syncMaasserAccess();
 }
 function isChildProfile(){return appProfile?.profile_type==="child"}
 function isParentProfile(){return appProfile?.profile_type==="parent"}
+function syncMaasserAccess(){const tab=document.querySelector('.tab[data-panel="maasser"]');if(tab)tab.style.display=isParentProfile()?'':'none';if(!isParentProfile()&&document.getElementById('maasser')?.classList.contains('active'))setPanel('objectives')}
 function isParentAssignedGoal(g){return g?.goal_origin==="parent"}
 function isSystemGoal(g){return g?.goal_origin==="system"||isDailyReviewGoal(g)}
 function isMandatoryChildGoal(g){return isChildProfile()&&(isParentAssignedGoal(g)||isSystemGoal(g))}
@@ -5148,7 +5149,7 @@ async function loadAppProfile(){
  const r=await supabase.from("app_family_members")
    .select("id,family_id,user_id,first_name,birth_date,sex,profile_type")
    .eq("user_id",user.id).maybeSingle();
- appProfile=r.data||null;appProfileFamily=null;
+ appProfile=r.data||null;appProfileFamily=null;syncMaasserAccess();
  const status=document.getElementById("profileStatus");
  if(r.error){status.textContent="Profil familial indisponible pour le moment.";renderProfileRead();return}
  if(appProfile?.family_id){
@@ -5746,12 +5747,13 @@ function maasserMonthBounds(ym){const [y,m]=String(ym).split('-').map(Number);if
 function maasserSelectedMonth(){const el=document.getElementById('maasserMonth');if(el&&!el.value)el.value=currentDay.slice(0,7);return el?.value||currentDay.slice(0,7)}
 function maasserDate(v){const iso=String(v||'').slice(0,10);if(!iso)return '';try{return new Intl.DateTimeFormat('fr-FR').format(new Date(iso+'T12:00:00'))}catch{return iso}}
 function maasserSetDefaults(){const m=document.getElementById('maasserMonth'),i=document.getElementById('incomeDate'),d=document.getElementById('donationDate');if(m&&!m.value)m.value=currentDay.slice(0,7);if(i&&!i.value)i.value=currentDay;if(d&&!d.value)d.value=currentDay}
+function maasserFamilyId(){return appProfile?.profile_type==='parent'?appProfile?.family_id:null}
 async function loadMaasserData(){
- const ym=maasserSelectedMonth(),b=maasserMonthBounds(ym);if(!b||!user)return null;
+ const ym=maasserSelectedMonth(),b=maasserMonthBounds(ym),familyId=maasserFamilyId();if(!b||!user)return null;if(!familyId)throw new Error('Le compte Maasser est réservé aux parents rattachés à une famille.');
  const yearStart=`${b.year}-01-01`,yearNext=`${b.year+1}-01-01`;
  const [dr,ir]=await Promise.all([
-  supabase.from('donations').select('*').eq('user_id',user.id).gte('donation_date',yearStart).lt('donation_date',yearNext).order('donation_date',{ascending:false}).order('id',{ascending:false}),
-  supabase.from('maasser_income').select('*').eq('user_id',user.id).gte('income_date',yearStart).lt('income_date',yearNext).order('income_date',{ascending:false}).order('id',{ascending:false})
+  supabase.from('donations').select('*').eq('family_id',familyId).gte('donation_date',yearStart).lt('donation_date',yearNext).order('donation_date',{ascending:false}).order('id',{ascending:false}),
+  supabase.from('maasser_income').select('*').eq('family_id',familyId).gte('income_date',yearStart).lt('income_date',yearNext).order('income_date',{ascending:false}).order('id',{ascending:false})
  ]);
  if(dr.error)throw dr.error;if(ir.error)throw ir.error;
  const donations=dr.data||[],incomes=ir.data||[];
@@ -5797,30 +5799,60 @@ async function exportMaasserExcel(){
   }
  }catch(err){if(msgEl)msgEl.textContent='Export impossible : '+(err?.message||String(err))}finally{btn.disabled=false}
 }
+let maasserEditingIncomeId=null;
+let maasserEditingDonationId=null;
+let maasserEditingDonationReceiptPath=null;
+function resetMaasserIncomeForm(message=''){
+ maasserEditingIncomeId=null;const f=document.getElementById('incomeForm');if(f)f.reset();
+ document.getElementById('incomeDate').value=currentDay;document.getElementById('incomeMaasser').checked=true;
+ document.getElementById('incomeSubmitBtn').textContent='Ajouter le revenu';document.getElementById('incomeCancelEdit').style.display='none';
+ document.getElementById('incomeMsg').textContent=message;
+}
+function resetMaasserDonationForm(message=''){
+ maasserEditingDonationId=null;maasserEditingDonationReceiptPath=null;const f=document.getElementById('donationForm');if(f)f.reset();
+ document.getElementById('donationDate').value=currentDay;document.getElementById('donationMaasser').checked=true;
+ document.getElementById('donationSubmitBtn').textContent='Ajouter le don';document.getElementById('donationCancelEdit').style.display='none';
+ document.getElementById('donationMsg').textContent=message;
+}
+function editMaasserIncome(x){
+ maasserEditingIncomeId=Number(x.id);document.getElementById('incomeDate').value=String(x.income_date||'').slice(0,10);document.getElementById('incomeAmount').value=Number(x.amount||0);document.getElementById('incomeType').value=x.income_type||'other';document.getElementById('incomeLabel').value=x.label||'';document.getElementById('incomeMaasser').checked=!!x.maasser_eligible;document.getElementById('incomeSubmitBtn').textContent='Enregistrer les modifications';document.getElementById('incomeCancelEdit').style.display='block';document.getElementById('incomeMsg').textContent='Modification du revenu.';document.getElementById('incomeForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function editMaasserDonation(x){
+ maasserEditingDonationId=Number(x.id);maasserEditingDonationReceiptPath=x.receipt_path||null;document.getElementById('donationDate').value=String(x.donation_date||'').slice(0,10);document.getElementById('donationAmount').value=Number(x.amount||0);document.getElementById('donationBeneficiary').value=x.beneficiary||'';document.getElementById('donationNotes').value=x.notes||'';document.getElementById('donationMaasser').checked=!!x.maasser_eligible;document.getElementById('donationCerfa').checked=!!x.cerfa;document.getElementById('donationReceipt').value='';document.getElementById('donationSubmitBtn').textContent='Enregistrer les modifications';document.getElementById('donationCancelEdit').style.display='block';document.getElementById('donationMsg').textContent=x.receipt_path?'Justificatif actuel conservé. Choisis un nouveau fichier uniquement pour le remplacer.':'Tu peux maintenant ajouter un justificatif.';document.getElementById('donationForm').scrollIntoView({behavior:'smooth',block:'center'});
+}
 async function renderMaasser(){
- if(!user)return;maasserSetDefaults();const summary=document.getElementById('maasserSummary'),il=document.getElementById('incomeList'),dl=document.getElementById('donationList'),annual=document.getElementById('maasserAnnual');
+ if(!user)return;if(!isParentProfile()||!appProfile?.family_id){document.getElementById('maasserSummary').innerHTML='<div class="maasser-empty">Le compte Dons & Maasser est réservé aux parents de la famille.</div>';return}maasserSetDefaults();const summary=document.getElementById('maasserSummary'),il=document.getElementById('incomeList'),dl=document.getElementById('donationList'),annual=document.getElementById('maasserAnnual');
  try{
   const data=await loadMaasserData(),t=maasserTotals(data.monthIncomes,data.monthDonations);
   summary.innerHTML=`<div class="maasser-kpi"><span>Revenus totaux</span><strong>${maasserMoney(t.incomeTotal)}</strong></div><div class="maasser-kpi"><span>Revenus maasser</span><strong>${maasserMoney(t.eligibleIncome)}</strong></div><div class="maasser-kpi primary"><span>Maasser théorique (10 %)</span><strong>${maasserMoney(t.target)}</strong></div><div class="maasser-kpi"><span>Dons totaux</span><strong>${maasserMoney(t.donationTotal)}</strong></div><div class="maasser-kpi"><span>Dons imputés maasser</span><strong>${maasserMoney(t.maasserDonations)}</strong></div><div class="maasser-kpi ${t.remaining>0?'warn':'primary'}"><span>${t.remaining>=0?'Reste à donner':'Avance de maasser'}</span><strong>${maasserMoney(Math.abs(t.remaining))}</strong></div><div class="maasser-kpi"><span>Dons avec CERFA</span><strong>${maasserMoney(t.cerfaDonations)}</strong></div>`;
-  il.innerHTML=data.monthIncomes.length?data.monthIncomes.map(x=>`<div class="maasser-row" data-income-id="${x.id}"><div class="maasser-row-main"><strong>${escapeHtml(INCOME_LABELS[x.income_type]||'Autre')} · ${maasserMoney(x.amount)}</strong><div class="maasser-meta">${maasserDate(x.income_date)}${x.label?' · '+escapeHtml(x.label):''}</div><div class="maasser-badges"><span class="maasser-badge ${x.maasser_eligible?'yes':'no'}">Maasser ${x.maasser_eligible?'oui':'non'}</span></div></div><div class="maasser-actions"><button class="danger" data-delete-income type="button">Supprimer</button></div></div>`).join(''):'<div class="maasser-empty">Aucun revenu ce mois-ci.</div>';
-  dl.innerHTML=data.monthDonations.length?data.monthDonations.map(x=>`<div class="maasser-row" data-donation-id="${x.id}" data-receipt-path="${escapeHtml(x.receipt_path||'')}"><div class="maasser-row-main"><strong>${escapeHtml(x.beneficiary)} · ${maasserMoney(x.amount)}</strong><div class="maasser-meta">${maasserDate(x.donation_date)}${x.notes?' · '+escapeHtml(x.notes):''}</div><div class="maasser-badges"><span class="maasser-badge ${x.maasser_eligible?'yes':'no'}">Maasser ${x.maasser_eligible?'oui':'non'}</span><span class="maasser-badge ${x.cerfa?'yes':'no'}">CERFA ${x.cerfa?'oui':'non'}</span>${x.receipt_path?'<span class="maasser-badge yes">Justificatif</span>':''}</div></div><div class="maasser-actions">${x.receipt_path?'<button data-view-receipt type="button">Voir justificatif</button>':''}<button class="danger" data-delete-donation type="button">Supprimer</button></div></div>`).join(''):'<div class="maasser-empty">Aucun don ce mois-ci.</div>';
+  il.innerHTML=data.monthIncomes.length?data.monthIncomes.map(x=>`<div class="maasser-row" data-income-id="${x.id}"><div class="maasser-row-main"><strong>${escapeHtml(INCOME_LABELS[x.income_type]||'Autre')} · ${maasserMoney(x.amount)}</strong><div class="maasser-meta">${maasserDate(x.income_date)}${x.label?' · '+escapeHtml(x.label):''}</div><div class="maasser-badges"><span class="maasser-badge ${x.maasser_eligible?'yes':'no'}">Maasser ${x.maasser_eligible?'oui':'non'}</span></div></div><div class="maasser-actions"><button data-edit-income type="button">Modifier</button><button class="danger" data-delete-income type="button">Supprimer</button></div></div>`).join(''):'<div class="maasser-empty">Aucun revenu ce mois-ci.</div>';
+  dl.innerHTML=data.monthDonations.length?data.monthDonations.map(x=>`<div class="maasser-row" data-donation-id="${x.id}" data-receipt-path="${escapeHtml(x.receipt_path||'')}"><div class="maasser-row-main"><strong>${escapeHtml(x.beneficiary)} · ${maasserMoney(x.amount)}</strong><div class="maasser-meta">${maasserDate(x.donation_date)}${x.notes?' · '+escapeHtml(x.notes):''}</div><div class="maasser-badges"><span class="maasser-badge ${x.maasser_eligible?'yes':'no'}">Maasser ${x.maasser_eligible?'oui':'non'}</span><span class="maasser-badge ${x.cerfa?'yes':'no'}">CERFA ${x.cerfa?'oui':'non'}</span>${x.receipt_path?'<span class="maasser-badge yes">Justificatif</span>':''}</div></div><div class="maasser-actions">${x.receipt_path?'<button data-view-receipt type="button">Voir justificatif</button>':''}<button data-edit-donation type="button">Modifier</button><button class="danger" data-delete-donation type="button">Supprimer</button></div></div>`).join(''):'<div class="maasser-empty">Aucun don ce mois-ci.</div>';
   const months=Array.from({length:12},(_,i)=>`${data.b.year}-${String(i+1).padStart(2,'0')}`),names=['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'];
   const rows=months.map((m,i)=>{const tt=maasserTotals(data.incomes.filter(x=>String(x.income_date).slice(0,7)===m),data.donations.filter(x=>String(x.donation_date).slice(0,7)===m));return {name:names[i],...tt}}),yr=maasserTotals(data.incomes,data.donations);
   annual.innerHTML=`<div class="maasser-table-wrap"><table class="maasser-table"><thead><tr><th>Mois</th><th>Revenus</th><th>Assiette maasser</th><th>Maasser 10 %</th><th>Dons</th><th>Dons maasser</th><th>CERFA</th><th>Solde</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${maasserMoney(r.incomeTotal)}</td><td>${maasserMoney(r.eligibleIncome)}</td><td>${maasserMoney(r.target)}</td><td>${maasserMoney(r.donationTotal)}</td><td>${maasserMoney(r.maasserDonations)}</td><td>${maasserMoney(r.cerfaDonations)}</td><td>${r.remaining>=0?maasserMoney(r.remaining)+' à donner':maasserMoney(Math.abs(r.remaining))+' avance'}</td></tr>`).join('')}</tbody><tfoot><tr><td>Année</td><td>${maasserMoney(yr.incomeTotal)}</td><td>${maasserMoney(yr.eligibleIncome)}</td><td>${maasserMoney(yr.target)}</td><td>${maasserMoney(yr.donationTotal)}</td><td>${maasserMoney(yr.maasserDonations)}</td><td>${maasserMoney(yr.cerfaDonations)}</td><td>${yr.remaining>=0?maasserMoney(yr.remaining)+' à donner':maasserMoney(Math.abs(yr.remaining))+' avance'}</td></tr></tfoot></table></div>`;
-  il.querySelectorAll('[data-delete-income]').forEach(btn=>btn.onclick=async()=>{const id=Number(btn.closest('[data-income-id]').dataset.incomeId);if(!confirm('Supprimer ce revenu ?'))return;btn.disabled=true;const r=await supabase.from('maasser_income').delete().eq('user_id',user.id).eq('id',id);if(r.error){btn.disabled=false;return alert(r.error.message)}await renderMaasser()});
+  il.querySelectorAll('[data-edit-income]').forEach(btn=>btn.onclick=()=>{const id=Number(btn.closest('[data-income-id]').dataset.incomeId),x=data.monthIncomes.find(v=>Number(v.id)===id);if(x)editMaasserIncome(x)});
+  il.querySelectorAll('[data-delete-income]').forEach(btn=>btn.onclick=async()=>{const id=Number(btn.closest('[data-income-id]').dataset.incomeId);if(!confirm('Supprimer ce revenu ?'))return;btn.disabled=true;const r=await supabase.from('maasser_income').delete().eq('family_id',maasserFamilyId()).eq('id',id);if(r.error){btn.disabled=false;return alert(r.error.message)}await renderMaasser()});
+  dl.querySelectorAll('[data-edit-donation]').forEach(btn=>btn.onclick=()=>{const id=Number(btn.closest('[data-donation-id]').dataset.donationId),x=data.monthDonations.find(v=>Number(v.id)===id);if(x)editMaasserDonation(x)});
   dl.querySelectorAll('[data-view-receipt]').forEach(btn=>btn.onclick=async()=>{const path=btn.closest('[data-donation-id]').dataset.receiptPath;if(!path)return;const r=await supabase.storage.from('donation-receipts').createSignedUrl(path,120);if(r.error)return alert(r.error.message);window.open(r.data.signedUrl,'_blank','noopener')});
-  dl.querySelectorAll('[data-delete-donation]').forEach(btn=>btn.onclick=async()=>{const row=btn.closest('[data-donation-id]'),id=Number(row.dataset.donationId),path=row.dataset.receiptPath;if(!confirm('Supprimer ce don ?'))return;btn.disabled=true;const r=await supabase.from('donations').delete().eq('user_id',user.id).eq('id',id);if(r.error){btn.disabled=false;return alert(r.error.message)}if(path)await supabase.storage.from('donation-receipts').remove([path]);await renderMaasser()});
- }catch(err){summary.innerHTML=`<div class="maasser-empty">Module non disponible : ${escapeHtml(err?.message||String(err))}. Vérifie que le SQL V6.4.0 a bien été exécuté.</div>`;il.innerHTML='';dl.innerHTML='';annual.innerHTML=''}
+  dl.querySelectorAll('[data-delete-donation]').forEach(btn=>btn.onclick=async()=>{const row=btn.closest('[data-donation-id]'),id=Number(row.dataset.donationId),path=row.dataset.receiptPath;if(!confirm('Supprimer ce don ?'))return;btn.disabled=true;const r=await supabase.from('donations').delete().eq('family_id',maasserFamilyId()).eq('id',id);if(r.error){btn.disabled=false;return alert(r.error.message)}if(path)await supabase.storage.from('donation-receipts').remove([path]);await renderMaasser()});
+ }catch(err){summary.innerHTML=`<div class="maasser-empty">Module non disponible : ${escapeHtml(err?.message||String(err))}. Vérifie que le SQL V6.4.3 a bien été exécuté.</div>`;il.innerHTML='';dl.innerHTML='';annual.innerHTML=''}
 }
 async function addMaasserIncome(e){
- e.preventDefault();const msgEl=document.getElementById('incomeMsg'),amount=Number(document.getElementById('incomeAmount').value),date=document.getElementById('incomeDate').value,type=document.getElementById('incomeType').value,label=document.getElementById('incomeLabel').value.trim(),eligible=document.getElementById('incomeMaasser').checked;if(!date||!Number.isFinite(amount)||amount<0)return;
- const r=await supabase.from('maasser_income').insert({user_id:user.id,income_date:date,amount,income_type:type,label:label||null,maasser_eligible:eligible});if(r.error){msgEl.textContent='Ajout impossible : '+r.error.message;return}e.target.reset();document.getElementById('incomeDate').value=currentDay;document.getElementById('incomeMaasser').checked=true;msgEl.textContent='Revenu ajouté.';document.getElementById('maasserMonth').value=date.slice(0,7);await renderMaasser();
+ e.preventDefault();if(!maasserFamilyId())return alert('Compte Maasser réservé aux parents de la famille.');const msgEl=document.getElementById('incomeMsg'),amount=Number(document.getElementById('incomeAmount').value),date=document.getElementById('incomeDate').value,type=document.getElementById('incomeType').value,label=document.getElementById('incomeLabel').value.trim(),eligible=document.getElementById('incomeMaasser').checked;if(!date||!Number.isFinite(amount)||amount<0)return;
+ const payload={income_date:date,amount,income_type:type,label:label||null,maasser_eligible:eligible};
+ let r;if(maasserEditingIncomeId){r=await supabase.from('maasser_income').update(payload).eq('family_id',maasserFamilyId()).eq('id',maasserEditingIncomeId)}else{r=await supabase.from('maasser_income').insert({user_id:user.id,family_id:maasserFamilyId(),...payload})}
+ if(r.error){msgEl.textContent=(maasserEditingIncomeId?'Modification':'Ajout')+' impossible : '+r.error.message;return}
+ const wasEdit=!!maasserEditingIncomeId;resetMaasserIncomeForm(wasEdit?'Revenu modifié.':'Revenu ajouté.');document.getElementById('maasserMonth').value=date.slice(0,7);await renderMaasser();
 }
 async function addMaasserDonation(e){
- e.preventDefault();const msgEl=document.getElementById('donationMsg'),amount=Number(document.getElementById('donationAmount').value),date=document.getElementById('donationDate').value,beneficiary=document.getElementById('donationBeneficiary').value.trim(),notes=document.getElementById('donationNotes').value.trim(),eligible=document.getElementById('donationMaasser').checked,cerfa=document.getElementById('donationCerfa').checked,file=document.getElementById('donationReceipt').files?.[0];if(!date||!beneficiary||!Number.isFinite(amount)||amount<0)return;
- let receipt_path=null;
- if(file){if(file.size>10*1024*1024){msgEl.textContent='Justificatif trop volumineux (10 Mo maximum).';return}const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';receipt_path=`${user.id}/${Date.now()}_${Math.random().toString(36).slice(2,9)}.${ext}`;const up=await supabase.storage.from('donation-receipts').upload(receipt_path,file,{upsert:false,contentType:file.type||undefined});if(up.error){msgEl.textContent='Envoi du justificatif impossible : '+up.error.message;return}}
- const r=await supabase.from('donations').insert({user_id:user.id,donation_date:date,amount,beneficiary,notes:notes||null,maasser_eligible:eligible,cerfa,receipt_path});if(r.error){if(receipt_path)await supabase.storage.from('donation-receipts').remove([receipt_path]);msgEl.textContent='Ajout impossible : '+r.error.message;return}e.target.reset();document.getElementById('donationDate').value=currentDay;document.getElementById('donationMaasser').checked=true;msgEl.textContent='Don ajouté.';document.getElementById('maasserMonth').value=date.slice(0,7);await renderMaasser();
+ e.preventDefault();if(!maasserFamilyId())return alert('Compte Maasser réservé aux parents de la famille.');const msgEl=document.getElementById('donationMsg'),amount=Number(document.getElementById('donationAmount').value),date=document.getElementById('donationDate').value,beneficiary=document.getElementById('donationBeneficiary').value.trim(),notes=document.getElementById('donationNotes').value.trim(),eligible=document.getElementById('donationMaasser').checked,cerfa=document.getElementById('donationCerfa').checked,file=document.getElementById('donationReceipt').files?.[0];if(!date||!beneficiary||!Number.isFinite(amount)||amount<0)return;
+ const oldPath=maasserEditingDonationReceiptPath||null;let receipt_path=oldPath,newUploadedPath=null;
+ if(file){if(file.size>10*1024*1024){msgEl.textContent='Justificatif trop volumineux (10 Mo maximum).';return}const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';newUploadedPath=`${user.id}/${Date.now()}_${Math.random().toString(36).slice(2,9)}.${ext}`;const up=await supabase.storage.from('donation-receipts').upload(newUploadedPath,file,{upsert:false,contentType:file.type||undefined});if(up.error){msgEl.textContent='Envoi du justificatif impossible : '+up.error.message;return}receipt_path=newUploadedPath}
+ const payload={donation_date:date,amount,beneficiary,notes:notes||null,maasser_eligible:eligible,cerfa,receipt_path};
+ let r;if(maasserEditingDonationId){r=await supabase.from('donations').update(payload).eq('family_id',maasserFamilyId()).eq('id',maasserEditingDonationId)}else{r=await supabase.from('donations').insert({user_id:user.id,family_id:maasserFamilyId(),...payload})}
+ if(r.error){if(newUploadedPath)await supabase.storage.from('donation-receipts').remove([newUploadedPath]);msgEl.textContent=(maasserEditingDonationId?'Modification':'Ajout')+' impossible : '+r.error.message;return}
+ if(maasserEditingDonationId&&newUploadedPath&&oldPath&&oldPath!==newUploadedPath)await supabase.storage.from('donation-receipts').remove([oldPath]);
+ const wasEdit=!!maasserEditingDonationId;resetMaasserDonationForm(wasEdit?'Don modifié.':'Don ajouté.');document.getElementById('maasserMonth').value=date.slice(0,7);await renderMaasser();
 }
 
 function setPanel(id){document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active",p.id===id));document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.panel===id));if(id==="summary")renderSummary("week");if(id==="summary2")renderSummary2();if(id==="berakhot")renderBerakhot();if(id==="time"){ensureTimeData().then(renderTime)}if(id==="family")renderFamily();if(id==="longTracking")renderLongTrackingV629();if(id==="vows")renderVows();if(id==="maasser")renderMaasser();if((id==="evening"||id==="objectives")&&isChildProfile()){loadAllowanceDayState().then(()=>{renderObjectives();renderEvening()})}}
@@ -5857,6 +5889,8 @@ document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>setP
 document.getElementById("vowForm")?.addEventListener("submit",addVow);
 document.getElementById("incomeForm")?.addEventListener("submit",addMaasserIncome);
 document.getElementById("donationForm")?.addEventListener("submit",addMaasserDonation);
+document.getElementById("incomeCancelEdit")?.addEventListener("click",()=>resetMaasserIncomeForm());
+document.getElementById("donationCancelEdit")?.addEventListener("click",()=>resetMaasserDonationForm());
 document.getElementById("maasserMonth")?.addEventListener("change",renderMaasser);
 document.getElementById("maasserRefresh")?.addEventListener("click",renderMaasser);
 document.getElementById("maasserExcel")?.addEventListener("click",exportMaasserExcel);
